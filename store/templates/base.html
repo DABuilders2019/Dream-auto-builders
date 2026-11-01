@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" href="/static/img/favicon.png">
 <link rel="preload" href="/static/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/css/site.css?v=6">
+<link rel="stylesheet" href="/static/css/site.css?v=7">
 </head>
 <body data-vehicle="{{ active.id if active else '' }}">
 <a class="sr skip" href="#main">Skip to content</a>
@@ -42,7 +42,7 @@
       <div class="vtitle">{{ icon('plus', 22, 2.6) }} Add a vehicle</div>
       {% if years %}{{ ymm('vb', 'Add vehicle') }}{% else %}<span class="muted">The vehicle list fills in once a brand with vehicle fitment is loaded.</span>{% endif %}
     {% endif %}
-    {% if garage_builder %}<a class="btn btn-ghost buildbtn" href="/build">{{ icon('car', 20) }} Build your dream ride</a>{% endif %}
+    {% if garage_builder %}<a class="btn btn-ghost buildbtn" href="/build">{{ icon('car', 20) }} <span class="bb-long">Build your dream ride</span><span class="bb-short">Build your ride &rarr;</span></a>{% endif %}
   </div></div>
 </header>
 

@@ -1,0 +1,120 @@
+{
+  "_comment": "Home page content. Slides: image is a file in store/static/img/slides (white background, the page blends it into the grey), or 'product:<slug>' to use that product's photo. price_from: '<category-id>' shows the lowest live price in that category. popular: product slugs shown when no vehicle is selected (missing or inactive ones are skipped). Later this moves into the admin dashboard. brand_logos: files in store/static/img/brands (MagnaFlow and Mickey Thompson from their SEMA logo assets, ReadyLift from readylift.com).",
+  "tagline": {
+    "title": "Build the car",
+    "title_red": "you dream about.",
+    "text": "Search thousands of parts from the brands you trust. Add your vehicle in the bar above and every page shows what fits it."
+  },
+  "slides": [
+    {
+      "kicker": "ReadyLift Leveling Kits",
+      "title": "Level the stance.",
+      "title_red": "Keep the factory ride.",
+      "text": "Leveling kits for trucks and SUVs from {price_from}.",
+      "price_from": "leveling-kits",
+      "cta": "Shop leveling kits",
+      "href": "/c/leveling-kits",
+      "image": "leveling.jpg"
+    },
+    {
+      "kicker": "Featured for Ram 1500",
+      "title": "3.5\" SST Lift Kit",
+      "title_red": "2019-2026 Ram 1500",
+      "text": "ReadyLift part 69-1935. {price:readylift-69-1935}.",
+      "cta": "View the kit",
+      "href": "/p/readylift-69-1935",
+      "image": "sst.jpg"
+    },
+    {
+      "kicker": "MagnaFlow Exhaust",
+      "title": "Hear the difference.",
+      "title_red": "Cat-back systems",
+      "text": "Street, Competition and NEO Series cat-backs from {price_from}.",
+      "price_from": "cat-back",
+      "cta": "Shop cat-backs",
+      "href": "/c/cat-back",
+      "image": "product:magnaflow-19097"
+    },
+    {
+      "kicker": "Mickey Thompson",
+      "title": "Tires built",
+      "title_red": "for the trail.",
+      "text": "Baja Boss, Baja Legend and ATZ P3 all-terrain and mud-terrain tires from {price_from}.",
+      "price_from": "all-terrain",
+      "cta": "Shop tires",
+      "href": "/c/tires",
+      "image": "product:mickeythompson-331035001"
+    },
+    {
+      "kicker": "Free shipping",
+      "title": "Free shipping",
+      "title_red": "on orders over $149",
+      "text": "Shipped straight from the distributor warehouse closest to you.",
+      "cta": "Start shopping",
+      "href": "/search",
+      "image": "lift.jpg"
+    }
+  ],
+  "categories": [
+    "suspension",
+    "exhaust",
+    "tires",
+    "wheels",
+    "intake",
+    "lighting",
+    "exterior",
+    "interior",
+    "performance",
+    "brakes"
+  ],
+  "category_images": {
+    "suspension": "suspension.jpg",
+    "exhaust": "product:magnaflow-11214",
+    "tires": "tires.jpg",
+    "wheels": "product:mickeythompson-250572",
+    "intake": "intake.jpg",
+    "lighting": "lighting.jpg",
+    "exterior": "exterior.jpg",
+    "interior": "interior.jpg",
+    "performance": "performance.jpg",
+    "brakes": "brakes.jpg"
+  },
+  "popular": [
+    "readylift-42-25640",
+    "readylift-69-1935",
+    "magnaflow-19097",
+    "mickeythompson-250572",
+    "readylift-66-30321",
+    "magnaflow-11214",
+    "mickeythompson-331035001",
+    "readylift-66-1920"
+  ],
+  "brand_logos": {
+    "magnaflow": "magnaflow.png",
+    "mickeythompson": "mickeythompson.png",
+    "readylift": "readylift.png"
+  },
+  "free_shipping_over": 149,
+  "props": [
+    {
+      "icon": "refundc",
+      "title": "Satisfaction Guaranteed",
+      "text": "Your satisfaction is our priority. If you're not completely happy, we'll make it right."
+    },
+    {
+      "icon": "globe",
+      "title": "Worldwide delivery",
+      "text": "We proudly offer fast and reliable worldwide delivery to get your order wherever you are."
+    },
+    {
+      "icon": "thumb",
+      "title": "Top-notch Support",
+      "text": "Experience top-notch support from our knowledgeable team, ready to assist you every step of the way."
+    },
+    {
+      "icon": "shield",
+      "title": "Secure Payment",
+      "text": "Shop with confidence knowing your transactions are protected by secure, encrypted payment technology."
+    }
+  ]
+}

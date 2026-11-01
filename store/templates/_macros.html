@@ -1,0 +1,53 @@
+{# Year / Make / Model picker. Makes and models load from /api/vehicles as the shopper picks. #}
+{% macro ymm(prefix, label, next=None) -%}
+<form class="vsel" data-ymm method="post" action="/garage/add?next={{ (next or here)|urlencode }}">
+  <label class="sr" for="{{ prefix }}Y">Year</label>
+  <select class="ymm" id="{{ prefix }}Y" data-y required><option value="">Year</option>{% for y in years %}<option>{{ y }}</option>{% endfor %}</select>
+  <label class="sr" for="{{ prefix }}M">Make</label>
+  <select class="ymm" id="{{ prefix }}M" data-m disabled required><option value="">Make</option></select>
+  <label class="sr" for="{{ prefix }}D">Model</label>
+  <select class="ymm" id="{{ prefix }}D" name="vehicle" data-d disabled required><option value="">Model</option></select>
+  <button class="btn btn-red" type="submit" data-go disabled>{{ label }}</button>
+</form>
+{%- endmacro %}
+
+{# Fit badge on cards and cart lines. #}
+{% macro fit_badge(p, active) -%}
+{% if p.fit == 'fits' %}<span class="fit fits">{{ icon('check', 14, 3) }} Fits your {{ active.year }} {{ active|vname }}</span>
+{% elif p.fit == 'no' %}<span class="fit nofit">{{ icon('x', 14, 3) }} Doesn't fit your {{ active|vname }}</span>
+{% elif p.fit == 'unknown' %}<span class="fit unknown">{{ icon('info', 14, 2.4) }} Fitment not listed</span>
+{% elif p.fitment_status == 'universal' %}<span class="fit universal">{{ icon('globe', 14, 2.4) }} Universal fit</span>
+{% elif p.fitment_status == 'by_size' %}<span class="fit size">{{ icon('ruler', 14, 2.2) }} Fits by size</span>
+{% elif p.fit_summary %}<span class="fit none">Fits {{ p.fit_summary.label }}{% if p.fit_summary.more %} + {{ p.fit_summary.more }} more{% endif %}</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro emissions(p) -%}
+{% if p.emissions == 'carb_legal' %}<span class="em ok">{{ icon('check', 13, 3) }} California legal{% if p.carb_eo %} (CARB EO {{ p.carb_eo }}){% endif %}</span>
+{% elif p.emissions == 'federal_only' %}<span class="em no">{{ icon('x', 13, 3) }} Federal only. Not legal in CA or CARB states</span>{% endif %}
+{%- endmacro %}
+
+{% macro pimg(p, size=64) -%}
+{% if p.image_url %}<div class="pimg photo"><img src="{{ p.image_url }}" alt="{{ p.short_name }}" loading="lazy"></div>
+{% else %}<div class="pimg noimg">{{ icon('photo', size, 1.2) }}<span class="brandtag">{{ p.brand_name }}</span></div>{% endif %}
+{%- endmacro %}
+
+{% macro card(p, active) -%}
+<article class="card">
+  <a href="/p/{{ p.slug }}" tabindex="-1" aria-hidden="true">{{ pimg(p) }}</a>
+  <div class="body">
+    <span class="brand">{{ p.brand_name }}</span>
+    <a class="ttl" href="/p/{{ p.slug }}">{{ p.title }}</a>
+    <span class="pn num">Part # {{ p.part_number }}</span>
+    {{ fit_badge(p, active) }}
+    {{ emissions(p) }}
+    <div class="foot"><div class="price num">{{ p.price|money }}</div>
+      <form method="post" action="/cart/add" data-cart><input type="hidden" name="product_id" value="{{ p.id }}">
+        <button class="addbtn" type="submit" aria-label="Add {{ p.short_name }} to cart">{{ icon('cart', 20) }}</button></form></div>
+  </div>
+</article>
+{%- endmacro %}
+
+{% macro shopby(text) -%}
+<div class="shopby"><div><h2 class="feat">{{ text }}</h2></div></div>
+{%- endmacro %}

@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card with context %}
+{% block main %}
+<div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a>{% for name, href in crumbs %} <span>/</span> {% if href %}<a href="{{ href }}">{{ name }}</a>{% else %}<span>{{ name }}</span>{% endif %}{% endfor %}</nav>
+  <div class="shop-h">
+    <div>{% if brand_logo %}<img class="brandlogo" src="{{ brand_logo }}" alt="">{% endif %}
+      <h1>{{ title }}{% if filtering_by_vehicle and res.vehicle %} <em>for your {{ res.vehicle.label }}</em>{% endif %}</h1>
+      <div class="count num">{{ res.total|num }} part{{ 's' if res.total != 1 }}{% if hidden %} · <a href="{{ show_all_url }}">{{ hidden|num }} hidden that don't fit your vehicle</a>{% endif %}</div></div>
+    <div class="sortbar"><button class="btn btn-ghost btn-sm filter-toggle" type="button" id="ftog" aria-controls="filters" aria-expanded="false">{{ icon('filter', 16) }} Filters</button>
+      <label for="sort">Sort</label><select class="ymm" id="sort" name="sort" form="filters">{% for k, label in sort_labels %}<option value="{{ k }}"{% if k == sort %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+  </div>
+
+  {% if added %}<div class="notice">{{ icon('checkc', 18) }} <span>Added your <b>{{ added }}</b> to My Garage. Showing parts that fit it.</span></div>{% endif %}
+  {% if res.vehicle and res.vehicle.source == 'query' and not res.vehicle.found %}<div class="notice warn">{{ icon('info', 18) }} <span>We don't have parts listed for a <b>{{ res.vehicle.label }}</b> yet.</span></div>
+  {% elif res.vehicle and res.vehicle.source == 'query' and not res.vehicle.exact %}<div class="notice">{{ icon('car', 18) }} <span>Showing parts for <b>{{ res.vehicle.label }}</b>. Add your exact vehicle above for a precise fit check.</span></div>{% endif %}
+  {% if res.corrections %}<div class="notice">{{ icon('search', 18) }} <span>Showing results for {% for bad, good in res.corrections.items() %}<b>{{ good }}</b> (you typed “{{ bad }}”){{ ', ' if not loop.last }}{% endfor %}.</span></div>{% endif %}
+  {% if res.relaxed %}<div class="notice">{{ icon('info', 18) }} <span>No parts matched every word, so these match some of them.</span></div>{% endif %}
+
+  <div class="shop">
+    <form class="filters" id="filters" method="get" action="" data-autosubmit>
+      {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+      {% if kind != 'category' and category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+      {% if res.vehicle %}
+        <div class="toggle"><div><b>Only parts that fit</b><small>{{ res.vehicle.label }}</small></div>
+          <label class="switch"><input type="hidden" name="all" value="1"><input type="checkbox" name="all" value="0"{% if not show_all %} checked{% endif %}><span></span><span class="sr">Only show parts that fit my vehicle</span></label></div>
+      {% else %}
+        <div class="toggle" style="flex-direction:column;align-items:stretch"><div><b>Add your vehicle</b><small>Use the bar above to see only parts that fit</small></div></div>
+      {% endif %}
+
+      <div class="fgroup"><h3>{{ cat_block.top.name if cat_block.top else 'Category' }}</h3>
+        {% if cat_block.top %}<a class="opt{% if cat_block.top.on %} on{% endif %}" href="{{ cat_block.top.url }}">All {{ cat_block.top.name }}<small class="num">{{ cat_block.top.count|num }}</small></a>{% endif %}
+        {% for o in cat_block.options %}<a class="opt{% if o.on %} on{% endif %}{% if cat_block.top %} sub{% endif %}" href="{{ o.url }}">{{ o.name }}<small class="num">{{ o.count|num }}</small></a>{% else %}{% if not cat_block.top %}<span class="muted">No categories</span>{% endif %}{% endfor %}
+        {% if cat_block.clear_url %}<a class="opt back" href="{{ cat_block.clear_url }}">‹ All categories</a>{% endif %}
+      </div>
+
+      {% if kind != 'brand' %}
+      <div class="fgroup"><h3>Brand</h3>
+        {% for b in res.facets.brands %}<label><input type="checkbox" name="brand" value="{{ b.id }}"{% if b.id in brands_sel %} checked{% endif %}>{{ b.name }}<small class="num">{{ b.count|num }}</small></label>{% else %}<span class="muted">No brands</span>{% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="fgroup"><h3>Price</h3>
+        {% for o in price_opts %}<label><input type="radio" name="price" value="{{ o.key }}"{% if o.on %} checked{% endif %}>{{ o.label }}{% if o.count is not none %}<small class="num">{{ o.count|num }}</small>{% endif %}</label>{% endfor %}
+      </div>
+
+      {% if res.facets.emissions and res.facets.emissions.emissions_parts %}
+      <div class="fgroup"><h3>Emissions</h3><label><input type="checkbox" name="carb" value="1"{% if carb %} checked{% endif %}>California (CARB) legal only</label></div>
+      {% endif %}
+      <noscript><button class="btn btn-red btn-sm" type="submit">Apply filters</button></noscript>
+    </form>
+
+    <div>
+      {% if not res.items %}
+        {% if filtering_by_vehicle and all_total %}
+        <div class="empty"><b>No {{ title|lower }} found for your {{ res.vehicle.label }}</b>We have {{ all_total|num }} that fit other vehicles.<br><a class="btn btn-ghost" href="{{ show_all_url }}">Show parts for all vehicles</a></div>
+        {% elif kind == 'category' and not brands_sel and not price and not carb %}
+        <div class="empty"><b>We're adding brands for {{ title }}</b>Parts for this category are coming soon.<br><a class="btn btn-ghost" href="/search">Browse all parts</a></div>
+        {% else %}
+        <div class="empty"><b>No parts match{% if q %} “{{ q }}”{% endif %}</b>Try different words, a part number, or clear your filters.<br><a class="btn btn-ghost" href="{{ clear_url }}">Clear filters</a></div>
+        {% endif %}
+      {% else %}
+        <div class="pgrid">{% for p in res['items'] %}{{ card(p, active) }}{% endfor %}</div>
+        {% if pages %}
+        <nav class="pager" aria-label="Pages">
+          {% if prev_url %}<a href="{{ prev_url }}" aria-label="Previous page">{{ icon('chevL', 16, 2.4) }}</a>{% endif %}
+          {% for n, href in pages %}{% if n == 0 %}<span class="gap">…</span>{% elif n == page %}<span class="on" aria-current="page">{{ n }}</span>{% else %}<a href="{{ href }}">{{ n }}</a>{% endif %}{% endfor %}
+          {% if next_url %}<a href="{{ next_url }}" aria-label="Next page">{{ icon('chevR', 16, 2.4) }}</a>{% endif %}
+        </nav>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="wrap page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>{{ title }}</span></nav>
+  <h1>{{ title }}</h1>
+  {% for para in paras %}<p>{{ para }}</p>{% endfor %}
+  {% if page == 'track' %}
+  <form class="trackform" data-track>
+    <div class="formrow"><label for="tOrder"><b>Order number</b></label><input id="tOrder" placeholder="DAB-100245" required></div>
+    <div class="formrow"><label for="tEmail"><b>Email</b></label><input id="tEmail" type="email" placeholder="you@example.com" required></div>
+    <button class="btn btn-red" type="submit">Track order</button>
+  </form>
+  <div class="note" id="tOut" hidden>Order tracking turns on with checkout. It will show the order status and the carrier tracking number from the distributor.</div>
+  {% elif page == 'account' %}
+  <div class="note">Sign-in isn't connected yet. It comes after checkout is set up.</div>
+  {% elif not paras or page in ('fitment-guarantee', 'about') %}
+  <div class="note">This page is a placeholder. Dream Auto Builders will add the final wording before the site launches.</div>
+  {% endif %}
+</div>
+{% endblock %}

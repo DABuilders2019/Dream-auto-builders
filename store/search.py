@@ -100,8 +100,8 @@ class Searcher:
         self.cfg = cfg
         self.vehicles = vehicle_index or veh.VehicleIndex.load(conn, cfg["make_aliases"], cfg["generic_model_words"])
         with conn.cursor() as cur:
-            cur.execute("SELECT id, parent_id, name FROM categories")
-            self.categories = {i: {"id": i, "parent": p, "name": n} for i, p, n in cur.fetchall()}
+            cur.execute("SELECT id, parent_id, name, sort FROM categories ORDER BY sort, name")
+            self.categories = {i: {"id": i, "parent": p, "name": n, "sort": o} for i, p, n, o in cur.fetchall()}
             cur.execute("SELECT id, name FROM brands")
             self.brands = dict(cur.fetchall())
         self.storage = get_storage()

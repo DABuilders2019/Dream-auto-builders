@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_macros.html" import ymm with context %}
+{% block main %}
+<div class="wrap page">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>My Garage</span></nav>
+  <h1>My Garage</h1>
+  <p>Save your vehicles and switch between them. Every page shows parts that fit the one you pick.</p>
+  {% if garage %}
+  <div class="glist">
+    {% for g in garage %}
+    <div class="gitem{% if active and g.id == active.id %} on{% endif %}">{{ icon('car', 22) }}<b>{{ g.label }}</b>
+      {% if active and g.id == active.id %}<span class="tag">Shopping for</span>
+      {% else %}<form method="post" action="/garage/use?next=/garage"><input type="hidden" name="vehicle" value="{{ g.id }}"><button class="btn btn-ghost btn-sm" type="submit">Shop for this</button></form>{% endif %}
+      <form method="post" action="/garage/remove?next=/garage"><input type="hidden" name="vehicle" value="{{ g.id }}"><button class="linkbtn" type="submit" aria-label="Remove {{ g.label }}">{{ icon('trash', 16) }}</button></form>
+    </div>
+    {% endfor %}
+  </div>
+  {% if active %}<p><a class="btn btn-red" href="/search">Shop parts for your {{ active|vname }}</a></p>{% endif %}
+  {% endif %}
+  <h2 style="font-size:22px;margin-top:26px">Add a vehicle</h2>
+  <div class="ymm-block">{{ ymm('gm', 'Add to garage', '/garage') }}</div>
+  <p style="font-size:13px;color:var(--muted);margin-top:14px">Your garage is saved in this browser. Customer accounts will keep it on every device.</p>
+</div>
+{% endblock %}

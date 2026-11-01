@@ -26,6 +26,8 @@ def seed_reference(conn):
             cur.execute("""INSERT INTO categories (id, parent_id, name, sort) VALUES (%s, NULL, %s, %s)
                            ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, sort = EXCLUDED.sort""", (c["id"], c["name"], i * 100))
             for j, (sid, sname) in enumerate(c["subs"]):
+                if sid == c["id"]:
+                    raise ValueError(f"catalog.json: subcategory id {sid!r} is the same as its parent's id")
                 cur.execute("""INSERT INTO categories (id, parent_id, name, sort) VALUES (%s, %s, %s, %s)
                                ON CONFLICT (id) DO UPDATE SET parent_id = EXCLUDED.parent_id, name = EXCLUDED.name, sort = EXCLUDED.sort""",
                             (sid, c["id"], sname, i * 100 + j + 1))

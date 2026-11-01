@@ -1,4 +1,4 @@
-"""Storefront web app. For now: the JSON API the pages will use.
+"""Storefront web app: the shop pages (store/web.py) plus this JSON API, which the pages' scripts also use.
 
   GET /api/search    q, vehicle, category, brand (repeatable), price_min, price_max, carb, fit_only, sort, page, per_page
   GET /api/suggest   q, vehicle                      (search-as-you-type)
@@ -8,9 +8,20 @@
   GET /api/vehicles/{id}
   GET /api/health
 
-Run locally:  DATABASE_URL=... uvicorn store.app:app --reload
+Run locally:  DATABASE_URL=... uvicorn --factory store.app:create_app --reload
+
+Settings (environment variables):
+  DATABASE_URL    Postgres connection string (required)
+  SECRET_KEY      signs the shopper's cookie (garage + cart). Set a long random value in production.
+  COOKIE_SECURE   1 to send that cookie over HTTPS only (production)
+  SITE_PREVIEW    1 (default) shows the "test site" ribbon and tells search engines not to index; 0 at launch
+  PHOTO_STORAGE / PHOTO_DIR / S3_*   where product photos are (see importer/storage.py)
 """
+import contextlib
+import logging
 import os
+import pathlib
+import secrets
 import threading
 import time
 from typing import List, Optional
@@ -18,8 +29,10 @@ from typing import List, Optional
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from psycopg_pool import ConnectionPool
+from starlette.middleware.sessions import SessionMiddleware
 
 from . import vehicles as veh
+from . import web
 from .search import SORTS, Searcher
 from .settings import search_config
 
@@ -46,9 +59,23 @@ class State:
 
 
 def create_app(dsn=None):
-    app = FastAPI(title="Dream Auto Builders", docs_url="/api/docs", redoc_url=None)
     state = State(dsn or os.environ["DATABASE_URL"])
+
+    @contextlib.asynccontextmanager
+    async def lifespan(app):
+        yield
+        state.pool.close()
+
+    app = FastAPI(title="Dream Auto Builders", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)
     app.state.shop = state
+
+    secret = os.environ.get("SECRET_KEY")
+    if not secret:
+        logging.getLogger("store").warning("SECRET_KEY is not set: using a temporary key, so carts reset when the server restarts")
+        secret = secrets.token_urlsafe(32)
+    app.add_middleware(SessionMiddleware, secret_key=secret, session_cookie="dab", max_age=90 * 24 * 3600,
+                       same_site="lax", https_only=os.environ.get("COOKIE_SECURE") == "1")
+    app.mount("/static", StaticFiles(directory=str(pathlib.Path(__file__).resolve().parent / "static")), name="static")
 
     if os.environ.get("PHOTO_STORAGE", "local") == "local":
         photo_dir = os.environ.get("PHOTO_DIR", "data/photos")
@@ -101,7 +128,6 @@ def create_app(dsn=None):
             raise HTTPException(404, "vehicle not found")
         return v
 
+    web.install(app)
     return app
 
-
-app = create_app() if os.environ.get("DATABASE_URL") else None

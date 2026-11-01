@@ -11,6 +11,7 @@ import concurrent.futures as cf
 import hashlib
 import io
 import time
+import urllib.parse
 import urllib.request
 import zipfile
 
@@ -26,6 +27,7 @@ UA = "Mozilla/5.0 (compatible; DreamAutoBuildersImporter/1.0)"
 def _fetch(url, timeout=60):
     if "dropbox.com" in url:
         url = url.replace("dl=0", "dl=1") if "dl=0" in url else url + ("&" if "?" in url else "?") + "dl=1"
+    url = urllib.parse.quote(url, safe=":/?&=%#+,;@!$'()*~")     # links sometimes contain spaces
     req = urllib.request.Request(url, headers={"User-Agent": UA})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read()
@@ -184,7 +186,8 @@ def summarize(conn, brand_id):
                    min(i.storage_key) AS storage_key
             FROM product_images i JOIN products p ON p.id = i.product_id
             WHERE p.brand_id = %s AND i.status = 'ok' AND i.md5 IS NOT NULL
-            GROUP BY i.md5 HAVING count(DISTINCT i.product_id) >= 5 AND count(DISTINCT p.part_type) >= 3
+            GROUP BY i.md5 HAVING count(DISTINCT i.product_id) >= 5 AND (count(DISTINCT p.part_type) >= 3
+                   OR (count(DISTINCT i.product_id) >= 50 AND count(DISTINCT p.part_type) >= 2) OR count(DISTINCT i.product_id) >= 200)
             ORDER BY 2 DESC""", (brand_id,))
         suspicious = [dict(zip([c.name for c in cur.description], r)) for r in cur.fetchall()]
     for p in products:

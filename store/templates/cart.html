@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import pimg, fit_badge with context %}
+{% block main %}
+<div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>Cart</span></nav>
+  {% if not lines %}
+  <div style="padding:20px 0 60px"><div class="empty"><b>Your cart is empty</b>Find parts for your build and they'll show up here.<br><a class="btn btn-red" href="/search">Shop parts</a></div></div>
+  {% else %}
+  <div class="shop-h"><div><h1>Your cart</h1><div class="count num">{{ cart_count }} item{{ 's' if cart_count != 1 }}</div></div></div>
+  <div class="cart"><div>
+    {% for l in lines %}
+    <div class="line"><a href="/p/{{ l.slug }}" aria-hidden="true" tabindex="-1">{{ pimg(l, 40) }}</a>
+      <div><a class="t" href="/p/{{ l.slug }}">{{ l.title }}</a><div class="sub num">{{ l.brand_name }} · Part # {{ l.part_number }} · {{ l.price|money }} each</div><div style="margin-top:6px">{{ fit_badge(l, active) }}</div></div>
+      <div class="r">
+        <div class="qty">
+          <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="{{ l.qty - 1 }}"><button type="submit" aria-label="Decrease quantity">−</button></form>
+          <input value="{{ l.qty }}" class="num" aria-label="Quantity" readonly>
+          <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="{{ l.qty + 1 }}"><button type="submit" aria-label="Increase quantity">+</button></form>
+        </div>
+        <b class="num">{{ l.line_total|money }}</b>
+        <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="0"><button class="linkbtn" type="submit">Remove</button></form>
+      </div></div>
+    {% endfor %}
+  </div>
+  <aside class="summary"><h2>Order summary</h2>
+    <div class="row num"><span>Subtotal</span><span>{{ subtotal|money }}</span></div>
+    <div class="row"><span>Shipping</span><span>{{ 'Free' if subtotal >= free_over else 'Calculated at checkout' }}</span></div>
+    <div class="row"><span>Sales tax</span><span>Calculated at checkout</span></div>
+    <div class="row total num"><span>Estimated total</span><span>{{ subtotal|money }}</span></div>
+    {% if subtotal < free_over %}<p class="num" style="font-size:13px;color:var(--muted);margin-top:6px">Add {{ (free_over - subtotal)|money }} more for free shipping.</p>{% endif %}
+    <button class="btn btn-red" type="button" disabled>{{ icon('lock', 18) }} Secure checkout</button>
+    <p class="secure" style="text-align:center">Checkout isn't open yet on this test site.</p>
+    <div class="secure">{{ icon('lock', 14) }} Payments processed by Stripe</div>
+  </aside></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>Brands</span></nav>
+  <div class="shop-h"><div><h1>Brands we carry</h1><div class="count num">{{ brands|length }} brand{{ 's' if brands|length != 1 }}</div></div></div>
+  <div class="brandgrid">
+    {% for b in brands %}<a class="btile" href="/brand/{{ b.id }}">{% if b.logo %}<img src="{{ b.logo }}" alt="{{ b.name }}" loading="lazy">{% else %}<span class="wm">{{ b.name }}</span>{% endif %}<small class="num">{{ b.count|num }} parts</small></a>{% endfor %}
+  </div>
+</div>
+{% endblock %}

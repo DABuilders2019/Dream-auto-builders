@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from "_macros.html" import card, emissions, ymm with context %}
+{% block description %}{{ p.brand_name }} {{ p.part_number }}: {{ p.short_name }}. {{ (p.marketing_copy or '')[:140] }}{% endblock %}
+{% block main %}
+<div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a>
+    {% if p.category_parent %} <span>/</span> <a href="/c/{{ p.category_parent }}">{{ p.parent_name }}</a>{% endif %}
+    {% if p.category_id %} <span>/</span> <a href="/c/{{ p.category_id }}">{{ p.category_name }}</a>{% endif %}
+    <span>/</span> <span>{{ p.part_number }}</span></nav>
+
+  <div class="pdp">
+    <div class="gallery">
+      {% if p.images %}
+        <div class="pimg photo" id="mainImg"><img src="{{ p.images[0].url }}" alt="{{ p.short_name }}"></div>
+        {% if p.images|length > 1 %}<div class="thumbs">{% for im in p.images[:12] %}<button type="button" class="{% if loop.first %}on{% endif %}" data-img="{{ im.url }}" aria-label="Photo {{ loop.index }}"><img src="{{ im.url }}" alt="" loading="lazy"></button>{% endfor %}</div>{% endif %}
+      {% else %}
+        <div class="pimg noimg">{{ icon('photo', 120, 1.1) }}</div>
+        <p class="imgnote">Photo coming soon from {{ p.brand_name }}.</p>
+      {% endif %}
+    </div>
+
+    <div class="buy">
+      <a class="brand" href="/brand/{{ p.brand_id }}">{{ p.brand_name }}</a>
+      <h1>{{ p.title }}</h1>
+      <div class="meta num"><span>Part # <b>{{ p.part_number }}</b></span>{% if p.category_name %}<span>Category <b>{{ p.category_name }}</b></span>{% endif %}{% if p.weight_lb %}<span>Weight <b>{{ '%g'|format(p.weight_lb|float) }} lb</b></span>{% endif %}</div>
+      <div class="pricebox"><span class="price num">{{ p.price|money }}</span></div>
+
+      {# ---- does it fit? ---- #}
+      {% if p.fit == 'fits' %}
+        <div class="fitbanner fits">{{ icon('checkc', 24) }}<div><b>This part fits your {{ v.label }}</b>
+          <span>{% set f = fit_info %}{% if f.trims %}<b class="fitline">Trims</b> {{ f.trims[:8]|join(', ') }}{% if f.trims|length > 8 %} and {{ f.trims|length - 8 }} more{% endif %}{% else %}All trims{% endif %}{% if f.engines %}<br><b class="fitline">Engines</b> {{ f.engines[:4]|join(', ') }}{% if f.engines|length > 4 %} and {{ f.engines|length - 4 }} more{% endif %}{% endif %}{% for n in f.notes[:3] %}<br><b class="fitline">Note</b> {{ n }}{% endfor %}</span></div></div>
+      {% elif p.fitment_status == 'universal' %}
+        <div class="fitbanner universal">{{ icon('globe', 24) }}<div><b>Universal fit</b><span>This part isn't made for one vehicle. Check the specifications for size and mounting.</span></div></div>
+      {% elif p.fitment_status == 'by_size' %}
+        <div class="fitbanner size">{{ icon('ruler', 24) }}<div><b>Fits by size{% if size %}: {{ size|tiresize }}{% endif %}</b><span>{% if p.category_parent == 'tires' %}Tires are matched by size, not by vehicle. Check the size on your current tire's sidewall or your door jamb sticker before ordering.{% else %}Wheels are matched by size and bolt pattern, not by vehicle. Check the specifications against your vehicle before ordering.{% endif %}</span></div></div>
+      {% elif p.fit == 'no' %}
+        <div class="fitbanner nofit">{{ icon('xc', 24) }}<div><b>This part does not fit your {{ v.label }}</b>
+          <span>{% if summary %}It fits {{ summary.label }}{% if summary.more %} and {{ summary.more }} other model{{ 's' if summary.more != 1 }}{% endif %}. {% endif %}<a href="/c/{{ p.category_id }}" style="color:var(--text);text-decoration:underline">See {{ (p.category_name or 'parts')|lower }} that fit your vehicle</a></span></div></div>
+      {% elif p.fitment_status == 'missing' %}
+        <div class="fitbanner none">{{ icon('info', 24) }}<div><b>Fitment not listed</b><span>{{ p.brand_name }} hasn't listed which vehicles this part fits. Check the description and specifications, or contact us before ordering.</span></div></div>
+      {% else %}
+        <div class="fitbanner none">{{ icon('info', 24) }}<div><b>Will this fit your vehicle?</b><span>{% if summary %}Fits {{ summary.label }}{% if summary.more %} and {{ summary.more }} other model{{ 's' if summary.more != 1 }}{% endif %}. {% endif %}Add your vehicle to check.</span>{{ ymm('pf', 'Check fit') }}</div></div>
+      {% endif %}
+      {% if p.emissions %}<div style="margin:-4px 0 14px">{{ emissions(p) }}</div>{% endif %}
+
+      <form class="cartrow" method="post" action="/cart/add" data-cart>
+        <input type="hidden" name="product_id" value="{{ p.id }}">
+        <div class="qty"><button type="button" data-qty="-1" aria-label="Decrease quantity">−</button><label for="qv" class="sr">Quantity</label><input id="qv" name="qty" value="1" inputmode="numeric" pattern="[0-9]*" class="num"><button type="button" data-qty="1" aria-label="Increase quantity">+</button></div>
+        <button class="btn btn-red" type="submit">{{ icon('cart', 20) }} Add to cart</button>
+      </form>
+      {% if in_cart %}<p class="incart num"><a href="/cart">{{ in_cart }} already in your cart</a></p>{% endif %}
+      <div class="avail num"><div class="h"><span>Availability</span><span class="stock"><span class="dot bo"></span>Live stock coming soon</span></div>
+        <div><span>Ships from</span><span style="color:var(--muted)">Distributor warehouse closest to you</span></div></div>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" class="on" aria-selected="true" aria-controls="t-details" id="tb-details">Details</button>
+    {% if specs %}<button type="button" role="tab" aria-selected="false" aria-controls="t-specs" id="tb-specs">Specifications</button>{% endif %}
+    {% if p.fitment_status == 'vehicle_specific' %}<button type="button" role="tab" aria-selected="false" aria-controls="t-fitment" id="tb-fitment">Vehicle Fitment</button>{% endif %}
+    <button type="button" role="tab" aria-selected="false" aria-controls="t-shipping" id="tb-shipping">Shipping &amp; Returns</button>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="t-details" aria-labelledby="tb-details">
+    {% if p.marketing_copy %}<p class="mkt">{{ p.marketing_copy|fixtext }}</p>{% endif %}
+    {% if p.features %}<ul class="features">{% for f in p.features %}<li>{{ icon('check', 18, 3) }}<span>{{ f|fixtext }}</span></li>{% endfor %}</ul>{% endif %}
+    {% if p.documents %}<div class="docs">{% for d in p.documents %}<a href="{{ d.url }}" target="_blank" rel="noopener">{{ icon('doc', 16) }} Installation instructions{% if p.documents|length > 1 %} {{ loop.index }}{% endif %} (PDF)</a>{% endfor %}</div>{% endif %}
+    {% if p.prop65_warning %}<div class="p65"><span aria-hidden="true">⚠</span><span><b>California Prop 65 warning:</b> {{ p.prop65_warning|replace('WARNING:', '')|trim }}</span></div>{% endif %}
+    <p class="datasrc">Description, photos and specifications supplied by {{ p.brand_name }} through SEMA Data.</p>
+  </div>
+
+  {% if specs %}
+  <div class="tabpanel" role="tabpanel" id="t-specs" aria-labelledby="tb-specs">
+    <div class="tblwrap" style="max-width:760px"><table class="tbl specs"><tbody>{% for k, val in specs %}<tr><th scope="row">{{ k }}</th><td>{{ val }}</td></tr>{% endfor %}</tbody></table></div>
+  </div>
+  {% endif %}
+
+  {% if p.fitment_status == 'vehicle_specific' %}
+  <div class="tabpanel" role="tabpanel" id="t-fitment" aria-labelledby="tb-fitment">
+    <div class="tblwrap"><table class="tbl num"><thead><tr><th>Years</th><th>Make</th><th>Model</th><th>Submodels</th><th>Engines</th><th>Notes</th></tr></thead><tbody>
+      {% for r in p.fitment %}<tr{% if v and r.make == v.make and r.model == v.model and r['from'] <= v.year <= r['to'] %} class="match"{% endif %}><td>{{ r.years }}</td><td>{{ r.make }}</td><td>{{ r.model }}</td><td>{{ r.submodel or 'All' }}</td><td>{{ r.engine or '-' }}</td><td>{{ r.notes or '-' }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    <p class="datasrc">Fitment from {{ p.brand_name }}'s ACES data.{% if p.fitment_total > p.fitment|length %} Showing {{ p.fitment|length|num }} of {{ p.fitment_total|num }} rows.{% endif %}</p>
+  </div>
+  {% endif %}
+
+  <div class="tabpanel" role="tabpanel" id="t-shipping" aria-labelledby="tb-shipping">
+    <div style="max-width:70ch;display:grid;gap:10px;color:#333338"><p>In-stock orders usually ship within 1-2 business days directly from the distributor's warehouse. You'll get a tracking number by email as soon as it ships.</p><p>Oversized items such as lift kits, bumpers and tonneau covers may ship by freight. Freight orders need a phone number for delivery scheduling.</p><p>Unused parts in original packaging can be returned within 30 days. Parts that have been installed can't be returned unless they're defective.</p></div>
+  </div>
+
+  {% if related %}
+  <section class="blk" style="padding-top:0"><div class="sec-h"><h2>You might also <em>need</em></h2></div>
+    <div class="pgrid four">{% for r in related %}{{ card(r, active) }}{% endfor %}</div></section>
+  {% endif %}
+</div>
+{% endblock %}

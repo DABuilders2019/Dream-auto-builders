@@ -140,8 +140,8 @@
    "name": "Wheels",
    "subs": [
     [
-     "wheels",
-     "Wheels"
+     "rims",
+     "Wheels & Rims"
     ],
     [
      "wheel-spacers",
@@ -304,7 +304,7 @@
     "Wheel - Steel",
     "Wheel - Alloy"
    ],
-   "category": "wheels"
+   "category": "rims"
   },
   {
    "part_type": [

@@ -564,6 +564,12 @@
    "key_type": "md5",
    "verdict": "vehicle",
    "reason": "MagnaFlow exhaust tip installed on a truck"
+  },
+  {
+   "key": "963b7c8b17565cad036f41d993a1b041",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "Prop 65 warning label image, not the part (Mickey Thompson)"
   }
  ]
 }

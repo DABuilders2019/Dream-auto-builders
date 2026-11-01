@@ -113,4 +113,5 @@ def test_robots(client):
 def test_garage_has_interactive_garage(client):
     page = client.get("/garage").text
     assert 'id="nestedIFrame"' in page and "interactivegarage.com/dreamauto/" in page
-    assert "iFrameResize(" in page and "Add a vehicle" in page
+    assert "iFrameResize(" in page and "Add a vehicle" in page and 'id="build"' in page
+    assert 'href="/garage#build"' in client.get("/").text       # button in the Add a Vehicle bar

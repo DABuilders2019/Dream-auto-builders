@@ -475,3 +475,7 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .ig-head p{color:#333338;max-width:70ch;margin:6px 0 18px}
 #nestedIFrame{display:block;width:100%;max-width:none;min-height:900px;border:0;background:#fff}
 @media (max-width:720px){ #nestedIFrame{min-height:700px} }
+.vbar .buildbtn{margin-left:auto;border-color:var(--red);color:var(--red)}
+.vbar .buildbtn:hover{background:var(--red);color:#fff}
+#build{scroll-margin-top:150px}
+@media (max-width:720px){ .vbar .buildbtn{margin-left:0;flex:1 1 100%} }

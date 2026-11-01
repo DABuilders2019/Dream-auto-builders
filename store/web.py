@@ -151,7 +151,9 @@ def render(request, conn, searcher, name, status_code=200, **ctx):
     top = cached(request, "top_cats", lambda: _top_categories(conn, searcher))
     years = cached(request, "years", lambda: veh.years(conn))
     here = request.url.path + (("?" + request.url.query) if request.url.query else "")
-    base = dict(request=request, garage=garage, active=active, cart_count=count, cart_subtotal=subtotal,
+    from .orders import store_config
+    builder = bool((store_config().get("interactive_garage") or {}).get("url"))
+    base = dict(request=request, garage=garage, active=active, cart_count=count, cart_subtotal=subtotal, garage_builder=builder,
                 years=years, footer_cats=top[:6], here=here, q=ctx.pop("q", ""), money=money)
     resp = templates.TemplateResponse(request, name, {**base, **ctx}, status_code=status_code)
     if is_preview():

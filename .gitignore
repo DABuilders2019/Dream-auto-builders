@@ -1,0 +1,9 @@
+# SEMA exports, downloads and local data
+*.xml
+*.zip
+*.xlsx
+/data/
+/downloads/
+__pycache__/
+.env
+node_modules/

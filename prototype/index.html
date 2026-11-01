@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dream Auto Builders Store Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Brand: clean white floor, black type, Dream Auto red as the single accent. Layout: dense parts-store grid, vehicle bar always visible. */
+  --bg:#ffffff; --panel:#f6f6f7; --panel-2:#efeff1; --line:#e1e1e5; --text:#111113; --muted:#5e5e66;
+  --red:#a8131a; --red-deep:#860e14; --red-glow:rgba(168,19,26,.07);
+  --ok:#14843f; --warn:#b26a00; --bad:#c62828;
+  --display:'Barlow Condensed','Arial Narrow',Arial,sans-serif; --body:'Barlow','Helvetica Neue',Arial,sans-serif;
+  --radius:6px; --wrap:1280px;
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--text)}
+body{font-family:var(--body);font-size:15px;line-height:1.55;overflow-x:hidden}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.01em;line-height:1.05;text-wrap:balance}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 20px}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* prototype ribbon */
+.proto{background:#fdf0f0;border-bottom:1px solid #f4cfd0;color:#7a1b1f;font-size:12.5px;text-align:center;padding:6px 16px}
+.proto b{color:#111}
+
+/* header */
+header.top{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+.hdr{display:flex;align-items:center;gap:20px;height:76px}
+.logo img{height:44px;width:auto}
+.search{flex:1;position:relative;max-width:none;min-width:0}
+.search form{display:flex;background:#fff;border-radius:var(--radius);overflow:hidden;border:2px solid #111}
+.search input{flex:1;border:0;background:#fff;color:#111;padding:11px 14px;font-size:15px;outline:none;min-width:0}
+.search input::placeholder{color:#777}
+.search button{background:var(--red);border:0;padding:0 18px;display:flex;align-items:center;gap:6px;font-weight:700;color:#fff;font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.03em}
+.search button:hover{background:var(--red-deep)}
+.ac{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 18px 40px rgba(0,0,0,.14);display:none;max-height:70vh;overflow:auto;z-index:60}
+.ac.open{display:block}
+.ac h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 14px 4px;font-weight:600}
+.ac a{display:flex;gap:10px;align-items:center;padding:8px 14px;font-size:14px}
+.ac a:hover,.ac a.hi{background:var(--panel-2)}
+.ac a small{color:var(--muted);margin-left:auto;white-space:nowrap}
+.ac mark{background:none;color:var(--red);font-weight:700}
+.hdr-actions{display:flex;gap:2px;margin-left:auto;flex:none}
+.hbtn{display:flex;align-items:center;gap:8px;background:none;border:1px solid transparent;border-radius:var(--radius);padding:8px 10px;font-weight:600;font-size:14px;position:relative}
+.hbtn:hover{border-color:var(--line);background:var(--panel)}
+.hbtn .lbl{margin-left:6px;display:flex;flex-direction:column;line-height:1.1;text-align:left}
+.hbtn .lbl small{font-weight:500;color:var(--muted);font-size:11.5px}
+.badge[hidden]{display:none}
+.badge{position:absolute;top:-2px;left:20px;background:var(--red);color:#fff;font-size:11px;font-weight:700;border-radius:10px;min-width:18px;height:18px;display:grid;place-items:center;padding:0 5px}
+.menu-btn{display:none}
+
+/* category nav */
+nav.cats{background:#fff;border-bottom:1px solid var(--line)}
+nav.cats .wrap{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.cats .wrap::-webkit-scrollbar{display:none}
+nav.cats a{font-family:var(--display);text-transform:uppercase;font-weight:700;letter-spacing:.04em;font-size:15.5px;padding:11px 13px;white-space:nowrap;color:#2a2a2e;border-bottom:3px solid transparent}
+nav.cats a:hover,nav.cats a.on{color:var(--red);border-bottom-color:var(--red)}
+
+/* vehicle bar (Jegs-style add a vehicle) */
+.vbar{background:var(--panel);border-bottom:1px solid var(--line)}
+.vbar .wrap{display:flex;align-items:center;gap:14px;min-height:58px;flex-wrap:wrap;padding-top:8px;padding-bottom:8px}
+.vbar .vtitle{display:flex;align-items:center;gap:10px;font-family:var(--display);text-transform:uppercase;font-weight:800;font-size:19px;letter-spacing:.02em}
+.vbar .vtitle svg{color:var(--red)}
+.vsel{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+select.ymm{appearance:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235e5e66' stroke-width='2' fill='none'/%3E%3C/svg%3E") no-repeat right 10px center;border:1px solid var(--line);border-radius:var(--radius);padding:9px 32px 9px 12px;min-width:120px;font-size:14px}
+select.ymm:disabled{opacity:.45}
+select.ymm:not(:disabled):hover{border-color:#9a9aa2}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:var(--radius);padding:10px 18px;font-family:var(--display);text-transform:uppercase;font-weight:700;font-size:16px;letter-spacing:.04em;border:1px solid transparent;transition:background .15s,border-color .15s}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:var(--red-deep)}
+.btn-red:disabled{background:#dfb3b5;color:#fff;cursor:not-allowed}
+.btn-ghost{background:#fff;border-color:var(--line);color:var(--text)}
+.btn-ghost:hover{border-color:#111}
+.btn-sm{padding:7px 12px;font-size:14px}
+.vchip{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #d9d9de;border-radius:40px;padding:6px 8px 6px 14px}
+.vchip .ok{color:var(--ok);display:flex}
+.vchip b{font-weight:700}
+.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;font-size:13.5px;padding:4px}
+.linkbtn:hover{color:var(--text)}
+
+main{min-height:60vh}
+
+/* home */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--line);background:radial-gradient(900px 400px at 85% 10%,var(--red-glow),transparent 60%),#fff}
+.hero .wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center;padding-top:44px;padding-bottom:48px}
+.hero .kicker{font-family:var(--display);text-transform:uppercase;font-weight:700;color:var(--red);letter-spacing:.14em;font-size:14px;margin-bottom:12px}
+.hero h1{font-size:clamp(40px,6vw,74px);font-weight:800;font-style:italic}
+.hero h1 span{color:var(--red)}
+.hero p.lede{color:#3a3a40;font-size:17px;max-width:52ch;margin-top:16px}
+.hero .stats{display:flex;gap:28px;margin-top:26px;flex-wrap:wrap}
+.hero .stats div{font-family:var(--display);font-weight:800;font-size:30px;line-height:1}
+.hero .stats small{display:block;font-family:var(--body);font-weight:500;font-size:12.5px;color:var(--muted);margin-top:4px;text-transform:none}
+.heroart{display:grid;place-items:center}
+.heroart img{width:min(340px,80%);height:auto}
+.finder{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--red);border-radius:var(--radius);padding:24px}
+.finder h2{font-size:28px;font-weight:800}
+.finder p{color:var(--muted);font-size:14px;margin:6px 0 16px}
+.finder .grid{display:grid;gap:10px}
+.finder select.ymm{width:100%;padding:12px 32px 12px 14px;font-size:15px}
+.finder .btn{width:100%;margin-top:6px;padding:13px}
+.finder .active{display:flex;flex-direction:column;gap:12px}
+.finder .active .car{display:flex;gap:12px;align-items:center;font-family:var(--display);font-size:26px;font-weight:800;text-transform:uppercase}
+.finder .active .car svg{color:var(--red);flex:none}
+.finder .quick{display:flex;flex-wrap:wrap;gap:6px}
+.finder .quick a{border:1px solid var(--line);border-radius:30px;padding:5px 12px;font-size:13px}
+.finder .quick a:hover{border-color:var(--red)}
+
+section.blk{padding:40px 0}
+.sec-h{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:18px;flex-wrap:wrap}
+.sec-h h2{font-size:32px;font-weight:800}
+.sec-h h2 em{color:var(--red);font-style:normal}
+.sec-h a{color:var(--muted);font-size:14px;font-weight:600}
+.sec-h a:hover{color:var(--red)}
+.catgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.cat{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 14px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;transition:border-color .15s,transform .15s}
+.cat:hover{border-color:var(--red);transform:translateY(-2px)}
+.cat svg{color:var(--red)}
+.cat b{font-family:var(--display);text-transform:uppercase;font-size:19px;letter-spacing:.02em}
+.cat small{color:var(--muted);font-size:12.5px;margin-top:-8px}
+.brands{display:flex;flex-wrap:wrap;gap:10px}
+.brands a{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 18px;font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:18px;letter-spacing:.04em;color:#222}
+.brands a:hover{border-color:var(--red);color:var(--red)}
+.props{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.prop{border:1px solid var(--line);border-radius:var(--radius);padding:18px;display:flex;gap:14px;background:var(--panel)}
+.prop svg{color:var(--red);flex:none;margin-top:2px}
+.prop b{display:block;font-weight:700;margin-bottom:2px}
+.prop span{color:var(--muted);font-size:13.5px}
+
+/* promo slideshow */
+.promo{background:#fff;padding:20px 0 0}
+.pviewport{position:relative;border-radius:var(--radius);overflow:hidden;height:380px}
+.slide{position:absolute;inset:0;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:16px;padding:30px 48px 30px 56px;opacity:0;visibility:hidden;transition:opacity .9s ease,visibility .9s}
+.slide.on{opacity:1;visibility:visible}
+.slide.light{background:linear-gradient(120deg,#f1f1f3 0%,#e4e4e8 100%)}
+.slide.dark{background:radial-gradient(700px 300px at 80% 40%,#3a1416,transparent 70%),#111113;color:#fff}
+.slide.red{background:linear-gradient(120deg,var(--red) 0%,#6f0b10 100%);color:#fff}
+.sl-kicker{font-family:var(--display);text-transform:uppercase;font-weight:700;letter-spacing:.14em;font-size:14px;color:#111113}
+.slide.dark .sl-kicker{color:#ff7a7f}.slide.red .sl-kicker{color:#ffd2d4}
+.sl-copy h2{font-size:clamp(30px,4vw,52px);font-weight:800;font-style:italic;margin:8px 0 12px}
+.sl-copy h2 em{font-style:italic;color:var(--red)}
+.slide.dark .sl-copy h2 em{color:#ff5a60}.slide.red .sl-copy h2 em{color:#fff;opacity:.85}
+.sl-copy p{font-size:16px;max-width:44ch;opacity:.85}
+.sl-cta{display:inline-flex;align-items:center;gap:6px;margin-top:18px;background:var(--red);color:#fff;font-family:var(--display);text-transform:uppercase;font-weight:800;font-size:18px;letter-spacing:.04em;padding:11px 20px;border-radius:var(--radius)}
+.slide.red .sl-cta{background:#fff;color:var(--red)}
+.slide:hover .sl-cta{filter:brightness(1.1)}
+.sl-art{display:grid;place-items:center;height:100%}
+.sl-img{width:100%;max-width:380px;height:230px;display:block;margin:0 auto}
+.sl-img img{width:100%;height:100%;object-fit:contain}
+.sl-img img,.sl-img .sprite{mix-blend-mode:multiply}
+.sl-img img{width:100%;height:100%;object-fit:contain}
+.sl-img .sprite{height:100%}
+.pctrl{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:12px;position:relative;z-index:2;width:fit-content;margin-left:auto;margin-right:auto;background:#111113;border-radius:30px;padding:6px 10px}
+.pctrl button{background:none;border:0;color:#fff;display:grid;place-items:center;width:28px;height:28px;border-radius:50%}
+.pctrl button:hover{background:rgba(255,255,255,.15)}
+.pdots{display:flex;gap:6px}
+.pdots button{width:10px;height:10px;padding:0;border-radius:50%;background:rgba(255,255,255,.4)}
+.pdots button.on{background:#fff}
+.tagline{padding:26px 0 34px;border-bottom:1px solid var(--line);margin-top:8px}
+.tagline .wrap{display:grid;grid-template-columns:auto minmax(280px,1fr);gap:36px;align-items:center}
+.tagline h1{font-size:clamp(30px,3.3vw,46px);font-weight:800;font-style:italic}
+.tagline h1 span{color:var(--red)}
+.tagline p{color:#3a3a40;font-size:17px;max-width:56ch;border-left:3px solid var(--red);padding-left:20px}
+
+/* shop-by sections */
+.band{background:#f4f4f5;padding:44px 0 50px;border-top:1px solid var(--line)}
+.shopby{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:28px;margin-bottom:24px}
+.shopby:before,.shopby:after{content:"";height:1px;background:#9d9da5}
+.shopby div{text-align:center;line-height:1}
+.shopby span{display:block;font-family:var(--display);font-weight:600;font-size:20px;color:var(--red);text-transform:lowercase;letter-spacing:0}
+.shopby h2.feat{font-size:clamp(24px,2.4vw,30px);text-transform:none;letter-spacing:0;margin-top:0;white-space:nowrap}
+.shopby h2{font-size:clamp(28px,3vw,38px);font-weight:800;color:var(--red);margin-top:2px}
+.catcards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.ccard{background:#fff;display:grid;grid-template-columns:44% 1fr;gap:18px;align-items:center;padding:24px 22px;min-height:230px;transition:box-shadow .2s}
+.ccard:hover{box-shadow:0 10px 26px rgba(0,0,0,.08)}
+.ccard .cimg{display:grid;place-items:center;aspect-ratio:1/1;color:#8a8a92}
+.ccard .cimg img{width:100%;height:100%;object-fit:contain}
+.ccard .cimg svg{filter:drop-shadow(0 10px 8px rgba(0,0,0,.12))}
+.ccard h3{font-family:var(--body);text-transform:none;font-size:21px;font-weight:600;letter-spacing:.01em;margin-bottom:8px}
+.ccard h3 a:hover{color:var(--red)}
+.ccard ul{list-style:none;display:grid;gap:6px;margin-bottom:10px}
+.ccard ul a{color:#8b8b93;font-size:16px;letter-spacing:.02em}
+.ccard ul a:hover{color:var(--red)}
+.ccard .vm{font-weight:600;font-size:16px}
+.ccard .vm:hover{color:var(--red)}
+.ccard small{display:block;color:var(--muted);font-size:12.5px;margin-bottom:8px}
+.bhead{position:relative}
+.barrows{display:flex;justify-content:flex-end;gap:12px;margin:-12px 0 14px}
+.barrows button{width:46px;height:46px;border-radius:50%;background:#fff;border:1px solid #cfcfd5;display:grid;place-items:center;color:#111}
+.barrows button:hover{border-color:#111}
+.bviewport{overflow:hidden}
+.btrack{display:flex;gap:10px;will-change:transform}
+.btile{flex:0 0 calc((100% - 50px)/6);min-width:0;overflow:hidden;background:#fff;height:190px;display:grid;place-items:center;padding:20px;text-align:center}
+.btile:hover .wm{color:var(--red)}
+.btile img{max-height:120px;width:auto;object-fit:contain}
+.wm{font-family:var(--display);font-weight:800;font-style:italic;text-transform:uppercase;font-size:clamp(18px,2vw,26px);line-height:.95;color:#1a1a1d;overflow-wrap:anywhere;letter-spacing:.01em;transition:color .2s}
+.wm small{display:block;font-style:normal;font-weight:600;font-size:12px;letter-spacing:.2em;color:var(--muted);margin-top:6px}
+
+/* product cards */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);display:flex;flex-direction:column;overflow:hidden;transition:border-color .15s}
+.card:hover{border-color:#a9a9b0;box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.pimg{aspect-ratio:4/3;background:radial-gradient(circle at 50% 45%,#ffffff 0,#ececef 75%);display:grid;place-items:center;position:relative;color:#9a9aa3;border-bottom:1px solid var(--line)}
+.pimg.photo{background:#fff;padding:10px}
+.sprite{display:block;height:100%;aspect-ratio:1/1;max-width:100%;margin:0 auto;background-repeat:no-repeat}
+.thumbs button .sprite{height:100%}
+.pimg.photo img{width:100%;height:100%;object-fit:contain}
+.pgrid.four{grid-template-columns:repeat(4,1fr)}
+.pimg .brandtag{position:absolute;left:10px;bottom:8px;font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:12px;letter-spacing:.08em;color:#9a9aa3}
+.card .body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.card .brand{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.card .ttl{font-weight:600;font-size:14.5px;line-height:1.35}
+.card .ttl:hover{color:var(--red);text-decoration:underline;text-underline-offset:3px}
+.card .pn{font-size:12px;color:var(--muted)}
+.card .foot{margin-top:auto;display:flex;align-items:end;justify-content:space-between;gap:8px;padding-top:8px}
+.price{font-family:var(--display);font-weight:800;font-size:24px;line-height:1}
+.msrp{color:var(--muted);text-decoration:line-through;font-size:13px}
+.stock{font-size:12.5px;display:flex;align-items:center;gap:6px;color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.dot.bo{background:var(--warn)}
+.addbtn{background:var(--red);border:0;border-radius:var(--radius);width:40px;height:40px;display:grid;place-items:center;color:#fff;flex:none}
+.addbtn:hover{background:var(--red-deep)}
+
+.fit{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;border-radius:4px;padding:3px 8px;width:fit-content}
+.fit.fits{background:#e6f5ec;color:#0f6b33}
+.fit.nofit{background:#fdeaea;color:#a61b1b}
+.fit.universal{background:#fff3e0;color:#8a4d00}
+.em{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600}
+.em.ok{color:#0f6b33}.em.no{color:#8a4d00}
+.fit.none{background:var(--panel-2);color:var(--muted)}
+
+/* shop */
+.crumbs{font-size:13px;color:var(--muted);padding:18px 0 6px;display:flex;gap:6px;flex-wrap:wrap}
+.crumbs a:hover{color:var(--red)}
+.shop-h{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:20px}
+.shop-h h1{font-size:clamp(30px,4vw,44px);font-weight:800}
+.shop-h h1 em{font-style:normal;color:var(--red)}
+.shop-h .count{color:var(--muted);font-size:14px;margin-top:6px}
+.shop{display:grid;grid-template-columns:250px 1fr;gap:28px;padding-bottom:50px}
+.filters{display:flex;flex-direction:column;gap:18px;position:sticky;top:150px;align-self:start;max-height:calc(100vh - 170px);overflow:auto;padding-right:4px}
+.fgroup h3{font-size:16px;font-weight:800;letter-spacing:.06em;margin-bottom:8px;color:var(--text)}
+.fgroup label,.fgroup a.opt{display:flex;align-items:center;gap:8px;font-size:14px;padding:4px 0;color:#333338;cursor:pointer}
+.fgroup a.opt.on{color:var(--red);font-weight:700}
+.fgroup a.opt:hover{color:var(--red)}
+.fgroup small{margin-left:auto;color:var(--muted);font-size:12.5px}
+.fgroup input[type=checkbox]{accent-color:var(--red);width:16px;height:16px}
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
+.toggle b{font-size:14px}
+.toggle small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+.switch{position:relative;width:42px;height:24px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;background:#c9c9cf;border-radius:20px;transition:.2s}
+.switch span:before{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.switch input:checked+span{background:var(--red)}
+.switch input:checked+span:before{transform:translateX(18px)}
+.switch input:focus-visible+span{outline:2px solid var(--red);outline-offset:2px}
+.sortbar{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+.empty{border:1px dashed var(--line);border-radius:var(--radius);padding:40px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--text);font-size:18px;margin-bottom:6px}
+.empty .btn{margin-top:14px}
+.more{text-align:center;margin-top:24px}
+.filter-toggle{display:none}
+
+/* product page */
+.pdp{display:grid;grid-template-columns:1.05fr 1fr;gap:36px;padding:10px 0 30px}
+.gallery .pimg{aspect-ratio:1/1;border:1px solid var(--line);border-radius:var(--radius)}
+.thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.thumbs div{aspect-ratio:1/1;border:1px solid var(--line);border-radius:4px;background:#f6f6f7;display:grid;place-items:center;color:#b0b0b8}
+.thumbs div.on,.thumbs button.on{border-color:var(--red)}
+.thumbs button{aspect-ratio:1/1;border:1px solid var(--line);border-radius:4px;background:#fff;padding:4px}
+.thumbs button img{width:100%;height:100%;object-fit:contain}
+.p65{display:flex;gap:10px;font-size:12.5px;color:#5a4a00;background:#fffbe6;border:1px solid #f1e3a0;border-radius:var(--radius);padding:10px 12px;margin-top:14px}
+.p65 b{font-weight:700}
+.docs{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.docs a{border:1px solid var(--line);border-radius:var(--radius);padding:8px 12px;font-size:14px;font-weight:600}
+.docs a:hover{border-color:var(--red);color:var(--red)}
+.mkt{max-width:75ch;color:#333338;margin-bottom:16px}
+.imgnote{font-size:12px;color:var(--muted);margin-top:8px}
+.buy .brand{color:var(--red);font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:16px}
+.buy h1{font-family:var(--body);text-transform:none;font-size:clamp(22px,2.6vw,30px);font-weight:700;line-height:1.2;margin:6px 0 8px;letter-spacing:0}
+.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted)}
+.meta b{color:var(--text);font-weight:600}
+.pricebox{display:flex;align-items:end;gap:12px;margin:18px 0 6px}
+.pricebox .price{font-size:42px}
+.save{color:var(--ok);font-size:13.5px;font-weight:600}
+.fitbanner{border-radius:var(--radius);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;margin:16px 0;border:1px solid}
+.fitbanner b{display:block;font-size:15px}
+.fitbanner span{font-size:13.5px;color:#3a3a40}
+.fitbanner.fits{background:#eef8f2;border-color:#9fd5b3}
+.fitbanner.fits svg{color:var(--ok)}
+.fitbanner.nofit{background:#fdf0f0;border-color:#efb1b1}
+.fitbanner.nofit svg{color:var(--bad)}
+.fitbanner.universal{background:#fff7eb;border-color:#f1cf98}
+.fitbanner.universal svg{color:var(--warn)}
+.fitbanner.none{background:var(--panel);border-color:var(--line)}
+.fitbanner.none svg{color:var(--muted)}
+.fitbanner svg{flex:none;margin-top:1px}
+.fitbanner .vsel{margin-top:10px}
+.cartrow{display:flex;gap:10px;margin-top:6px}
+.qty{display:flex;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.qty button{background:var(--panel);border:0;width:38px;font-size:18px}
+.qty input{width:46px;text-align:center;background:#fff;border:0;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.cartrow .btn{flex:1;font-size:18px}
+.avail{margin-top:16px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.avail div{display:flex;justify-content:space-between;padding:10px 14px;font-size:14px;border-bottom:1px solid var(--line)}
+.avail div:last-child{border-bottom:0}
+.avail .h{background:var(--panel);font-weight:700}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-top:10px;overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:12px 16px;font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:18px;letter-spacing:.04em;color:var(--muted);white-space:nowrap}
+.tabs button.on{color:var(--text);border-bottom-color:var(--red)}
+.tabpanel{padding:22px 0 40px}
+.features{display:grid;gap:8px;max-width:70ch}
+.features li{list-style:none;display:flex;gap:10px}
+.features li svg{color:var(--red);flex:none;margin-top:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th,.tbl td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl thead th{background:var(--panel);font-family:var(--display);text-transform:uppercase;font-size:15px;letter-spacing:.05em}
+.tbl.specs th{width:38%;color:var(--muted);font-weight:500}
+.tbl tr.match td{background:#eef8f2}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius)}
+.tblwrap .tbl tr:last-child td,.tblwrap .tbl tr:last-child th{border-bottom:0}
+.datasrc{font-size:12.5px;color:var(--muted);margin-top:12px}
+
+/* cart */
+.cart{display:grid;grid-template-columns:1fr 340px;gap:28px;padding:10px 0 50px}
+.line{display:grid;grid-template-columns:90px 1fr auto;gap:16px;padding:16px 0;border-bottom:1px solid var(--line);align-items:center}
+.line .pimg{aspect-ratio:1/1;border-radius:4px;border:1px solid var(--line)}
+.line .t{font-weight:600}
+.line .t:hover{text-decoration:underline}
+.line .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.line .r{text-align:right;display:flex;flex-direction:column;align-items:end;gap:8px}
+.summary{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;align-self:start;position:sticky;top:150px}
+.summary h2{font-size:24px;margin-bottom:12px}
+.summary .row{display:flex;justify-content:space-between;padding:6px 0;font-size:14.5px}
+.summary .row.total{border-top:1px solid var(--line);margin-top:8px;padding-top:12px;font-weight:700;font-size:17px}
+.summary .btn{width:100%;margin-top:14px;padding:14px;font-size:18px}
+.secure{display:flex;gap:8px;align-items:center;justify-content:center;font-size:12.5px;color:var(--muted);margin-top:10px}
+
+/* modal + toast */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;z-index:100;padding:60px 16px;overflow:auto}
+.modal.open{display:flex}
+.mbox{background:#fff;box-shadow:0 20px 50px rgba(0,0,0,.2);border:1px solid var(--line);border-top:4px solid var(--red);border-radius:var(--radius);width:100%;max-width:520px;padding:24px;position:relative}
+.mbox h2{font-size:28px;margin-bottom:6px}
+.mbox p{color:#3a3a40;font-size:14.5px}
+.mclose{position:absolute;top:12px;right:12px;background:none;border:0;color:var(--muted);padding:6px}
+.mclose:hover{color:var(--text)}
+.glist{display:flex;flex-direction:column;gap:8px;margin:16px 0}
+.gitem{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:var(--radius);padding:12px;background:var(--panel)}
+.gitem.on{border-color:var(--red)}
+.gitem b{flex:1}
+.gitem .tag{font-size:11.5px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.06em}
+.mbox .vsel{margin-top:8px}
+.note{background:#fdf0f0;border:1px solid #f4cfd0;border-radius:var(--radius);padding:12px 14px;font-size:13.5px;color:#5a1418;margin-top:14px}
+.note ol{padding-left:18px;margin-top:6px;display:grid;gap:4px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translate(-50%,calc(100% + 40px));visibility:hidden;background:#111;color:#fff;border-radius:var(--radius);padding:12px 16px;font-weight:600;display:flex;gap:12px;align-items:center;box-shadow:0 10px 30px rgba(0,0,0,.25);z-index:110;transition:transform .25s}
+.toast.show{transform:translate(-50%,0);visibility:visible}
+.toast a{color:#ff6b70;font-weight:700}
+
+footer{background:var(--panel);border-top:1px solid var(--line);margin-top:20px}
+.fgrid{display:grid;grid-template-columns:1.2fr repeat(3,1fr);gap:30px;padding:40px 20px}
+.fgrid img{width:150px}
+.fgrid h4{font-family:var(--display);text-transform:uppercase;font-size:17px;letter-spacing:.06em;margin-bottom:10px}
+.fgrid ul{list-style:none;display:grid;gap:6px;font-size:14px;color:var(--muted)}
+.fgrid ul a:hover{color:var(--red)}
+.fgrid p{color:var(--muted);font-size:13.5px;margin-top:10px;max-width:34ch}
+.legal{border-top:1px solid var(--line);padding:14px 20px;font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+
+@media (max-width:1180px){ .hdr-actions .hbtn .lbl small{display:none} }
+@media (max-width:1100px){ .hdr-actions .hbtn .lbl{display:none} }
+@media (max-width:1100px){ .pgrid.four{grid-template-columns:repeat(2,1fr)} .catcards{grid-template-columns:repeat(2,1fr)} .btile{flex-basis:calc((100% - 30px)/4)} }
+@media (max-width:980px){
+  .slide{grid-template-columns:1fr;padding:28px;gap:10px}
+  .sl-art{display:none}
+  .pviewport{height:360px}
+  .tagline .wrap{grid-template-columns:1fr;gap:14px}
+  .hero .wrap{grid-template-columns:1fr}
+  .heroart{display:none}
+  .shop{grid-template-columns:1fr}
+  .filters{position:static;max-height:none;display:none;border:1px solid var(--line);border-radius:var(--radius);padding:14px}
+  .filters.open{display:flex}
+  .filter-toggle{display:inline-flex}
+  .pdp{grid-template-columns:1fr}
+  .cart{grid-template-columns:1fr}
+  .summary{position:static}
+  .fgrid{grid-template-columns:1fr 1fr}
+}
+@media (max-width:720px){
+  .hdr{flex-wrap:wrap;height:auto;padding:10px 16px;gap:10px}
+  .logo img{height:34px}
+  .search{order:3;flex:1 1 100%;max-width:none}
+  .search button span:last-child{display:none}
+  .search button{padding:0 14px}
+  .vbar .vsel{flex:1 1 100%}
+  .hbtn .lbl{display:none}
+  #acctBtn{display:none}
+  .hero .wrap{padding-top:28px;padding-bottom:32px}
+  .vbar .vtitle{font-size:17px}
+  select.ymm{min-width:0;flex:1}
+  .vsel{flex:1;width:100%}
+  .vsel .btn{flex-basis:100%}
+  .pgrid,.pgrid.four{grid-template-columns:repeat(2,1fr);gap:10px}
+  .card .ttl{font-size:13.5px}
+  .price{font-size:21px}
+  .line{grid-template-columns:70px 1fr}
+  .line .r{grid-column:2;align-items:start;flex-direction:row;align-items:center;justify-content:space-between}
+  .fgrid{grid-template-columns:1fr}
+  .catcards{grid-template-columns:1fr}
+  .ccard{min-height:0;padding:18px}
+  .btile{flex-basis:calc((100% - 10px)/2);height:140px}
+  .shopby{gap:14px}
+  .shopby span{font-size:17px}
+}
+@media (max-width:400px){ .pgrid{grid-template-columns:1fr} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+</style>
+</head>
+<body>
+<div class="proto"><b>Prototype</b> · <span id="protoCount">0</span> parts, including real ReadyLift and MagnaFlow (sample) catalogs from SEMA Data. Other brands, and all stock levels, are still placeholders.</div>
+
+<header class="top">
+  <div class="wrap hdr">
+    <a class="logo" href="#home" aria-label="Dream Auto Builders home"><img src="logo-word-light.png" alt="Dream Auto Builders" width="171" height="44"></a>
+    <div class="search" id="searchBox">
+      <form id="searchForm" role="search">
+        <label for="q" class="sr">Search parts, categories, brands or part numbers</label>
+        <input id="q" type="search" autocomplete="off" placeholder="Search parts, categories, brands or part #">
+        <button type="submit" aria-label="Search"><span data-i="search"></span><span>Search</span></button>
+      </form>
+      <div class="ac" id="ac" role="listbox"></div>
+    </div>
+    <div class="hdr-actions">
+      <button class="hbtn" id="trackBtn" type="button"><span data-i="box"></span><span class="lbl">Track Order<small>Where's my part?</small></span></button>
+      <button class="hbtn" id="garageBtn" type="button"><span data-i="garage"></span><span class="lbl">My Garage<small id="garageSmall">Add a vehicle</small></span><span class="badge" id="garageCount" hidden>0</span></button>
+      <button class="hbtn" id="acctBtn" type="button"><span data-i="user"></span><span class="lbl">Sign In<small>Orders &amp; account</small></span></button>
+      <a class="hbtn" href="#cart" id="cartBtn"><span data-i="cart"></span><span class="lbl">Cart<small id="cartSmall">$0.00</small></span><span class="badge" id="cartCount" hidden>0</span></a>
+    </div>
+  </div>
+  <div class="vbar"><div class="wrap" id="vbar"></div></div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  <div class="wrap fgrid">
+    <div><img src="logo-full-light.png" alt="Dream Auto Builders" width="150" height="152" style="height:auto"><p>Parts and accessories matched to your exact vehicle, shipped from distributor warehouses across the U.S.</p></div>
+    <div><h4>Shop</h4><ul id="footCats"></ul></div>
+    <div><h4>Help</h4><ul><li><a href="#home">Track an order</a></li><li><a href="#home">Shipping &amp; returns</a></li><li><a href="#home">Fitment guarantee</a></li><li><a href="#home">Contact us</a></li></ul></div>
+    <div><h4>Company</h4><ul><li><a href="#home">About Dream Auto Builders</a></li><li><a href="#home">Brands we carry</a></li><li><a href="#home">Privacy policy</a></li><li><a href="#home">Terms of sale</a></li></ul></div>
+  </div>
+  <div class="legal"><span>© 2026 Dream Auto Builders</span><span>Secure checkout powered by Stripe</span></div>
+</footer>
+
+<div class="modal" id="modal" aria-hidden="true"><div class="mbox" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="mbox"></div></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="readylift.js"></script>
+<script src="mf.js"></script>
+<script src="data.js"></script>
+<script>
+(function(){
+'use strict';
+const D = window.DAB;
+const P = D.PRODUCTS;
+const byId = Object.fromEntries(P.map(p => [p.id, p]));
+const catById = Object.fromEntries(D.CATS.map(c => [c.id, c]));
+const subById = {}; D.CATS.forEach(c => c.subs.forEach(([id, name]) => subById[id] = { id, name, cat: c.id }));
+const brandById = Object.fromEntries(D.BRANDS.map(b => [b.id, b]));
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const money = n => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/* ---------- icons ---------- */
+const IC = {
+  search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  cart: '<path d="M3 4h2l2.4 11h11.2L21 7H6.2"/><circle cx="9" cy="19.5" r="1.5"/><circle cx="17" cy="19.5" r="1.5"/>',
+  garage: '<path d="M3 21V9l9-5 9 5v12"/><path d="M7 21v-8h10v8"/><path d="M7 16h10"/>',
+  car: '<path d="M3 16v-3l2-5h11l3 4h2v4h-2"/><path d="M3 16h2m4 0h6"/><circle cx="7" cy="16.5" r="2"/><circle cx="17" cy="16.5" r="2"/><path d="M6 12h13"/>',
+  check: '<path d="M4 12.5l5 5L20 6.5"/>',
+  checkc: '<circle cx="12" cy="12" r="9.5"/><path d="M7.5 12.5l3 3 6-6.5"/>',
+  xc: '<circle cx="12" cy="12" r="9.5"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7"/>',
+  info: '<circle cx="12" cy="12" r="9.5"/><path d="M12 11v6M12 7.5v.5"/>',
+  globe: '<circle cx="12" cy="12" r="9.5"/><path d="M2.5 12h19M12 2.5c3 3.5 3 15.5 0 19M12 2.5c-3 3.5-3 15.5 0 19"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  truckfast: '<path d="M2 6h11v10H2zM13 9h4l4 4v3h-8"/><circle cx="6" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+  shield: '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  lock: '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  sync: '<path d="M20 11a8 8 0 0 0-14.3-4.3L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15"/><path d="M20 20v-5h-5"/>',
+  filter: '<path d="M3 5h18l-7 8v6l-4 2v-8z"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  spring: '<path d="M7 3h10M7 21h10"/><path d="M8 3l8 3-8 3 8 3-8 3 8 3-8 3"/>',
+  exhaust: '<path d="M2 15h9a3 3 0 0 0 3-3V8"/><rect x="11" y="4" width="6" height="4" rx="1"/><path d="M14 15h5l2-2v6l-2-2h-5z"/><path d="M2 12h7"/>',
+  intake: '<path d="M3 10h5v4H3z"/><path d="M8 9l12-4v14L8 15z"/><path d="M11 8v8M14 7v10M17 6v12"/>',
+  light: '<path d="M14 5a7 7 0 0 1 0 14z"/><path d="M14 5H9a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h5"/><path d="M2 8h3M2 12h3M2 16h3"/>',
+  wheel: '<circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="3"/><path d="M12 2.5V9M12 15v6.5M2.5 12H9M15 12h6.5M5.3 5.3l4.6 4.6M14.1 14.1l4.6 4.6M18.7 5.3l-4.6 4.6M9.9 14.1l-4.6 4.6"/>',
+  truck: '<path d="M2 15V9h9l3-3h5l3 4v5"/><path d="M2 15h20"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/><path d="M14 6v4h7"/>',
+  seat: '<path d="M8 3h5a2 2 0 0 1 2 2l-1 9H8z"/><path d="M6 14h11l1 4H5z"/><path d="M8 18v3M16 18v3"/>',
+  gauge: '<path d="M3.5 17a9 9 0 1 1 17 0"/><path d="M12 14l4.5-5"/><circle cx="12" cy="14" r="1.5"/><path d="M6 12h1M12 6.5v1M17 12h1"/>',
+  brake: '<circle cx="11" cy="13" r="8"/><circle cx="11" cy="13" r="2.5"/><path d="M15 4.5a10 10 0 0 1 5.5 6.5l-3.5 1a6.5 6.5 0 0 0-3.2-4.2z"/>',
+  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
+  tire: '<circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M18.7 5.3l-1.8 1.8M7.1 16.9l-1.8 1.8"/>',
+  box: '<path d="M3 7.5L12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5L12 12l9-4.5M12 12v9"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>',
+  refundc: '<path d="M20 11a8 8 0 0 0-14.3-4.3L4 9"/><path d="M4 4v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.3L20 15"/><path d="M20 20v-5h-5"/><path d="M14 9.5c-.4-.6-1.1-1-2-1-1.2 0-2 .6-2 1.5 0 2 4 1 4 3 0 .9-.9 1.5-2 1.5-.9 0-1.6-.4-2-1M12 7v1.5M12 15.5V17"/>',
+  thumb: '<path d="M7 11v9H4v-9z"/><path d="M7 11l4-7c1.5 0 2.5 1 2 3l-.5 3H19a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.8 20H7"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
+  play: '<path d="M7 4.5v15l12-7.5z"/>',
+  chevL: '<path d="M15 5l-7 7 7 7"/>',
+  chevR: '<path d="M9 5l7 7-7 7"/>'
+};
+function icon(n, s = 20, sw = 2) { return `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n] || ''}</svg>`; }
+function hydrateIcons(root = document) { root.querySelectorAll('[data-i]').forEach(el => { el.innerHTML = icon(el.dataset.i, +el.dataset.s || 20); el.style.display = 'inline-flex'; }); }
+function spriteStyle(ref) { const pf = ref.split(':')[0]; const [, sh, i] = ref.split(':').map(Number); const S = window.DAB_SPRITE; const c = i % S.cols, r = Math.floor(i / S.cols); return `background-image:url(img/${pf}s/${sh}.jpg);background-size:${S.cols * 100}% ${S.rows * 100}%;background-position:${c / (S.cols - 1) * 100}% ${r / (S.rows - 1) * 100}%`; }
+function imgTag(ref, alt) { return /^[a-z]+:\d/.test(ref) ? `<span class="sprite" role="img" aria-label="${esc(alt)}" style="${spriteStyle(ref)}"></span>` : `<img src="${ref}" alt="${esc(alt)}" loading="lazy">`; }
+function pimg(p, size) { const c = catById[p.cat]; if (p.img) return `<div class="pimg photo">${imgTag(p.img, p.shortName)}</div>`; if (false) return `<div class="pimg photo"><img src="${p.img}" alt="${esc(p.shortName)}" loading="lazy"></div>`; return `<div class="pimg">${icon(c.icon, size || 72, 1.2)}<span class="brandtag">${esc(p.brandName)}</span></div>`; }
+
+/* ---------- state (garage + cart remembered in this browser) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('dab_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('dab_' + k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } }
+};
+const S = {
+  garage: store.get('garage', []),
+  active: store.get('active', -1),
+  cart: store.get('cart', {}),
+  f: { brands: new Set(), price: '', inStock: false, fitOnly: true, sort: 'rel', shown: 24 },
+  q: '',
+  tab: 'details'
+};
+if (S.active >= S.garage.length) S.active = S.garage.length - 1;
+const saveG = () => { store.set('garage', S.garage); store.set('active', S.active); };
+const saveC = () => store.set('cart', S.cart);
+const activeV = () => S.garage[S.active] || null;
+const vlabel = v => `${v.year} ${v.make} ${v.model}`;
+
+/* ---------- fitment ---------- */
+function fitStatus(p, v) {
+  if (p.fitPending) return 'pending';
+  if (p.universal) return 'universal';
+  if (!v) return 'none';
+  return p.fitment.some(r => r.make === v.make && r.model === v.model && v.year >= r.from && v.year <= r.to) ? 'fits' : 'nofit';
+}
+function fitBadge(p, v) {
+  const s = fitStatus(p, v);
+  if (s === 'fits') return `<span class="fit fits">${icon('check', 14, 3)} Fits your ${esc(v.year + ' ' + v.model)}</span>`;
+  if (s === 'nofit') return `<span class="fit nofit">${icon('x', 14, 3)} Doesn't fit your ${esc(v.model)}</span>`;
+  if (s === 'pending') return `<span class="fit none">${icon('sync', 13, 2.4)} ${v ? 'Fitment check pending' : `Fits ${p.fitCount} vehicle configs · ${p.years[0]}-${p.years[1]}`}</span>`;
+  if (p.fitText) return `<span class="fit universal">${icon('info', 14, 2.4)} ${esc(p.fitText)}</span>`;
+  if (s === 'universal') return `<span class="fit universal">${icon('globe', 14, 2.4)} Universal fit</span>`;
+  const r = p.fitment[0]; const more = new Set(p.fitment.map(x => x.make + x.model)).size - 1; return `<span class="fit none">Fits ${r.from === r.to ? r.from : r.from + '-' + r.to} ${esc(r.make + ' ' + r.model)}${more > 0 ? ` + ${more} more` : ''}</span>`;
+}
+function emNote(p) { if (!p.emissions) return ''; return p.emissions[0] === 'carb' ? `<span class="em ok">${icon('check', 13, 3)} California legal (CARB EO ${esc(p.emissions[1])})</span>` : `<span class="em no">${icon('x', 13, 3)} Federal only. Not legal in CA or CARB states</span>`; }
+const totalStock = p => p.stock ? p.stock.Turn14 + p.stock.Keystone : 0;
+function stockLine(p) { if (!p.stock) return `<span class="stock"><span class="dot bo"></span>Stock from distributor feed (not connected)</span>`; return totalStock(p) > 0 ? `<span class="stock"><span class="dot"></span>In stock, ships in 1-2 days</span>` : `<span class="stock"><span class="dot bo"></span>Backordered, ships in 7-10 days</span>`; }
+
+/* ---------- Year / Make / Model selectors ---------- */
+function ymmHTML(prefix, btnLabel) {
+  return `<div class="vsel" data-ymm="${prefix}">
+    <label class="sr" for="${prefix}Y">Year</label><select class="ymm" id="${prefix}Y"><option value="">Year</option>${D.YEARS.map(y => `<option>${y}</option>`).join('')}</select>
+    <label class="sr" for="${prefix}M">Make</label><select class="ymm" id="${prefix}M" disabled><option value="">Make</option></select>
+    <label class="sr" for="${prefix}D">Model</label><select class="ymm" id="${prefix}D" disabled><option value="">Model</option></select>
+    <button class="btn btn-red" id="${prefix}Go" type="button" disabled>${btnLabel}</button></div>`;
+}
+function wireYMM(prefix, onDone) {
+  const y = $('#' + prefix + 'Y'), m = $('#' + prefix + 'M'), d = $('#' + prefix + 'D'), go = $('#' + prefix + 'Go');
+  if (!y) return;
+  y.onchange = () => {
+    m.innerHTML = '<option value="">Make</option>' + (y.value ? D.makesFor(+y.value).map(x => `<option>${esc(x)}</option>`).join('') : '');
+    m.disabled = !y.value; d.innerHTML = '<option value="">Model</option>'; d.disabled = true; go.disabled = true;
+    if (y.value) m.focus();
+  };
+  m.onchange = () => {
+    d.innerHTML = '<option value="">Model</option>' + (m.value ? D.modelsFor(+y.value, m.value).map(x => `<option>${esc(x)}</option>`).join('') : '');
+    d.disabled = !m.value; go.disabled = true;
+    if (m.value) d.focus();
+  };
+  d.onchange = () => { go.disabled = !d.value; if (d.value) go.focus(); };
+  go.onclick = () => { addVehicle({ year: +y.value, make: m.value, model: d.value }); if (onDone) onDone(); };
+}
+function addVehicle(v) {
+  let i = S.garage.findIndex(g => g.year === v.year && g.make === v.make && g.model === v.model);
+  if (i < 0) { S.garage.push(v); i = S.garage.length - 1; }
+  S.active = i; S.f.fitOnly = true; saveG();
+  toast(`${icon('checkc', 18)} Shopping for your ${esc(vlabel(v))}`);
+  refresh();
+}
+
+/* ---------- header pieces ---------- */
+function renderCatNav() {
+  const r = route();
+  if ($('#catNav')) $('#catNav').innerHTML = `<a href="#shop" class="${location.hash === '#shop' ? 'on' : ''}">All Parts</a>` + D.CATS.map(c => `<a href="#cat-${c.id}" class="${(r.cat === c.id) ? 'on' : ''}">${esc(c.name)}</a>`).join('');
+  $('#footCats').innerHTML = D.CATS.slice(0, 6).map(c => `<li><a href="#cat-${c.id}">${esc(c.name)}</a></li>`).join('');
+}
+function renderVbar() {
+  const v = activeV();
+  if (v) {
+    $('#vbar').innerHTML = `<div class="vtitle">${icon('car', 26)} Shopping for</div>
+      <div class="vchip"><span class="ok">${icon('checkc', 18)}</span><b>${esc(vlabel(v))}</b><button class="btn btn-ghost btn-sm" type="button" id="vChange">Change</button></div>
+      <button class="linkbtn" type="button" id="vClear">Shop all vehicles</button>`;
+    $('#vChange').onclick = openGarage;
+    $('#vClear').onclick = () => { S.active = -1; saveG(); refresh(); };
+  } else {
+    $('#vbar').innerHTML = `<div class="vtitle">${icon('plus', 22, 2.6)} Add a vehicle</div>${ymmHTML('vb', 'Add vehicle')}`;
+    wireYMM('vb');
+  }
+  $('#garageSmall').textContent = v ? vlabel(v) : 'Add a vehicle';
+  const gc = $('#garageCount'); gc.hidden = !S.garage.length; gc.textContent = S.garage.length;
+}
+function cartCount() { return Object.values(S.cart).reduce((a, b) => a + b, 0); }
+function cartTotal() { return Object.entries(S.cart).reduce((a, [id, q]) => a + (byId[id] ? byId[id].price * q : 0), 0); }
+function renderCartBtn() { const n = cartCount(); const b = $('#cartCount'); b.hidden = !n; b.textContent = n; $('#cartSmall').textContent = money(cartTotal()); }
+
+/* ---------- search ---------- */
+const SYN = { cai: 'cold air intake', nerf: 'running boards', steps: 'running boards', 'bed cover': 'tonneau', rims: 'wheels', tire: 'tires', mt: 'mud-terrain', at: 'all-terrain', mats: 'floor liners', exhausts: 'exhaust', plugs: 'spark plugs' };
+function normQ(q) { q = q.toLowerCase().trim(); Object.entries(SYN).forEach(([k, v]) => { q = q.replace(new RegExp('\\b' + k + '\\b', 'g'), v); }); return q; }
+function parseVehicleFromQuery(q) {
+  const ym = q.match(/\b(19|20)\d{2}\b/); if (!ym) return null;
+  const year = +ym[0];
+  const hit = D.MODEL_NAMES.find(mn => q.includes(mn.model.toLowerCase()) && D.modelsFor(year, mn.make).includes(mn.model));
+  if (!hit) return null;
+  let rest = q.replace(ym[0], '').replace(hit.model.toLowerCase(), '').replace(hit.make.toLowerCase(), '').replace(/\s+/g, ' ').trim();
+  return { v: { year, make: hit.make, model: hit.model }, rest };
+}
+function matchProducts(q) {
+  const toks = normQ(q).split(/\s+/).filter(Boolean);
+  if (!toks.length) return P.slice();
+  return P.filter(p => {
+    const hay = p.kw + ' ' + p.title.toLowerCase() + ' ' + subById[p.sub].name.toLowerCase() + ' ' + catById[p.cat].name.toLowerCase();
+    return toks.every(t => hay.includes(t) || (t.length > 3 && t.endsWith('s') && hay.includes(t.slice(0, -1))));
+  });
+}
+function hl(text, q) {
+  const t = q.trim(); if (!t) return esc(text);
+  const i = text.toLowerCase().indexOf(t.toLowerCase());
+  return i < 0 ? esc(text) : esc(text.slice(0, i)) + '<mark>' + esc(text.slice(i, i + t.length)) + '</mark>' + esc(text.slice(i + t.length));
+}
+function renderAC() {
+  const q = $('#q').value; const ac = $('#ac');
+  if (q.trim().length < 2) { ac.classList.remove('open'); return; }
+  const ql = normQ(q);
+  const cats = [];
+  D.CATS.forEach(c => { if (c.name.toLowerCase().includes(ql)) cats.push({ h: '#cat-' + c.id, t: c.name, s: 'Category' }); c.subs.forEach(([id, n]) => { if (n.toLowerCase().includes(ql) || ql.split(' ').every(t => n.toLowerCase().includes(t))) cats.push({ h: '#sub-' + id, t: n, s: c.name }); }); });
+  const brands = D.BRANDS.filter(b => b.name.toLowerCase().includes(ql)).map(b => ({ h: '#brand-' + b.id, t: b.name, s: 'Brand' }));
+  const v = activeV();
+  let prods = matchProducts(q);
+  if (v) prods.sort((a, b) => (fitStatus(b, v) === 'fits') - (fitStatus(a, v) === 'fits'));
+  prods = prods.slice(0, 6);
+  let html = '';
+  if (cats.length) html += '<h4>Categories</h4>' + cats.slice(0, 5).map(c => `<a href="${c.h}">${icon('filter', 16)}<span>${hl(c.t, q)}</span><small>${esc(c.s)}</small></a>`).join('');
+  if (brands.length) html += '<h4>Brands</h4>' + brands.map(c => `<a href="${c.h}">${icon('shield', 16)}<span>${hl(c.t, q)}</span><small>Brand</small></a>`).join('');
+  if (prods.length) html += `<h4>Parts${v ? ' · fits first for your ' + esc(v.model) : ''}</h4>` + prods.map(p => `<a href="#p-${p.id}">${icon(catById[p.cat].icon, 16)}<span>${hl(p.shortName, q)} <span style="color:var(--muted)">· ${esc(p.fitment[0] ? p.fitment[0].from + '-' + p.fitment[0].to + ' ' + p.fitment[0].model : p.years ? p.years[0] + '-' + p.years[1] : 'Universal')}</span></span><small>${esc(p.pn)}</small></a>`).join('');
+  html += `<h4>All results</h4><a href="#search" data-all="1">${icon('search', 16)}<span>See all results for “${esc(q)}”</span></a>`;
+  ac.innerHTML = html; ac.classList.add('open');
+  ac.querySelectorAll('a').forEach(a => a.addEventListener('click', e => { if (a.dataset.all) { e.preventDefault(); doSearch(); } else { closeAC(); } }));
+}
+function closeAC() { $('#ac').classList.remove('open'); }
+function doSearch() {
+  let q = $('#q').value.trim(); if (!q) return;
+  const pv = parseVehicleFromQuery(q.toLowerCase());
+  if (pv) { addVehicle(pv.v); q = pv.rest; $('#q').value = q; }
+  const pn = P.find(p => p.pn.toLowerCase() === q.toLowerCase());
+  closeAC();
+  if (pn) return go('p-' + pn.id);
+  S.q = q; resetFilters(); go('search');
+}
+
+/* ---------- routing ---------- */
+function route() {
+  const h = (location.hash || '#home').slice(1);
+  if (h.startsWith('cat-') && catById[h.slice(4)]) return { name: 'shop', cat: h.slice(4) };
+  if (h.startsWith('sub-') && subById[h.slice(4)]) return { name: 'shop', sub: h.slice(4), cat: subById[h.slice(4)].cat };
+  if (h.startsWith('brand-') && brandById[h.slice(6)]) return { name: 'shop', brand: h.slice(6) };
+  if (h.startsWith('p-') && byId[h.slice(2)]) return { name: 'product', id: h.slice(2) };
+  if (h === 'shop') return { name: 'shop' };
+  if (h === 'search') return { name: 'shop', search: true };
+  if (h === 'cart') return { name: 'cart' };
+  return { name: 'home' };
+}
+function go(h) { if (location.hash === '#' + h) render(); else location.hash = h; }
+let lastHash = null;
+function resetFilters() { S.f.carb = false; S.f.brands = new Set(); S.f.price = ''; S.f.inStock = false; S.f.shown = 24; S.f.sort = 'rel'; }
+function render() {
+  const h = location.hash;
+  if (h !== lastHash) { if (h !== '#search') resetFilters(); S.tab = 'details'; window.scrollTo(0, 0); lastHash = h; }
+  const r = route();
+  if (r.name !== 'shop' || !r.search) { if (document.activeElement !== $('#q')) $('#q').value = r.search ? S.q : ''; }
+  renderCatNav(); renderVbar(); renderCartBtn();
+  const app = $('#app');
+  if (r.name === 'home') app.innerHTML = homeView();
+  else if (r.name === 'shop') app.innerHTML = shopView(r);
+  else if (r.name === 'product') app.innerHTML = productView(byId[r.id]);
+  else if (r.name === 'cart') app.innerHTML = cartView();
+  wireView(r);
+  hydrateIcons(app);
+  document.title = (r.name === 'product' ? byId[r.id].shortName + ' | ' : '') + 'Dream Auto Builders Store Prototype';
+}
+function refresh() { render(); }
+
+/* ---------- views ---------- */
+function cardHTML(p) {
+  const v = activeV();
+  return `<article class="card">
+    <a href="#p-${p.id}" tabindex="-1" aria-hidden="true">${pimg(p, 64)}</a>
+    <div class="body">
+      <span class="brand">${esc(p.brandName)}</span>
+      <a class="ttl" href="#p-${p.id}">${esc(p.title)}</a>
+      <span class="pn num">Part # ${esc(p.pn)}</span>
+      ${fitBadge(p, v)}
+      ${emNote(p)}
+      ${stockLine(p)}
+      <div class="foot"><div><div class="price num">${money(p.price)}</div>${p.msrp ? `<div class="msrp num">MSRP ${money(p.msrp)}</div>` : ''}</div>
+      <button class="addbtn" type="button" data-add="${p.id}" aria-label="Add ${esc(p.shortName)} to cart">${icon('cart', 20)}</button></div>
+    </div></article>`;
+}
+function homeView() {
+  const v = activeV();
+  const finder = v ? `<div class="active"><span style="color:var(--muted);font-size:13px;text-transform:uppercase;letter-spacing:.1em;font-weight:600">Your vehicle</span>
+      <div class="car">${icon('car', 34)}<span>${esc(vlabel(v))}</span></div>
+      <a class="btn btn-red" href="#shop">Shop parts that fit</a>
+      <div class="quick">${D.CATS.map(c => `<a href="#cat-${c.id}">${esc(c.name)}</a>`).join('')}</div>
+      <button class="linkbtn" type="button" data-garage="1" style="align-self:flex-start">Change vehicle</button></div>`
+    : `<h2>Shop by vehicle</h2><p>Pick your year, make and model to see only parts guaranteed to fit.</p><div class="grid">${ymmHTML('hf', 'Find my parts')}</div>`;
+  const pool = v ? P.filter(p => fitStatus(p, v) === 'fits') : P;
+  const PICKS = ['rl-42-25640', 'rl-69-1935', 'rl-66-30321', 'rl-66-1920'];   // hand-picked ReadyLift items with part photos
+  const ranked = pool.filter(p => p.img).sort((a, b) => (!!b.showcase - !!a.showcase) || (!!b.real - !!a.real) || (PICKS.includes(b.id) - PICKS.includes(a.id)) || b.popularity - a.popularity);
+  const featured = [], seenSub = new Set();
+  ranked.forEach(p => { if (featured.length < 8 && (p.showcase || !seenSub.has(p.sub))) { featured.push(p); seenSub.add(p.sub); } });   // mix of product types
+  ranked.forEach(p => { if (featured.length < 8 && !featured.includes(p)) featured.push(p); });
+  if (!v) { featured.length = 0; P.filter(p => p.showcase).concat(PICKS.map(id => byId[id]).filter(Boolean)).slice(0, 8).forEach(p => featured.push(p)); }
+  return `<section class="promo" aria-roledescription="carousel" aria-label="Featured products and deals"><div class="wrap">
+      <div class="pviewport" id="pView">${promoSlides().map((sl, i) => `<a class="slide ${sl.tone}${i ? '' : ' on'}" href="${sl.href}" aria-roledescription="slide" aria-label="${i + 1} of ${promoSlides().length}: ${esc(sl.title)}" ${i ? 'aria-hidden="true" tabindex="-1"' : ''}>
+        <div class="sl-copy"><span class="sl-kicker">${esc(sl.kicker)}</span><h2>${sl.titleHTML}</h2><p>${esc(sl.sub)}</p><span class="sl-cta">${esc(sl.cta)} ${icon('chevR', 18, 2.6)}</span></div>
+        <div class="sl-art">${sl.art}</div></a>`).join('')}</div>
+      <div class="pctrl"><button type="button" id="pPrev" aria-label="Previous slide">${icon('chevL', 18, 2.6)}</button><div class="pdots" id="pDots">${promoSlides().map((s, i) => `<button type="button" class="${i ? '' : 'on'}" data-slide="${i}" aria-label="Go to slide ${i + 1}"></button>`).join('')}</div><button type="button" id="pPause" aria-label="Pause slideshow">${icon('pause', 16, 2.6)}</button><button type="button" id="pNext" aria-label="Next slide">${icon('chevR', 18, 2.6)}</button></div>
+    </div></section>
+    <section class="tagline"><div class="wrap"><h1>Build the car <span>you dream about.</span></h1><p>Search thousands of parts from the brands you trust. Add your vehicle in the bar above and every page shows what fits it.</p></div></section>
+    <section class="band"><div class="wrap"><div class="shopby"><div><h2 class="feat">Featured Categories</h2></div></div>
+      <div class="catcards">${D.CATS.map(c => { const n = v ? P.filter(p => p.cat === c.id && ['fits', 'universal'].includes(fitStatus(p, v))).length : P.filter(p => p.cat === c.id).length; return `<article class="ccard"><a class="cimg" href="#cat-${c.id}" aria-hidden="true" tabindex="-1">${c.img ? `<img src="${c.img}" alt="">` : icon(c.icon, 120, 1.1)}</a>
+        <div><h3><a href="#cat-${c.id}">${esc(c.name)}</a></h3>${v ? `<small class="num">${n} parts for your ${esc(v.model)}</small>` : ''}<ul>${c.subs.slice(0, 4).map(([id, nm]) => `<li><a href="#sub-${id}">${esc(nm)}</a></li>`).join('')}</ul><a class="vm" href="#cat-${c.id}">View More</a></div></article>`; }).join('')}</div></div></section>
+    <section class="blk" style="padding-top:0"><div class="wrap"><div class="sec-h"><h2>${v ? `Top parts for your <em>${esc(v.model)}</em>` : 'Popular <em>right now</em>'}</h2><a href="#shop">Shop all →</a></div>
+      <div class="pgrid${v ? '' : ' four'}">${featured.map(cardHTML).join('')}</div></div></section>
+
+
+    <section class="band" aria-roledescription="carousel" aria-label="Shop by brand"><div class="wrap"><div class="shopby"><div><h2 class="feat">Featured Brands</h2></div></div>
+      <div class="barrows"><button type="button" id="bPrev" aria-label="Previous brands">${icon('chevL', 22, 2.4)}</button><button type="button" id="bNext" aria-label="Next brands">${icon('chevR', 22, 2.4)}</button></div>
+      <div class="bviewport" id="bView"><div class="btrack" id="bTrack">${D.BRANDS.map(b => { const parts = b.name.split(' '); const main = parts.length > 1 ? parts.slice(0, -1).join(' ') : b.name; const tail = parts.length > 1 ? parts[parts.length - 1] : ''; return `<a class="btile" href="#brand-${b.id}" aria-label="Shop ${esc(b.name)}">${b.logo ? `<img src="${b.logo}" alt="${esc(b.name)}">` : `<span class="wm">${esc(main)}${tail ? `<small>${esc(tail)}</small>` : ''}</span>`}</a>`; }).join('')}</div></div></div></section>
+    <section class="blk" style="padding:36px 0 40px"><div class="wrap"><div class="props">
+      <div class="prop">${icon('refundc', 26)}<div><b>Satisfaction Guaranteed</b><span>Your satisfaction is our priority. If you're not completely happy, we'll make it right.</span></div></div>
+      <div class="prop">${icon('globe', 26)}<div><b>Worldwide delivery</b><span>We proudly offer fast and reliable worldwide delivery to get your order wherever you are.</span></div></div>
+      <div class="prop">${icon('thumb', 26)}<div><b>Top-notch Support</b><span>Experience top-notch support from our knowledgeable team, ready to assist you every step of the way.</span></div></div>
+      <div class="prop">${icon('shield', 26)}<div><b>Secure Payment</b><span>Shop with confidence knowing your transactions are protected by secure, encrypted payment technology.</span></div></div>
+    </div></div></section>`;
+}
+function promoSlides() {
+  const rl = P.filter(p => p.brand === 'readylift');
+  const levFrom = Math.min(...rl.filter(p => p.sub === 'leveling-kits').map(p => p.price));
+  const art = (id, file) => { const p = byId[id]; return p ? `<div class="sl-img"><img src="img/${file}.jpg" alt="${esc(p.shortName)}"></div>` : ''; };
+  return [
+    { tone: 'light', kicker: 'ReadyLift Leveling Kits', title: 'Level the stance. Keep the factory ride.', titleHTML: 'Level the stance.<br><em>Keep the factory ride.</em>', sub: `Leveling kits for trucks and SUVs from ${money(levFrom)}.`, cta: 'Shop leveling kits', href: '#sub-leveling-kits', art: art('rl-66-1920', 's-leveling') },
+    { tone: 'light', kicker: 'Featured for Ram 1500', title: '3.5 inch SST lift kit', titleHTML: '3.5" SST Lift Kit<br><em>2019-2026 Ram 1500</em>', sub: `ReadyLift part 69-1935. ${money(byId['rl-69-1935'] ? byId['rl-69-1935'].price : 0)}.`, cta: 'View the kit', href: '#p-rl-69-1935', art: art('rl-69-1935', 's-sst') },
+    { tone: 'light', kicker: 'Lighting', title: 'Diode Dynamics Elite LED headlights', titleHTML: 'See further.<br><em>Elite LED Headlights</em>', sub: 'Diode Dynamics, for 2021-2023 Ford F-150 Platinum. $1,599.95.', cta: 'Shop headlights', href: '#p-dd-dd5178', art: art('dd-dd5178', 's-headlights') },
+    { tone: 'light', kicker: 'Wheels', title: 'Mickey Thompson light truck wheel', titleHTML: 'New wheels.<br><em>Same great fit.</em>', sub: 'Mickey Thompson 250572 light truck wheel, $241.27.', cta: 'Shop wheels', href: '#cat-wheels', art: art('mt-250572', 's-wheel') },
+    { tone: 'light', kicker: 'Free shipping', title: 'Free shipping on orders over $149', titleHTML: 'Free shipping<br><em>on orders over $149</em>', sub: 'Shipped straight from the distributor warehouse closest to you.', cta: 'Start shopping', href: '#shop', art: art('rl-44-1960', 's-lift') }
+  ];
+}
+let pTimer = null;
+function wirePromo() {
+  clearInterval(pTimer);
+  const view = $('#pView'); if (!view) return;
+  const slides = [...view.querySelectorAll('.slide')], dots = [...document.querySelectorAll('#pDots button')];
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let i = 0, paused = reduce;
+  const show = (n) => { i = (n + slides.length) % slides.length; slides.forEach((s, k) => { const on = k === i; s.classList.toggle('on', on); s.setAttribute('aria-hidden', on ? 'false' : 'true'); s.tabIndex = on ? 0 : -1; }); dots.forEach((d, k) => d.classList.toggle('on', k === i)); };
+  const start = () => { clearInterval(pTimer); if (!paused) pTimer = setInterval(() => { if (!document.hidden) show(i + 1); }, 6500); };
+  const pb = $('#pPause');
+  const setPause = (v) => { paused = v; pb.innerHTML = icon(v ? 'play' : 'pause', 16, 2.6); pb.setAttribute('aria-label', v ? 'Play slideshow' : 'Pause slideshow'); start(); };
+  $('#pNext').onclick = () => { show(i + 1); start(); };
+  $('#pPrev').onclick = () => { show(i - 1); start(); };
+  dots.forEach((d, k) => d.onclick = () => { show(k); start(); });
+  pb.onclick = () => setPause(!paused);
+  view.onmouseenter = () => clearInterval(pTimer); view.onmouseleave = start;
+  setPause(paused);
+}
+function scopeList(r) {
+  let list;
+  if (r.search) list = matchProducts(S.q);
+  else list = P.filter(p => (!r.cat || p.cat === r.cat) && (!r.sub || p.sub === r.sub) && (!r.brand || p.brand === r.brand));
+  return list;
+}
+const PRICES = [['', 'Any price'], ['0-100', 'Under $100'], ['100-300', '$100 to $300'], ['300-750', '$300 to $750'], ['750-1500', '$750 to $1,500'], ['1500-99999', '$1,500 and up']];
+function shopView(r) {
+  const v = activeV();
+  const scoped = scopeList(r);
+  const okFit = p => { const f = fitStatus(p, v); return f === 'fits' || f === 'universal'; };
+  const vehList = (v && S.f.fitOnly) ? scoped.filter(okFit) : scoped;
+  // facet counts
+  const brandCounts = {}; vehList.forEach(p => brandCounts[p.brand] = (brandCounts[p.brand] || 0) + 1);
+  let list = vehList.filter(p => (!S.f.brands.size || S.f.brands.has(p.brand)) && (!S.f.inStock || totalStock(p) > 0) && (!S.f.carb || (p.emissions ? p.emissions[0] === 'carb' : true)));
+  const hasEm = vehList.some(p => p.emissions);
+  if (S.f.price) { const [lo, hi] = S.f.price.split('-').map(Number); list = list.filter(p => p.price >= lo && p.price < hi); }
+  const subCounts = {}; list.forEach(p => subCounts[p.sub] = (subCounts[p.sub] || 0) + 1);
+  const sorters = { rel: (a, b) => (v ? (fitStatus(b, v) === 'fits') - (fitStatus(a, v) === 'fits') : 0) || (!!b.real - !!a.real) || (!!b.img - !!a.img) || b.popularity - a.popularity, lo: (a, b) => a.price - b.price, hi: (a, b) => b.price - a.price, az: (a, b) => a.title.localeCompare(b.title) };
+  list.sort(sorters[S.f.sort]);
+  const label = r.search ? `Results for “${esc(S.q)}”` : r.sub ? esc(subById[r.sub].name) : r.cat ? esc(catById[r.cat].name) : r.brand ? esc(brandById[r.brand].name) : 'All Parts';
+  const crumbs = ['<a href="#home">Home</a>'];
+  if (r.cat) crumbs.push(`<a href="#cat-${r.cat}">${esc(catById[r.cat].name)}</a>`);
+  if (r.sub) crumbs.push(esc(subById[r.sub].name));
+  if (r.brand) crumbs.push('Brands', esc(brandById[r.brand].name));
+  if (r.search) crumbs.push('Search');
+  if (!r.cat && !r.brand && !r.search) crumbs.push('All Parts');
+  const catBlock = r.cat ? `<div class="fgroup"><h3>${esc(catById[r.cat].name)}</h3><a class="opt ${!r.sub ? 'on' : ''}" href="#cat-${r.cat}">All ${esc(catById[r.cat].name)}</a>${catById[r.cat].subs.map(([id, n]) => `<a class="opt ${r.sub === id ? 'on' : ''}" href="#sub-${id}">${esc(n)}</a>`).join('')}</div>`
+    : `<div class="fgroup"><h3>Category</h3>${D.CATS.map(c => { const n = list.filter(p => p.cat === c.id).length; return n ? `<a class="opt" href="#cat-${c.id}">${esc(c.name)}<small class="num">${n}</small></a>` : ''; }).join('')}</div>`;
+  const shown = list.slice(0, S.f.shown);
+  const hiddenByVehicle = v && S.f.fitOnly ? scoped.length - vehList.length : 0;
+  let empty = '';
+  if (!list.length) {
+    empty = v && S.f.fitOnly && scoped.length
+      ? `<div class="empty"><b>No ${label.toLowerCase()} found for your ${esc(vlabel(v))}</b>We have ${scoped.length} that fit other vehicles.<br><button class="btn btn-ghost" type="button" id="showAll">Show parts for all vehicles</button></div>`
+      : `<div class="empty"><b>No parts match those filters</b>Try a different search or clear your filters.<br><a class="btn btn-ghost" href="#shop">Browse all parts</a></div>`;
+  }
+  return `<div class="wrap">
+    <div class="crumbs">${crumbs.join(' <span>/</span> ')}</div>
+    <div class="shop-h"><div><h1>${label}${v && S.f.fitOnly ? ` <em>for your ${esc(v.year + ' ' + v.model)}</em>` : ''}</h1>
+      <div class="count num">${list.length.toLocaleString()} part${list.length === 1 ? '' : 's'}${hiddenByVehicle ? ` · ${hiddenByVehicle} hidden that don't fit your vehicle` : ''}</div></div>
+      <div class="sortbar"><button class="btn btn-ghost btn-sm filter-toggle" type="button" id="ftog">${icon('filter', 16)} Filters</button>
+      <label for="sort">Sort</label><select class="ymm" id="sort"><option value="rel">Best match</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option><option value="az">Name: A to Z</option></select></div></div>
+    <div class="shop">
+      <aside class="filters" id="filters">
+        ${v ? `<div class="toggle"><div><b>Only parts that fit</b><small>${esc(vlabel(v))}</small></div><label class="switch"><input type="checkbox" id="fitOnly" ${S.f.fitOnly ? 'checked' : ''}><span></span><span class="sr">Only show parts that fit my vehicle</span></label></div>`
+          : `<div class="toggle" style="flex-direction:column;align-items:stretch"><div><b>Add your vehicle</b><small>Filter to parts that fit</small></div><button class="btn btn-red btn-sm" type="button" data-garage="1">Add vehicle</button></div>`}
+        ${catBlock}
+        <div class="fgroup"><h3>Brand</h3>${D.BRANDS.filter(b => brandCounts[b.id]).map(b => `<label><input type="checkbox" data-brand="${b.id}" ${S.f.brands.has(b.id) ? 'checked' : ''}>${esc(b.name)}<small class="num">${brandCounts[b.id]}</small></label>`).join('') || '<span style="color:var(--muted);font-size:13px">No brands</span>'}</div>
+        <div class="fgroup"><h3>Price</h3>${PRICES.map(([k, n]) => `<label><input type="radio" name="price" value="${k}" ${S.f.price === k ? 'checked' : ''} style="accent-color:var(--red)">${n}</label>`).join('')}</div>
+        <div class="fgroup"><h3>Availability</h3><label><input type="checkbox" id="inStock" ${S.f.inStock ? 'checked' : ''}>In stock only</label></div>
+        ${hasEm ? `<div class="fgroup"><h3>Emissions</h3><label><input type="checkbox" id="carbOnly" ${S.f.carb ? 'checked' : ''}>California (CARB) legal only</label></div>` : ''}
+      </aside>
+      <div>${empty}<div class="pgrid">${shown.map(cardHTML).join('')}</div>
+      ${list.length > S.f.shown ? `<div class="more"><button class="btn btn-ghost" type="button" id="more">Show more (${list.length - S.f.shown} left)</button></div>` : ''}</div>
+    </div></div>`;
+}
+function productView(p) {
+  const v = activeV(); const s = fitStatus(p, v); const c = catById[p.cat];
+  let banner;
+  const vmatch = r => v && r.make === v.make && r.model === v.model && v.year >= r.from && v.year <= r.to;
+  const hits = p.fitment.filter(vmatch);
+  if (s === 'fits') banner = `<div class="fitbanner fits">${icon('checkc', 24)}<div><b>This part fits your ${esc(vlabel(v))}</b><span>${hits.map(r => (r.sub && r.sub !== 'All' ? 'Trims: ' + esc(r.sub) : 'All trims') + (r.notes ? '. Note: ' + esc(r.notes) : '')).join('<br>')}</span></div></div>`;
+  else if (s === 'nofit') banner = `<div class="fitbanner nofit">${icon('xc', 24)}<div><b>This part does not fit your ${esc(vlabel(v))}</b><span>It fits ${[...new Set(p.fitment.map(r => `${r.from === r.to ? r.from : r.from + '-' + r.to} ${r.make} ${r.model}`))].slice(0, 4).map(esc).join(', ')}${new Set(p.fitment.map(r => r.make + r.model + r.from)).size > 4 ? ' and more' : ''}.</span> <a href="#sub-${p.sub}" style="color:var(--text);text-decoration:underline">See ${esc(subById[p.sub].name.toLowerCase())} that fit your vehicle</a></div></div>`;
+  else if (s === 'pending') banner = `<div class="fitbanner none">${icon('sync', 24)}<div><b>Fits ${p.fitCount} vehicle configurations from ${p.years[0]} to ${p.years[1]}</b><span>The fitment records are loaded. Vehicle names will show, and the fit check will work, once the vehicle database (VCdb) is connected.</span></div></div>`;
+  else if (s === 'universal') banner = `<div class="fitbanner universal">${icon('globe', 24)}<div><b>Universal fit</b><span>This part isn't made for a specific vehicle. Check the specifications for size and mounting.</span></div></div>`;
+  else banner = `<div class="fitbanner none">${icon('info', 24)}<div><b>Will this fit your vehicle?</b><span>Add your vehicle to check.</span>${ymmHTML('pf', 'Check fit')}</div></div>`;
+  const qtyIn = S.cart[p.id] ? `<span style="font-size:13px;color:var(--muted)">${S.cart[p.id]} already in your cart</span>` : '';
+  const tabs = [['details', 'Details'], ['specs', 'Specifications'], ['fitment', 'Vehicle Fitment'], ['shipping', 'Shipping & Returns']];
+  let panel = '';
+  if (S.tab === 'details') panel = `${p.marketing ? `<p class="mkt">${esc(p.marketing)}</p>` : ''}<ul class="features">${p.features.map(f => `<li>${icon('check', 18, 3)}<span>${esc(f)}</span></li>`).join('')}</ul>${p.pdfs && p.pdfs.length ? `<div class="docs">${p.pdfs.map((u, i) => `<a href="${esc(u)}" target="_blank" rel="noopener">Installation instructions${p.pdfs.length > 1 ? ' ' + (i + 1) : ''} (PDF)</a>`).join('')}</div>` : ''}${p.prop65 ? `<div class="p65"><span>⚠</span><span><b>California Prop 65:</b> ${esc(p.prop65.replace(/^WARNING:\s*/i, ''))}</span></div>` : ''}<p class="datasrc">Product description, images and specifications supplied by the manufacturer through SEMA Data (PIES).</p>`;
+  if (S.tab === 'specs') panel = `<div class="tblwrap" style="max-width:760px"><table class="tbl specs"><tbody>${Object.entries(p.specs).map(([k, val]) => `<tr><th scope="row">${esc(k)}</th><td>${esc(val)}</td></tr>`).join('')}</tbody></table></div>`;
+  if (S.tab === 'fitment' && p.fitPending) panel = `<p style="color:var(--muted);font-size:14px;margin-bottom:12px">${p.fitCount} fitment records from ReadyLift's ACES file. Vehicles are stored as ID numbers from the industry vehicle database (VCdb). Once that database is connected these become year, make, model and trim names.</p><div class="tblwrap"><table class="tbl num"><thead><tr><th>Years</th><th>Make ID</th><th>Model ID</th><th>Submodel ID</th><th>Drive ID</th><th>Notes</th></tr></thead><tbody>${p.fitRows.map(r => `<tr><td>${r.from === r.to ? r.from : r.from + '-' + r.to}</td><td>${esc(r.make)}</td><td>${esc(r.model)}</td><td>${esc(r.subModel || '-')}</td><td>${esc(r.driveType || '-')}</td><td>${esc(r.notes || '-')}</td></tr>`).join('')}</tbody></table></div>${p.fitCount > p.fitRows.length ? `<p class="datasrc">Showing the first ${p.fitRows.length} of ${p.fitCount}.</p>` : ''}`;
+  else if (S.tab === 'fitment') panel = p.universal ? `<div class="empty"><b>Universal part</b>Not tied to a specific vehicle.</div>`
+    : `<div class="tblwrap"><table class="tbl num"><thead><tr><th>Years</th><th>Make</th><th>Model</th><th>Submodels</th><th>Engines</th><th>Notes</th></tr></thead><tbody>${p.fitment.map(r => `<tr class="${vmatch(r) ? 'match' : ''}"><td>${r.from === r.to ? r.from : r.from + '-' + r.to}</td><td>${esc(r.make)}</td><td>${esc(r.model)}</td><td>${esc(r.sub)}</td><td>${esc(r.engine || '-')}</td><td>${esc(r.notes || '-')}</td></tr>`).join('')}</tbody></table></div><p class="datasrc">Fitment from manufacturer ACES data. Last synced ${new Date(D.synced).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}.</p>`;
+  if (S.tab === 'shipping') panel = `<div style="max-width:70ch;display:grid;gap:10px;color:#333338"><p>In-stock orders usually ship within 1-2 business days directly from the distributor's warehouse. You'll get a tracking number by email as soon as it ships.</p><p>Oversized items such as lift kits, bumpers and tonneau covers may ship by freight. Freight orders need a phone number for delivery scheduling.</p><p>Unused parts in original packaging can be returned within 30 days. Parts that have been installed can't be returned unless they're defective.</p></div>`;
+  return `<div class="wrap">
+    <div class="crumbs"><a href="#home">Home</a> / <a href="#cat-${c.id}">${esc(c.name)}</a> / <a href="#sub-${p.sub}">${esc(subById[p.sub].name)}</a></div>
+    <div class="pdp">
+      <div class="gallery"><div id="mainImg">${pimg(p, 180)}</div>${p.imgs && p.imgs.length > 1 ? `<div class="thumbs">${p.imgs.map((u, i) => `<button type="button" class="${i ? '' : 'on'}" data-img="${u}" aria-label="Photo ${i + 1}">${imgTag(u, '')}</button>`).join('')}</div>` : ''}${p.img ? '' : `<div class="thumbs"><div class="on">${icon(c.icon, 30, 1.3)}</div><div>${icon(c.icon, 30, 1.3)}</div><div>${icon(c.icon, 30, 1.3)}</div><div>${icon(c.icon, 30, 1.3)}</div></div>`}<p class="imgnote">${p.img ? '' : 'Product photos will load from SEMA Data once the feed is connected.'}</p></div>
+      <div class="buy">
+        <a class="brand" href="#brand-${p.brand}">${esc(p.brandName)}</a>
+        <h1>${esc(p.title)}</h1>
+        <div class="meta num"><span>Part # <b>${esc(p.pn)}</b></span><span>Category <b>${esc(subById[p.sub].name)}</b></span><span>Weight <b>${p.weight} lb</b></span></div>
+        <div class="pricebox"><span class="price num">${money(p.price)}</span>${p.msrp ? `<span class="msrp num">MSRP ${money(p.msrp)}</span>` : ''}</div>
+        ${p.msrp ? `<div class="save num">You save ${money(p.msrp - p.price)}</div>` : ''}
+        ${banner}
+        ${p.emissions ? `<div style="margin:-4px 0 14px">${emNote(p)}</div>` : ''}
+        <div class="cartrow"><div class="qty"><button type="button" id="qm" aria-label="Decrease quantity">−</button><label for="qv" class="sr">Quantity</label><input id="qv" value="1" inputmode="numeric" class="num"><button type="button" id="qp" aria-label="Increase quantity">+</button></div>
+          <button class="btn btn-red" type="button" id="addMain">${icon('cart', 20)} Add to cart</button></div>
+        ${qtyIn}
+        <div class="avail num"><div class="h"><span>Availability</span><span>${stockLine(p)}</span></div>
+          ${!p.stock ? '<div><span>Turn14 / Keystone</span><span style="color:var(--muted)">Live stock once feeds are connected</span></div>' : Object.entries(p.stock).map(([w, n]) => `<div><span>${esc(w)} warehouse</span><span style="color:${n ? 'var(--ok)' : 'var(--muted)'}">${n ? n + ' in stock' : 'Out of stock'}</span></div>`).join('')}</div>
+      </div>
+    </div>
+    <div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button type="button" role="tab" aria-selected="${S.tab === k}" class="${S.tab === k ? 'on' : ''}" data-tab="${k}">${n}</button>`).join('')}</div>
+    <div class="tabpanel" role="tabpanel">${panel}</div>
+    ${(() => { const rel = P.filter(x => x.sub === p.sub && x.id !== p.id && (!v || fitStatus(x, v) !== 'nofit')).sort((a, b) => ((b.brand === p.brand) - (a.brand === p.brand)) || (!!b.img - !!a.img)).slice(0, 4); const rel2 = rel.length ? rel : P.filter(x => x.cat === p.cat && x.id !== p.id && (!v || fitStatus(x, v) === 'fits')).slice(0, 4); return rel2.length ? `<section class="blk" style="padding-top:0"><div class="sec-h"><h2>You might also <em>need</em></h2></div><div class="pgrid">${rel2.map(cardHTML).join('')}</div></section>` : ''; })()}
+  </div>`;
+}
+function cartView() {
+  const items = Object.entries(S.cart).filter(([id]) => byId[id]);
+  const v = activeV();
+  if (!items.length) return `<div class="wrap" style="padding:40px 20px 60px"><div class="empty"><b>Your cart is empty</b>Find parts for your build and they'll show up here.<br><a class="btn btn-red" href="#shop">Shop parts</a></div></div>`;
+  const sub = cartTotal();
+  const freeShip = sub >= 149;
+  return `<div class="wrap"><div class="crumbs"><a href="#home">Home</a> / Cart</div>
+    <div class="shop-h"><div><h1>Your cart</h1><div class="count num">${cartCount()} item${cartCount() === 1 ? '' : 's'}</div></div></div>
+    <div class="cart"><div>${items.map(([id, q]) => { const p = byId[id]; return `<div class="line"><a href="#p-${p.id}">${pimg(p, 40)}</a>
+      <div><a class="t" href="#p-${p.id}">${esc(p.title)}</a><div class="sub num">Part # ${esc(p.pn)} · ${money(p.price)} each</div><div style="margin-top:6px">${fitBadge(p, v)}</div></div>
+      <div class="r"><div class="qty"><button type="button" data-dec="${id}" aria-label="Decrease">−</button><input value="${q}" class="num" aria-label="Quantity" readonly><button type="button" data-inc="${id}" aria-label="Increase">+</button></div>
+      <b class="num">${money(p.price * q)}</b><button class="linkbtn" type="button" data-rm="${id}">Remove</button></div></div>`; }).join('')}</div>
+    <aside class="summary"><h2>Order summary</h2>
+      <div class="row num"><span>Subtotal</span><span>${money(sub)}</span></div>
+      <div class="row"><span>Shipping</span><span>${freeShip ? 'Free' : 'Calculated at checkout'}</span></div>
+      <div class="row"><span>Sales tax</span><span>Calculated at checkout</span></div>
+      <div class="row total num"><span>Estimated total</span><span>${money(sub)}</span></div>
+      ${freeShip ? '' : `<p style="font-size:13px;color:var(--muted);margin-top:6px" class="num">Add ${money(149 - sub)} more for free shipping.</p>`}
+      <button class="btn btn-red" type="button" id="checkout">${icon('lock', 18)} Secure checkout</button>
+      <div class="secure">${icon('lock', 14)} Payments processed by Stripe</div>
+    </aside></div></div>`;
+}
+
+/* ---------- interactions ---------- */
+function addToCart(id, q = 1) { S.cart[id] = (S.cart[id] || 0) + q; saveC(); renderCartBtn(); toast(`${icon('checkc', 18)} Added to cart <a href="#cart">View cart</a>`); }
+function wireView(r) {
+  const app = $('#app');
+  app.querySelectorAll('[data-add]').forEach(b => b.onclick = () => addToCart(b.dataset.add));
+  app.querySelectorAll('[data-garage]').forEach(b => b.onclick = openGarage);
+  wireYMM('hf'); wireYMM('pf');
+  if (r.name === 'home') { wireBrands(); wirePromo(); } else { clearInterval(bTimer); clearInterval(pTimer); }
+  if (r.name === 'shop') {
+    const fo = $('#fitOnly'); if (fo) fo.onchange = () => { S.f.fitOnly = fo.checked; S.f.shown = 24; render(); };
+    app.querySelectorAll('[data-brand]').forEach(c => c.onchange = () => { c.checked ? S.f.brands.add(c.dataset.brand) : S.f.brands.delete(c.dataset.brand); S.f.shown = 24; render(); });
+    app.querySelectorAll('input[name=price]').forEach(c => c.onchange = () => { S.f.price = c.value; S.f.shown = 24; render(); });
+    const st = $('#inStock'); if (st) st.onchange = () => { S.f.inStock = st.checked; render(); };
+    const cb = $('#carbOnly'); if (cb) cb.onchange = () => { S.f.carb = cb.checked; render(); };
+    const so = $('#sort'); so.value = S.f.sort; so.onchange = () => { S.f.sort = so.value; render(); };
+    const m = $('#more'); if (m) m.onclick = () => { S.f.shown += 24; render(); };
+    const sa = $('#showAll'); if (sa) sa.onclick = () => { S.f.fitOnly = false; render(); };
+    const ft = $('#ftog'); if (ft) ft.onclick = () => $('#filters').classList.toggle('open');
+  }
+  if (r.name === 'product') {
+    const qv = $('#qv'); const clamp = n => Math.max(1, Math.min(99, n || 1));
+    $('#qm').onclick = () => qv.value = clamp(+qv.value - 1);
+    $('#qp').onclick = () => qv.value = clamp(+qv.value + 1);
+    qv.onchange = () => qv.value = clamp(parseInt(qv.value, 10));
+    $('#addMain').onclick = () => { addToCart(r.id, clamp(parseInt(qv.value, 10))); render(); };
+    app.querySelectorAll('[data-img]').forEach(b => b.onclick = () => { $('#mainImg').innerHTML = `<div class="pimg photo">${imgTag(b.dataset.img, byId[r.id].shortName)}</div>`; app.querySelectorAll('[data-img]').forEach(x => x.classList.toggle('on', x === b)); });
+    app.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; const y = window.scrollY; render(); window.scrollTo(0, y); });
+  }
+  if (r.name === 'cart') {
+    app.querySelectorAll('[data-inc]').forEach(b => b.onclick = () => { S.cart[b.dataset.inc]++; saveC(); render(); });
+    app.querySelectorAll('[data-dec]').forEach(b => b.onclick = () => { const id = b.dataset.dec; if (--S.cart[id] <= 0) delete S.cart[id]; saveC(); render(); });
+    app.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { delete S.cart[b.dataset.rm]; saveC(); render(); });
+    $('#checkout').onclick = openCheckout;
+  }
+}
+
+/* brand carousel: rotates one tile at a time, pauses on hover */
+let bTimer = null;
+function wireBrands() {
+  clearInterval(bTimer);
+  const track = $('#bTrack'), view = $('#bView'); if (!track) return;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let busy = false;
+  const step = () => { const t = track.children[0]; return t.getBoundingClientRect().width + 10; };
+  function next() {
+    if (busy) return; busy = true;
+    track.style.transition = reduce ? 'none' : 'transform .45s ease'; track.style.transform = `translateX(${-step()}px)`;
+    const done = () => { track.style.transition = 'none'; track.appendChild(track.children[0]); track.style.transform = 'translateX(0)'; busy = false; };
+    reduce ? done() : setTimeout(done, 460);
+  }
+  function prev() {
+    if (busy) return; busy = true;
+    track.style.transition = 'none'; track.insertBefore(track.lastElementChild, track.children[0]); track.style.transform = `translateX(${-step()}px)`;
+    void track.offsetWidth;
+    track.style.transition = reduce ? 'none' : 'transform .45s ease'; track.style.transform = 'translateX(0)';
+    setTimeout(() => { busy = false; }, reduce ? 0 : 460);
+  }
+  $('#bNext').onclick = () => { next(); restart(); };
+  $('#bPrev').onclick = () => { prev(); restart(); };
+  function restart() { clearInterval(bTimer); if (!reduce) bTimer = setInterval(() => { if (!document.hidden) next(); }, 3000); }
+  view.onmouseenter = () => clearInterval(bTimer); view.onmouseleave = restart;
+  view.addEventListener('focusin', () => clearInterval(bTimer)); view.addEventListener('focusout', restart);
+  restart();
+}
+
+/* modal */
+function openModal(html, after) { $('#mbox').innerHTML = `<button class="mclose" type="button" id="mclose" aria-label="Close">${icon('x', 22)}</button>` + html; const m = $('#modal'); m.classList.add('open'); m.setAttribute('aria-hidden', 'false'); $('#mclose').onclick = closeModal; if (after) after(); const f = $('#mbox').querySelector('select,button:not(.mclose)'); if (f) f.focus(); }
+function closeModal() { const m = $('#modal'); m.classList.remove('open'); m.setAttribute('aria-hidden', 'true'); }
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeAC(); } });
+
+function openGarage() {
+  const list = S.garage.map((g, i) => `<div class="gitem ${i === S.active ? 'on' : ''}">${icon('car', 22)}<b>${esc(vlabel(g))}</b>${i === S.active ? '<span class="tag">Shopping for</span>' : `<button class="btn btn-ghost btn-sm" type="button" data-use="${i}">Shop for this</button>`}<button class="linkbtn" type="button" data-del="${i}" aria-label="Remove ${esc(vlabel(g))}">${icon('trash', 16)}</button></div>`).join('');
+  openModal(`<h2 id="mTitle">My Garage</h2><p>Save your vehicles and switch between them. We'll show you parts that fit whichever one you pick.</p>
+    ${S.garage.length ? `<div class="glist">${list}</div>` : ''}
+    <h3 style="font-size:18px;margin-top:18px">Add a vehicle</h3>${ymmHTML('gm', 'Add to garage')}`, () => {
+    wireYMM('gm', () => openGarage());
+    $('#mbox').querySelectorAll('[data-use]').forEach(b => b.onclick = () => { S.active = +b.dataset.use; saveG(); closeModal(); refresh(); });
+    $('#mbox').querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const i = +b.dataset.del; S.garage.splice(i, 1); if (S.active === i) S.active = -1; else if (S.active > i) S.active--; saveG(); refresh(); openGarage(); });
+  });
+}
+function openCheckout() {
+  openModal(`<h2 id="mTitle">Checkout</h2><p class="num">Order total <b>${money(cartTotal())}</b> for ${cartCount()} item${cartCount() === 1 ? '' : 's'}.</p>
+    <div class="note"><b>Prototype: no payment is taken here.</b> On the live site this button opens Stripe's secure checkout page. After payment:
+      <ol><li>Stripe confirms the payment to our server.</li><li>The order is saved and you get a confirmation email.</li><li>A purchase order goes to Turn14 or Keystone, whichever has the part in stock.</li><li>Tracking numbers come back from the distributor and are emailed to you.</li></ol></div>
+    <button class="btn btn-red" type="button" style="width:100%;margin-top:16px" disabled>${icon('lock', 18)} Continue to Stripe</button>`);
+}
+
+let tt; function toast(html) { const t = $('#toast'); t.innerHTML = html; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2600); t.querySelectorAll('a').forEach(a => a.onclick = () => t.classList.remove('show')); }
+
+/* search events */
+const qEl = $('#q');
+qEl.addEventListener('input', renderAC);
+qEl.addEventListener('focus', renderAC);
+qEl.addEventListener('keydown', e => {
+  const items = [...$('#ac').querySelectorAll('a')]; if (!items.length) return;
+  const i = items.findIndex(a => a.classList.contains('hi'));
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); items.forEach(a => a.classList.remove('hi')); const n = e.key === 'ArrowDown' ? (i + 1) % items.length : (i <= 0 ? items.length - 1 : i - 1); items[n].classList.add('hi'); items[n].scrollIntoView({ block: 'nearest' }); }
+  if (e.key === 'Enter' && i >= 0) { e.preventDefault(); items[i].click(); if (!items[i].dataset.all) location.hash = items[i].getAttribute('href'); }
+});
+$('#searchForm').addEventListener('submit', e => { e.preventDefault(); doSearch(); });
+document.addEventListener('click', e => { if (!$('#searchBox').contains(e.target)) closeAC(); });
+$('#garageBtn').onclick = openGarage;
+$('#trackBtn').onclick = () => openModal(`<h2 id="mTitle">Track your order</h2><p>Enter the order number from your confirmation email and the email you ordered with.</p>
+  <form id="trackForm" style="display:grid;gap:10px;margin-top:14px"><label for="tOrder" style="font-weight:600;font-size:14px">Order number</label><input id="tOrder" class="ymm" placeholder="DAB-100245" required style="background-image:none">
+  <label for="tEmail" style="font-weight:600;font-size:14px">Email</label><input id="tEmail" type="email" class="ymm" placeholder="you@example.com" required style="background-image:none">
+  <button class="btn btn-red" type="submit">Track order</button></form><div id="tOut"></div>`, () => { $('#trackForm').onsubmit = e => { e.preventDefault(); $('#tOut').innerHTML = '<div class="note">Prototype: on the live site this shows the order status and the carrier tracking number sent back by Turn14 or Keystone.</div>'; }; });
+$('#acctBtn').onclick = () => openModal(`<h2 id="mTitle">Sign in</h2><p>Customer accounts will let shoppers see past orders, reorder parts and keep their garage on every device.</p><div class="note">Prototype: sign-in isn't connected yet. It gets built with the real database in the next stage.</div>`);
+
+window.addEventListener('hashchange', render);
+$('#protoCount').textContent = P.length.toLocaleString();
+hydrateIcons(document);
+render();
+})();
+</script>
+</body>
+</html>

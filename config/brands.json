@@ -1,19 +1,49 @@
 {
-  "_comment": "Brands loaded from SEMA Data. display_price: which PIES price types to show shoppers, first one present wins. RET = retail, RMP = minimum advertised price (MAP), LST = list. strip_prefix: removed from the start of product names because the brand is shown separately.",
+  "_comment": "Brands loaded from SEMA Data. display_price: which PIES price types to show shoppers, first one present wins. RET = retail, RMP = minimum advertised price (MAP), LST = list. strip_prefix: removed from the start of product names because the brand is shown separately. name_source: PIES description code to build names from (default: Title attribute, then EXT/DES/SHO/INV); with name_style 'size_last' sizes at the start are moved after the product line, and words are title-cased.",
   "brands": [
     {
       "id": "readylift",
       "name": "ReadyLift",
       "aaia_id": "BKMQ",
-      "display_price": ["RET", "RMP", "LST"],
-      "strip_prefix": ["ReadyLift", "ReadyLIFT", "RL"]
+      "display_price": [
+        "RET",
+        "RMP",
+        "LST"
+      ],
+      "strip_prefix": [
+        "ReadyLift",
+        "ReadyLIFT",
+        "RL"
+      ]
     },
     {
       "id": "magnaflow",
       "name": "MagnaFlow",
       "aaia_id": "FBHB",
-      "display_price": ["RET", "RMP", "LST"],
-      "strip_prefix": ["MagnaFlow", "Magnaflow"]
+      "display_price": [
+        "RET",
+        "RMP",
+        "LST"
+      ],
+      "strip_prefix": [
+        "MagnaFlow",
+        "Magnaflow"
+      ]
+    },
+    {
+      "id": "mickeythompson",
+      "name": "Mickey Thompson",
+      "aaia_id": "BFLW",
+      "display_price": [
+        "RET",
+        "RMP"
+      ],
+      "strip_prefix": [
+        "Mickey Thompson",
+        "MT"
+      ],
+      "name_source": "INV",
+      "name_style": "size_last"
     }
   ]
 }

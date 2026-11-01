@@ -3,15 +3,13 @@
 Uses small hand-written PIES / ACES / vehicle files so they run in seconds. The database tests
 create and drop their own scratch database next to the one in DATABASE_URL.
 """
-import os
-import uuid
 from decimal import Decimal
 
 import openpyxl
-import psycopg
 import pytest
 
-from importer import catalog, db, load, pies, vehicles, aces
+from importer import catalog, load, pies, vehicles, aces
+from conftest import BRAND
 
 PIES_XML = """<?xml version="1.0" encoding="utf-8"?>
 <PIES xmlns="http://www.autocare.org">
@@ -71,7 +69,6 @@ ACES_XML = """<?xml version="1.0" encoding="utf-8"?>
   <App action="A" id="3"><BaseVehicle id="1"/><Qty>1</Qty><PartType id="1"/><Part>NOT-IN-PIES</Part></App>
 </ACES>"""
 
-BRAND = {"id": "testbrand", "name": "TestBrand", "aaia_id": "TEST", "display_price": ["RET", "RMP"], "strip_prefix": ["TestBrand"]}
 
 
 @pytest.fixture
@@ -149,27 +146,6 @@ def test_aces_and_vehicle_readers(files):
 
 
 # ---------------------------------------------------------------- full load (database)
-
-@pytest.fixture
-def conn(monkeypatch):
-    base = os.environ.get("DATABASE_URL")
-    if not base:
-        pytest.skip("DATABASE_URL not set")
-    name = "dab_test_" + uuid.uuid4().hex[:8]
-    with psycopg.connect(base, autocommit=True) as admin:
-        admin.execute(f"CREATE DATABASE {name}")
-    info = psycopg.conninfo.conninfo_to_dict(base)
-    info["dbname"] = name
-    c = psycopg.connect(**info)
-    db.migrate(c)
-    monkeypatch.setattr(load.config, "brands", lambda: {"testbrand": BRAND})
-    monkeypatch.setattr(load.config, "image_reviews", lambda: [])
-    monkeypatch.setattr(load.config, "extra_images", lambda: [])
-    yield c
-    c.close()
-    with psycopg.connect(base, autocommit=True) as admin:
-        admin.execute(f"DROP DATABASE {name}")
-
 
 def test_load_brand_end_to_end(conn, files):
     stats = load.load_brand(conn, "testbrand", *files, log=lambda *a: None)

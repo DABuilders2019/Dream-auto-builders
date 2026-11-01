@@ -1,5 +1,5 @@
 {
- "_comment": "Store categories, and the rules that place each SEMA part type into one. Rules are checked top to bottom; the first match wins. 'part_type' matches the PIES part type name exactly, 'part_type_contains' matches part of it, 'text_contains' looks in the product name and short descriptions. Anything unmatched goes to 'uncategorized' and is listed in the import report.",
+ "_comment": "Store categories, and the rules that place each SEMA part type into one. Rules are checked top to bottom; the first match wins. 'part_type' matches the PIES part type name exactly, 'part_type_contains' matches part of it, 'text_contains' looks in the product name and short descriptions. Anything unmatched goes to 'uncategorized' and is listed in the import report. 'name_contains' looks only in the product name.",
  "categories": [
   {
    "id": "suspension",
@@ -115,15 +115,23 @@
     ],
     [
      "mud-terrain",
-     "Mud-Terrain Tires"
+     "Mud-Terrain & Off-Road Tires"
+    ],
+    [
+     "drag-racing-tires",
+     "Drag & Racing Tires"
     ],
     [
      "performance-tires",
-     "Performance Tires"
+     "Street Performance Tires"
     ],
     [
      "all-season",
      "All-Season Tires"
+    ],
+    [
+     "tire-accessories",
+     "Tubes & Tire Accessories"
     ]
    ]
   },
@@ -138,6 +146,10 @@
     [
      "wheel-spacers",
      "Wheel Spacers"
+    ],
+    [
+     "wheel-accessories",
+     "Center Caps & Wheel Accessories"
     ]
    ]
   },
@@ -220,6 +232,90 @@
   }
  ],
  "rules": [
+  {
+   "part_type": [
+    "Tire"
+   ],
+   "name_contains": [
+    "a/t",
+    "atz",
+    "legend exp",
+    "all-terrain",
+    "all terrain"
+   ],
+   "category": "all-terrain"
+  },
+  {
+   "part_type": [
+    "Tire"
+   ],
+   "name_contains": [
+    " et ",
+    "pro bracket",
+    "pro drag",
+    "drag",
+    "bracket",
+    "race"
+   ],
+   "category": "drag-racing-tires"
+  },
+  {
+   "part_type": [
+    "Tire"
+   ],
+   "name_contains": [
+    "sportsman",
+    "street comp",
+    "street"
+   ],
+   "category": "performance-tires"
+  },
+  {
+   "part_type": [
+    "Tire"
+   ],
+   "name_contains": [
+    "m/t",
+    "mtz",
+    "baja",
+    "mud",
+    "sxs",
+    "belted"
+   ],
+   "category": "mud-terrain"
+  },
+  {
+   "part_type": [
+    "Tire"
+   ],
+   "category": "all-season"
+  },
+  {
+   "part_type": [
+    "Tire Inner Tube",
+    "Tire Valve Stem",
+    "Tire Repair Kit"
+   ],
+   "category": "tire-accessories"
+  },
+  {
+   "part_type": [
+    "Wheel",
+    "Wheel - Steel",
+    "Wheel - Alloy"
+   ],
+   "category": "wheels"
+  },
+  {
+   "part_type": [
+    "Wheel Cap",
+    "Wheel Center Cap",
+    "Lug Nut",
+    "Wheel Lug Nut",
+    "Wheel Lock"
+   ],
+   "category": "wheel-accessories"
+  },
   {
    "part_type": [
     "Suspension Lift Kit"
@@ -359,5 +455,10 @@
   "mufflers",
   "exhaust-tips",
   "exhaust-pipes"
+ ],
+ "_size_comment": "Parts in these categories fit by size (tire size, bolt pattern), not by year/make/model. They stay visible when a shopper has a vehicle selected, marked 'Fits by size'.",
+ "size_fit_categories": [
+  "tires",
+  "wheels"
  ]
 }

@@ -1,0 +1,161 @@
+{
+  "_comment": "Search vocabulary. synonyms: a shopper's words on the left also match the store's words on the right (both are searched). make_aliases: nicknames for vehicle makes. stop_words: ignored in searches. generic_model_words: ordinary words that are also model names (Chevrolet 'Classic', Mitsubishi 'Van'); they only count as a vehicle when the make is typed too.",
+  "synonyms": {
+    "cai": [
+      "cold air intake"
+    ],
+    "catback": [
+      "cat-back"
+    ],
+    "cat back": [
+      "cat-back"
+    ],
+    "axleback": [
+      "axle-back"
+    ],
+    "axle back": [
+      "axle-back"
+    ],
+    "cat converter": [
+      "catalytic converter"
+    ],
+    "cats": [
+      "catalytic converter"
+    ],
+    "level kit": [
+      "leveling kit"
+    ],
+    "nerf bars": [
+      "running boards"
+    ],
+    "nerf bar": [
+      "running board"
+    ],
+    "side steps": [
+      "running boards"
+    ],
+    "rims": [
+      "wheels"
+    ],
+    "rim": [
+      "wheel"
+    ],
+    "floor mats": [
+      "floor liners"
+    ],
+    "mats": [
+      "floor liners"
+    ],
+    "bed cover": [
+      "tonneau cover"
+    ],
+    "sway bar": [
+      "stabilizer bar"
+    ],
+    "control arms": [
+      "control arm"
+    ],
+    "uca": [
+      "upper control arm"
+    ],
+    "shocks": [
+      "shock absorber"
+    ],
+    "lightbar": [
+      "light bar"
+    ],
+    "headlamps": [
+      "headlights"
+    ],
+    "dpf": [
+      "filter-back",
+      "dpf-back"
+    ],
+    "straight pipe": [
+      "race pipe"
+    ],
+    "a/t": [
+      "all-terrain"
+    ],
+    "at tires": [
+      "all-terrain tires"
+    ],
+    "m/t": [
+      "mud-terrain"
+    ],
+    "mt tires": [
+      "mud-terrain tires"
+    ],
+    "drag radial": [
+      "drag rad",
+      "drag radial"
+    ],
+    "beadlock": [
+      "bead lock"
+    ]
+  },
+  "make_aliases": {
+    "chevy": "Chevrolet",
+    "vw": "Volkswagen",
+    "mercedes": "Mercedes-Benz",
+    "benz": "Mercedes-Benz",
+    "landrover": "Land Rover",
+    "caddy": "Cadillac"
+  },
+  "stop_words": [
+    "inch",
+    "inches",
+    "in",
+    "for",
+    "with",
+    "the",
+    "and",
+    "a",
+    "an",
+    "of",
+    "to",
+    "fits",
+    "fit",
+    "my",
+    "on",
+    "part",
+    "parts",
+    "new"
+  ],
+  "generic_model_words": [
+    "classic",
+    "van",
+    "sport",
+    "limited",
+    "base",
+    "custom",
+    "special",
+    "standard",
+    "deluxe",
+    "pickup",
+    "truck",
+    "wagon",
+    "coupe",
+    "convertible",
+    "sedan",
+    "hatchback",
+    "cab",
+    "chassis",
+    "commercial",
+    "city",
+    "grand",
+    "super",
+    "royal",
+    "touring",
+    "street",
+    "race",
+    "series",
+    "pro",
+    "premium",
+    "hd",
+    "ld",
+    "ltd",
+    "heavy",
+    "duty"
+  ]
+}

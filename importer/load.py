@@ -14,7 +14,7 @@ from . import aces, catalog, config, pies, vehicles
 PRODUCT_COLS = ["brand_id", "part_number", "slug", "status", "title", "short_name", "part_type", "part_terminology_id",
                 "category_id", "price", "price_type", "map_price", "upc", "weight_lb", "package_dims", "country_of_origin",
                 "marketing_copy", "features", "specs", "attributes", "descriptions", "prop65_warning", "carb_eo",
-                "emissions", "source_file_date"]
+                "emissions", "source_file_date", "size_norm"]
 JSON_COLS = {"features", "specs", "attributes", "descriptions"}
 
 
@@ -52,6 +52,7 @@ def load_brand(conn, brand_id, pies_path, aces_path=None, vehicles_path=None, lo
     try:
         with conn.transaction():
             _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log)
+        refresh_derived(conn, brand_id)
         stats["seconds"] = round(time.time() - t0, 1)
         _finish(conn, run_id, "ok", stats)
     except Exception as e:
@@ -59,6 +60,17 @@ def load_brand(conn, brand_id, pies_path, aces_path=None, vehicles_path=None, lo
         _finish(conn, run_id, "failed", stats, repr(e))
         raise
     return dict(stats)
+
+
+def refresh_derived(conn, brand_id):
+    """Rebuild data derived from the catalog: card photos and the search word list."""
+    from .photos import refresh_main_images
+    refresh_main_images(conn, brand_id)
+    with conn.cursor() as cur:
+        cur.execute("SELECT 1 FROM pg_matviews WHERE matviewname = 'search_lexicon'")
+        if cur.fetchone():
+            cur.execute("REFRESH MATERIALIZED VIEW search_lexicon")
+    conn.commit()
 
 
 def _finish(conn, run_id, status, stats, error=None):
@@ -198,14 +210,27 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
         # Fitment status. No vehicle rows does NOT mean the part fits everything: it is 'universal' only when the
         # brand says so in its attributes, or the part type is universal by nature (mufflers, tips, pipes). Otherwise
         # the brand simply hasn't sent fitment, and the part is kept out of vehicle-filtered results.
-        universal_cats = config.catalog().get("universal_categories", [])
+        cat_cfg = config.catalog()
+        universal_cats = cat_cfg.get("universal_categories", [])
+        size_cats = []
+        for c in cat_cfg["categories"]:
+            if c["id"] in cat_cfg.get("size_fit_categories", []):
+                size_cats += [c["id"]] + [sid for sid, _ in c["subs"]]
         cur.execute("""
             UPDATE products p SET fitment_status = CASE
                 WHEN EXISTS (SELECT 1 FROM fitment f WHERE f.product_id = p.id) THEN 'vehicle_specific'
+                WHEN p.category_id = ANY(%s) THEN 'by_size'
                 WHEN p.category_id = ANY(%s)
                   OR EXISTS (SELECT 1 FROM jsonb_each_text(p.attributes) a WHERE lower(a.value) LIKE '%%universal%%') THEN 'universal'
                 ELSE 'missing' END
-            WHERE p.brand_id = %s""", (universal_cats, brand["id"]))
+            WHERE p.brand_id = %s""", (size_cats, universal_cats, brand["id"]))
+        # Searchable extras: category + parent category names and key specs.
+        cur.execute("""
+            UPDATE products p SET search_extra = concat_ws(' ', c.name, pc.name,
+                   p.attributes->>'Brand Line', p.attributes->>'Series', p.attributes->>'Tire Size',
+                   p.attributes->>'Bolt Pattern', p.attributes->>'Product Size - Bolt Pattern')
+            FROM categories c LEFT JOIN categories pc ON pc.id = c.parent_id
+            WHERE c.id = p.category_id AND p.brand_id = %s""", (brand["id"],))
         cur.execute("""SELECT fitment_status, count(*) FROM products WHERE brand_id = %s AND status = 'active' GROUP BY 1""", (brand["id"],))
         for st, n in cur.fetchall():
             stats["fitment_" + st] = n

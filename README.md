@@ -9,11 +9,12 @@ built on SEMA Data (PIES product data and ACES fitment).
 |---|---|
 | `prototype/` | The clickable design prototype. Open `prototype/index.html` in a browser. This is the design reference for the real storefront: colors, layout, slideshow, category cards, product pages, Add a Vehicle bar, My Garage and cart. |
 | `importer/` | **Step 1 of the live site:** the database schema and the catalog importer (SEMA PIES/ACES/vehicle sheet → Postgres, plus photo download and checks). See [docs/IMPORTER.md](docs/IMPORTER.md). |
-| `config/` | Brands, store categories and the rules that sort SEMA part types into them, photo review results. |
+| `store/` | **Step 2:** search, autocomplete and Year/Make/Model menus, served as a JSON API (FastAPI). See [docs/SEARCH.md](docs/SEARCH.md). |
+| `config/` | Brands, store categories and the rules that sort SEMA part types into them, search vocabulary, photo review results. |
 | `tests/` | Importer tests (`DATABASE_URL=... pytest tests/`). |
 | `tools/` | The original prototype-era scripts, kept for reference. |
 
-Still to come: search, the storefront (built from the prototype's design), Render deployment, and Stripe checkout.
+Still to come: the storefront pages (built from the prototype's design), Render deployment, and Stripe checkout.
 
 ## Status
 
@@ -21,6 +22,7 @@ Still to come: search, the storefront (built from the prototype's design), Rende
 |---|---|---|---|---|
 | ReadyLift | 561 active (+2 hidden: no price) | 54,470 | 1,100 | 550 (11 small parts have none anywhere) |
 | MagnaFlow | 6,894 active | 143,426 | 14,030 | 6,894 |
+| Mickey Thompson | 766 active (+50 hidden: no retail or MAP price) | none (tires and wheels fit by size) | n/a | photos waiting on access to the brand's image hosts |
 
 ## Prototype data
 

@@ -131,6 +131,8 @@ def run(conn, brand_id, zip_path=None, max_per_product=4, limit_products=None, w
         # Fallback: products with no usable part photo yet get their remaining photos tried.
         batch("""NOT EXISTS (SELECT 1 FROM product_images o WHERE o.product_id = i.product_id
                  AND o.status = 'ok' AND o.kind = 'part')""", [])
+        refresh_main_images(conn, brand_id)
+        conn.commit()
         summary = summarize(conn, brand_id)
         stats.update({"seconds": round(time.time() - t0, 1)})
         with conn.cursor() as cur:
@@ -145,6 +147,19 @@ def run(conn, brand_id, zip_path=None, max_per_product=4, limit_products=None, w
                         (repr(e), Jsonb(dict(stats)), run_id))
         conn.commit()
         raise
+
+
+def refresh_main_images(conn, brand_id):
+    """Set products.main_image to the best photo: a part photo before truck/box shots, then feed order."""
+    with conn.cursor() as cur:
+        cur.execute("""
+            UPDATE products p SET main_image = m.storage_key
+            FROM (SELECT p2.id, (SELECT i.storage_key FROM product_images i
+                                 WHERE i.product_id = p2.id AND i.status = 'ok'
+                                 ORDER BY (i.kind = 'part') DESC, i.sort, i.id LIMIT 1) AS storage_key
+                  FROM products p2 WHERE p2.brand_id = %s) m
+            WHERE p.id = m.id AND p.main_image IS DISTINCT FROM m.storage_key""", (brand_id,))
+        return cur.rowcount
 
 
 def summarize(conn, brand_id):

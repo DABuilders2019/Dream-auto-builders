@@ -6,7 +6,8 @@
 #
 # Approximate monthly cost: web Standard $25 + Postgres Basic-256mb $6 + database storage 5 GB $1.50
 # + disk 10 GB $2.50 = about $35. The web service needs Standard (2 GB memory) because catalog
-# imports run on it; the largest file so far (MagnaFlow) uses about 400 MB while loading.
+# imports run on it: the largest catalog file so far (MagnaFlow) uses about 400 MB while loading, and
+# photo downloads up to about 700 MB (Mickey Thompson sends 4000 px photos).
 
 databases:
   - name: dab-db
@@ -52,4 +53,4 @@ services:
       - key: PHOTO_DIR
         value: /var/data/photos
       - key: PHOTO_WORKERS
-        value: "6"
+        value: "4"

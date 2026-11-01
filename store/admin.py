@@ -214,7 +214,7 @@ def upload(request: Request, files: List[UploadFile] = File(...), brand_name: st
         args += ["--vehicles", rel(vehicles)]
     steps = [(f"Load {brand['name']} catalog", args)]
     if photos:
-        p_args = ["photos", "--brand", brand["id"], "--workers", os.environ.get("PHOTO_WORKERS", "6")]
+        p_args = ["photos", "--brand", brand["id"], "--workers", os.environ.get("PHOTO_WORKERS", "4")]
         if found.get("assets"):
             p_args += ["--zip", rel(found["assets"])]
         steps.append((f"Download {brand['name']} photos", p_args))
@@ -236,7 +236,7 @@ def photos(request: Request, brand_id: str):
         return _back(error="Unknown brand.")
     assets = next((p for p in (st.uploads_dir / brand_id).glob("*") if classify(p) == "assets"), None) \
         if (st.uploads_dir / brand_id).exists() else None
-    args = ["photos", "--brand", brand_id, "--retry-failed", "--workers", os.environ.get("PHOTO_WORKERS", "6")] + \
+    args = ["photos", "--brand", brand_id, "--retry-failed", "--workers", os.environ.get("PHOTO_WORKERS", "4")] + \
         (["--zip", str(assets)] if assets else [])
     if not st.jobs.start(f"{name[0]} photos", [(f"Download {name[0]} photos", args)], brand_id):
         return _back(error="An import is already running.")

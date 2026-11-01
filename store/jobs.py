@@ -75,7 +75,8 @@ class Jobs:
             return True
 
     def _run(self, state, steps):
-        env = {**os.environ, "DATABASE_URL": self.dsn, "PYTHONUNBUFFERED": "1"}
+        env = {**os.environ, "DATABASE_URL": self.dsn, "PYTHONUNBUFFERED": "1",
+               "MALLOC_ARENA_MAX": "2"}       # otherwise each download thread keeps its own memory pool
         ok = True
         with open(state["log"], "a") as log:
             for i, (label, args) in enumerate(steps):

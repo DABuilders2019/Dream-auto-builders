@@ -10,6 +10,7 @@ import collections
 import concurrent.futures as cf
 import hashlib
 import io
+import threading
 import time
 import http.client
 import urllib.error
@@ -34,7 +35,10 @@ def _fetch(url, timeout=60, attempts=3):
         req = urllib.request.Request(url, headers={"User-Agent": UA})
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                return r.read()
+                data = r.read(MAX_DOWNLOAD + 1)
+            if len(data) > MAX_DOWNLOAD:
+                raise ValueError("file over 60 MB")
+            return data
         except urllib.error.HTTPError as e:
             if e.code not in (429, 500, 502, 503, 504) or attempt == attempts - 1:
                 raise
@@ -44,19 +48,38 @@ def _fetch(url, timeout=60, attempts=3):
         time.sleep(2 * 2 ** attempt)
 
 
+# Some brands send huge original images (several thousand pixels on a side). Decoding many at once can use
+# gigabytes of memory, so they are decoded one at a time, JPEGs are decoded at reduced size, and
+# absurdly large images are refused.
+_DECODE = threading.BoundedSemaphore(1)   # the server has one CPU, so decoding one at a time costs no speed
+Image.MAX_IMAGE_PIXELS = 60_000_000
+MAX_DOWNLOAD = 60 * 1024 * 1024
+
+
 def _process(raw):
+    with _DECODE:
+        return _process_one(raw)
+
+
+def _process_one(raw):
     im = Image.open(io.BytesIO(raw))
+    if im.format == "JPEG":
+        im.draft("RGB", (MAX_SIDE, MAX_SIDE))     # decode at 1/2, 1/4 or 1/8 size when that's still big enough
     im.load()
     if min(im.size) < 80:
         raise ValueError(f"image too small {im.size}")
-    if im.mode in ("RGBA", "LA", "P"):
+    if im.mode == "P":
+        im = im.convert("RGBA")
+    if im.mode not in ("RGB", "RGBA", "LA", "L"):
+        im = im.convert("RGB")
+    im.thumbnail((MAX_SIDE, MAX_SIDE))           # shrink first: the colour work below is then on a small image
+    if im.mode in ("RGBA", "LA"):
         im = im.convert("RGBA")
         bg = Image.new("RGB", im.size, (255, 255, 255))
         bg.paste(im, mask=im.split()[-1])
         im = bg
     else:
         im = im.convert("RGB")
-    im.thumbnail((MAX_SIDE, MAX_SIDE))
     out = io.BytesIO()
     im.save(out, "JPEG", quality=85, optimize=True, progressive=True)
     return out.getvalue(), im.size

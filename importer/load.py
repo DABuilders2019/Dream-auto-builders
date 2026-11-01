@@ -41,11 +41,18 @@ def seed_reference(conn):
                         (r["key"], r["key_type"], r["verdict"], r.get("reason")))
 
 
-def load_brand(conn, brand_id, pies_path, aces_path=None, vehicles_path=None, log=print):
-    brand = config.brands()[brand_id]
+def load_brand(conn, brand, pies_path, aces_path=None, vehicles_path=None, log=print):
+    """brand: an id from config/brands.json, or the settings dict from importer.brands.resolve()."""
+    if isinstance(brand, str):
+        brand = config.brands()[brand]
+    brand_id = brand["id"]
     stats = collections.Counter()
     t0 = time.time()
     seed_reference(conn)
+    with conn.cursor() as cur:   # brands added from their files (not in config/brands.json)
+        cur.execute("""INSERT INTO brands (id, name, aaia_id, display_price) VALUES (%s, %s, %s, %s)
+                       ON CONFLICT (id) DO NOTHING""",
+                    (brand_id, brand["name"], brand.get("aaia_id"), brand.get("display_price", ["RET", "RMP", "LST"])))
     conn.commit()
     with conn.cursor() as cur:
         cur.execute("INSERT INTO import_runs (brand_id, step) VALUES (%s, 'catalog') RETURNING id", (brand_id,))
@@ -90,6 +97,7 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
 
     # ---------- products (PIES)
     rows, prices, docs, photos = [], {}, {}, {}
+    logo_url = None
     uncategorized = collections.Counter()
     extra = [e for e in config.extra_images() if e["brand"] == brand["id"]]
     for item in pies.read_items(pies_path):
@@ -100,6 +108,8 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
             stats["pies_items_other_brand"] += 1
             continue
         p = catalog.build_product(item, brand, categorizer, file_date)
+        if logo_url is None:
+            logo_url = next((a["uri"] for a in item["assets"] if a["asset_type"] == "LGO" and a["uri"]), None)
         rows.append(p)
         prices[p["part_number"]] = item["prices"]
         docs[p["part_number"]] = catalog.install_docs(item)
@@ -119,7 +129,9 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
         cur.executemany(
             f"""INSERT INTO products ({cols}) VALUES ({", ".join(["%s"] * len(PRODUCT_COLS))})
                 ON CONFLICT (brand_id, part_number) DO UPDATE SET {updates}, updated_at = now()""",
-            [[Jsonb(p[c]) if c in JSON_COLS else p[c] for c in PRODUCT_COLS] for p in rows])
+            ([Jsonb(p[c]) if c in JSON_COLS else p[c] for c in PRODUCT_COLS] for p in rows))
+        if logo_url:
+            cur.execute("UPDATE brands SET logo_url = %s WHERE id = %s", (logo_url, brand["id"]))
         cur.execute("SELECT part_number, id FROM products WHERE brand_id = %s", (brand["id"],))
         ids = dict(cur.fetchall())
 
@@ -184,8 +196,8 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
 
         # ---------- named fitment (Admark vehicle sheet)
         if vehicles_path:
-            sheet = list(vehicles.read_rows(vehicles_path))
-            keys = sorted({(r["year"], r["make"], r["model"]) for r in sheet})
+            # The sheet is read twice (vehicles first, then fitment rows) instead of being held in memory.
+            keys = sorted({(r["year"], r["make"], r["model"]) for r in vehicles.read_rows(vehicles_path)})
             cur.executemany("INSERT INTO vehicles (year, make, model) VALUES (%s, %s, %s) ON CONFLICT DO NOTHING", keys)
             cur.execute("SELECT year, make, model, id FROM vehicles")
             vid = {(y, mk, md): i for y, mk, md, i in cur.fetchall()}
@@ -193,7 +205,7 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
             n, unknown = 0, set()
             with cur.copy("""COPY fitment (product_id, vehicle_id, submodel, engine, body, transmission, bed, wheelbase,
                              position, notes, mfr_label) FROM STDIN""") as cp:
-                for r in sheet:
+                for r in vehicles.read_rows(vehicles_path):
                     pid = ids.get(r["sku"])
                     if pid is None:
                         unknown.add(r["sku"])

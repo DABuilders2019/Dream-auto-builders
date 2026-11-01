@@ -1,0 +1,55 @@
+# Render Blueprint for the Dream Auto Builders store.
+#
+# Creates: the shop (a Python web service with a 10 GB disk for product photos and uploaded SEMA
+# files) and its Postgres database. In Render: New > Blueprint > pick this repository > Apply.
+# Render asks for ADMIN_PASSWORD and SITE_PASSWORD while creating it (see docs/DEPLOY.md).
+#
+# Approximate monthly cost: web Standard $25 + Postgres Basic-256mb $6 + database storage 5 GB $1.50
+# + disk 10 GB $2.50 = about $35. The web service needs Standard (2 GB memory) because catalog
+# imports run on it; the largest file so far (MagnaFlow) uses about 400 MB while loading.
+
+databases:
+  - name: dab-db
+    databaseName: dab
+    user: dab
+    plan: basic-256mb
+    diskSizeGB: 5
+    postgresMajorVersion: "16"
+    region: ohio
+    ipAllowList: []          # only the shop can connect (private network)
+
+services:
+  - type: web
+    name: dream-auto-builders
+    runtime: python
+    region: ohio
+    plan: standard
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn --factory store.app:create_app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 10
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dab-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD        # for /admin (catalog uploads). Pick a strong one.
+        sync: false
+      - key: SITE_PASSWORD         # visitors need it while the site is a private test site
+        sync: false
+      - key: COOKIE_SECURE
+        value: "1"
+      - key: SITE_PREVIEW
+        value: "1"
+      - key: DATA_DIR
+        value: /var/data
+      - key: PHOTO_DIR
+        value: /var/data/photos
+      - key: PHOTO_WORKERS
+        value: "6"

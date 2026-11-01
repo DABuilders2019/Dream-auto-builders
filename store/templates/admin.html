@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+{% if job and job.status == 'running' %}<meta http-equiv="refresh" content="6">{% endif %}
+<title>{{ title }} | Dream Auto Builders</title>
+<link rel="icon" type="image/png" href="/static/img/favicon.png">
+<link rel="stylesheet" href="/static/css/site.css?v=2">
+</head>
+<body>
+<header class="top"><div class="wrap hdr">
+  <a class="logo" href="/"><img src="/static/img/logo-word.png" alt="Dream Auto Builders" width="171" height="44"></a>
+  <b class="admintitle">Catalog admin</b>
+  <div class="hdr-actions"><a class="hbtn" href="/">{{ icon('cart') }}<span class="lbl">View the shop</span></a>
+    <form method="post" action="/admin/logout"><button class="hbtn" type="submit">{{ icon('user') }}<span class="lbl">Sign out</span></button></form></div>
+</div></header>
+
+<main class="wrap admin">
+  {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+  {% if started %}<div class="notice">{{ icon('checkc', 18) }} <span>Started: <b>{{ started }}</b>. This page refreshes while it runs.</span></div>{% endif %}
+
+  {% if job %}
+  <section class="acard">
+    <h2>{% if job.status == 'running' %}Running now{% else %}Last job{% endif %}: {{ job.title }}</h2>
+    <p class="muted">Started {{ job.started[:16]|replace('T', ' ') }} UTC{% if job.finished %} · finished {{ job.finished[:16]|replace('T', ' ') }} UTC{% endif %} ·
+      <b class="jst {{ job.status }}">{{ {'running': 'Running', 'done': 'Finished', 'failed': 'Failed', 'interrupted': 'Interrupted by a restart: start it again'}[job.status] }}</b></p>
+    <ol class="steps">{% for st in job.steps %}<li class="jst {{ st.status }}">{{ st.label }} · {{ st.status }}{% if st.seconds %} ({{ (st.seconds // 60) }} min {{ st.seconds % 60 }} s){% endif %}</li>{% endfor %}</ol>
+    <details{% if job.status != 'done' %} open{% endif %}><summary>Log</summary><pre class="log">{{ job.log_tail }}</pre></details>
+  </section>
+  {% endif %}
+
+  <section class="acard">
+    <h2>Add or update a brand</h2>
+    <p>Upload the files you downloaded from SEMA Data for <b>one brand</b>. Zip files are fine, there's no need to unzip them.</p>
+    <ul class="howto">
+      <li><b>PIES</b> (required): products, prices, descriptions, photo links.</li>
+      <li><b>ACES</b> and the <b>Admark Vehicle Assignment Template</b> (if the brand has them): which vehicles each part fits.</li>
+      <li><b>Digital Assets</b> zip (optional): photos are downloaded from the links in PIES anyway. Only add it if links are missing.</li>
+    </ul>
+    <form method="post" action="/admin/upload" enctype="multipart/form-data" id="upForm">
+      <div class="formrow"><label for="files"><b>Files</b></label><input id="files" name="files" type="file" multiple required accept=".zip,.xml,.xlsx"></div>
+      <div class="formrow"><label for="bn"><b>Brand name</b> <span class="muted">(only for a brand that isn't on the site yet; leave empty to use the name in the file)</span></label><input id="bn" name="brand_name" maxlength="80"></div>
+      <label class="check"><input type="checkbox" name="photos" value="1" checked> Download photos after loading the catalog</label>
+      <button class="btn btn-red" type="submit" id="upBtn"{% if job and job.status == 'running' %} disabled{% endif %}>Upload and import</button>
+      {% if job and job.status == 'running' %}<span class="muted">Wait for the current job to finish.</span>{% endif %}
+    </form>
+  </section>
+
+  <section class="acard">
+    <h2>Brands on the site</h2>
+    <div class="tblwrap"><table class="tbl num">
+      <thead><tr><th>Brand</th><th>Code</th><th>Parts</th><th>With photo</th><th>Vehicle fitment</th><th>Last import</th><th></th></tr></thead>
+      <tbody>
+      {% for b in brands %}
+        <tr><td>{% if b.logo %}<img class="alogo" src="{{ b.logo }}" alt="">{% endif %}<a href="/brand/{{ b.id }}"><b>{{ b.name }}</b></a></td>
+          <td>{{ b.aaia or '' }}</td>
+          <td>{{ b.active|num }}{% if b.hidden %} <span class="muted">+{{ b.hidden }} hidden (no price)</span>{% endif %}{% if b.discontinued %} <span class="muted">{{ b.discontinued }} discontinued</span>{% endif %}</td>
+          <td>{% if b.active %}{{ b.with_photo|num }} <span class="muted">({{ (100 * b.with_photo / b.active)|round|int }}%)</span>{% endif %}{% if b.photos_pending %}<br><span class="muted">{{ b.photos_pending|num }} not checked yet</span>{% endif %}</td>
+          <td>{% if b.active %}{{ b.with_fitment|num }}{% endif %}</td>
+          <td>{{ b.last_import.strftime('%b %d, %Y') if b.last_import else '-' }}</td>
+          <td>{% if b.active %}<div class="acts">
+            <form method="post" action="/admin/photos/{{ b.id }}"><button class="btn btn-ghost btn-sm" type="submit"{% if job and job.status == 'running' %} disabled{% endif %}>Download photos</button></form>
+            <a class="btn btn-ghost btn-sm" href="/admin/report/{{ b.id }}">Photo report</a></div>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="7">No brands yet.</td></tr>{% endfor %}
+      </tbody></table></div>
+    <p class="muted" style="margin-top:8px">“Download photos” fetches photos that haven't been checked yet and tries again the ones that failed for a temporary reason (a busy server), so it's safe to run again, for example after a job was interrupted.</p>
+  </section>
+
+  <section class="acard">
+    <h2>Recent runs</h2>
+    <div class="tblwrap"><table class="tbl num"><thead><tr><th>#</th><th>Brand</th><th>Step</th><th>Status</th><th>Started (UTC)</th><th>Took</th></tr></thead><tbody>
+      {% for r in runs %}<tr><td>{{ r.id }}</td><td>{{ r.brand }}</td><td>{{ r.step }}</td><td><span class="jst {{ 'done' if r.status == 'ok' else r.status }}">{{ r.status }}</span>{% if r.error %}<br><span class="muted">{{ r.error[:160] }}</span>{% endif %}</td>
+        <td>{{ r.started.strftime('%b %d %H:%M') if r.started else '' }}</td><td>{% if r.finished and r.started %}{{ ((r.finished - r.started).total_seconds() / 60)|round(1) }} min{% endif %}</td></tr>
+      {% else %}<tr><td colspan="6">Nothing imported yet.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</main>
+<script>
+document.getElementById('upForm').addEventListener('submit', function () {
+  var b = document.getElementById('upBtn'); b.disabled = true; b.textContent = 'Uploading… keep this page open';
+});
+</script>
+</body>
+</html>

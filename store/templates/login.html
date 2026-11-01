@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{{ title }} | Dream Auto Builders</title>
+<link rel="icon" type="image/png" href="/static/img/favicon.png">
+<link rel="stylesheet" href="/static/css/site.css?v=2">
+</head>
+<body class="gate">
+<main class="gatebox">
+  <img src="/static/img/logo-full.png" alt="Dream Auto Builders" width="140" height="142">
+  <h1>{{ title }}</h1>
+  <p>{% if admin %}Sign in to manage the catalog.{% else %}This test site isn't public yet. Enter the password to look around.{% endif %}</p>
+  {% if error %}<div class="notice warn">{{ error }}</div>{% endif %}
+  <form method="post" action="{{ action }}">
+    <label class="sr" for="pw">Password</label>
+    <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="Password" required autofocus>
+    <button class="btn btn-red" type="submit">Sign in</button>
+  </form>
+</main>
+</body>
+</html>

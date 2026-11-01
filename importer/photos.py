@@ -11,11 +11,13 @@ import concurrent.futures as cf
 import hashlib
 import io
 import time
+import http.client
+import urllib.error
 import urllib.parse
 import urllib.request
 import zipfile
 
-from PIL import Image
+from PIL import Image, ImageChops
 from psycopg.types.json import Jsonb
 
 from .storage import get_storage
@@ -24,13 +26,22 @@ MAX_SIDE = 1200
 UA = "Mozilla/5.0 (compatible; DreamAutoBuildersImporter/1.0)"
 
 
-def _fetch(url, timeout=60):
+def _fetch(url, timeout=60, attempts=3):
     if "dropbox.com" in url:
         url = url.replace("dl=0", "dl=1") if "dl=0" in url else url + ("&" if "?" in url else "?") + "dl=1"
     url = urllib.parse.quote(url, safe=":/?&=%#+,;@!$'()*~")     # links sometimes contain spaces
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read()
+    for attempt in range(attempts):
+        req = urllib.request.Request(url, headers={"User-Agent": UA})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.read()
+        except urllib.error.HTTPError as e:
+            if e.code not in (429, 500, 502, 503, 504) or attempt == attempts - 1:
+                raise
+        except (urllib.error.URLError, ConnectionError, TimeoutError, http.client.HTTPException, OSError):
+            if attempt == attempts - 1:      # busy image servers drop connections: wait and try again
+                raise
+        time.sleep(2 * 2 ** attempt)
 
 
 def _process(raw):
@@ -51,8 +62,62 @@ def _process(raw):
     return out.getvalue(), im.size
 
 
-def run(conn, brand_id, zip_path=None, max_per_product=4, limit_products=None, workers=12, log=print):
+def _process_logo(raw):
+    """Logo as a PNG: transparency kept, empty margins trimmed, at most 600 x 240."""
+    im = Image.open(io.BytesIO(raw))
+    im.load()
+    im = im.convert("RGBA")
+    alpha = im.split()[-1].point(lambda a: 255 if a > 10 else 0)
+    ink = ImageChops.difference(im.convert("RGB"), Image.new("RGB", im.size, (255, 255, 255))).convert("L")
+    box = ImageChops.multiply(ink.point(lambda v: 255 if v > 18 else 0), alpha).getbbox()
+    if box:
+        im = im.crop(box)
+    im.thumbnail((600, 240))
+    out = io.BytesIO()
+    im.save(out, "PNG", optimize=True)
+    return out.getvalue()
+
+
+def fetch_logo(conn, brand_id, storage=None, log=print):
+    """Download the brand logo named in the PIES file (if it changed since last time)."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT logo_url, logo_src, logo_key FROM brands WHERE id = %s", (brand_id,))
+        r = cur.fetchone()
+    if not r or not r[0] or (r[0] == r[1] and r[2]):
+        return r[2] if r else None
+    storage = storage or get_storage()
+    try:
+        data = _process_logo(_fetch(r[0]))
+        key = f"logos/{brand_id}-{hashlib.md5(data).hexdigest()[:10]}.png"
+        storage.put(key, data, "image/png")
+        with conn.cursor() as cur:
+            cur.execute("UPDATE brands SET logo_key = %s, logo_src = %s WHERE id = %s", (key, r[0], brand_id))
+        conn.commit()
+        log("  brand logo saved")
+        return key
+    except Exception as e:
+        conn.rollback()
+        log(f"  brand logo not saved: {e!r}")
+        return None
+
+
+# Failures worth trying again later (not: missing link, tiny image, file not found / forbidden).
+RETRY_SQL = """UPDATE product_images i SET status = 'pending' FROM products p
+               WHERE p.id = i.product_id AND p.brand_id = %s AND i.status = 'failed'
+                 AND coalesce(i.note, '') NOT LIKE 'no link%%' AND coalesce(i.note, '') NOT LIKE '%%too small%%'
+                 AND coalesce(i.note, '') NOT LIKE '%%HTTP Error 404%%' AND coalesce(i.note, '') NOT LIKE '%%HTTP Error 403%%'
+                 AND coalesce(i.note, '') NOT LIKE '%%HTTP Error 410%%' AND coalesce(i.note, '') NOT LIKE '%%cannot identify image%%'"""
+
+
+def run(conn, brand_id, zip_path=None, max_per_product=4, limit_products=None, workers=12, log=print, retry_failed=False):
     storage = get_storage()
+    fetch_logo(conn, brand_id, storage, log)
+    if retry_failed:
+        with conn.cursor() as cur:
+            cur.execute(RETRY_SQL, (brand_id,))
+            if cur.rowcount:
+                log(f"  trying {cur.rowcount} failed downloads again")
+        conn.commit()
     zf = zipfile.ZipFile(zip_path) if zip_path else None
     zip_names = set(zf.namelist()) if zf else set()
     stats = collections.Counter()

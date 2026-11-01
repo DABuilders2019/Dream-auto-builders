@@ -215,10 +215,21 @@ def sub_counts(conn):
 
 def brands_with_counts(conn):
     with conn.cursor() as cur:
-        cur.execute("""SELECT b.id, b.name, count(p.id) FROM brands b
+        cur.execute("""SELECT b.id, b.name, b.logo_key, count(p.id) FROM brands b
                        JOIN products p ON p.brand_id = b.id AND p.status = 'active' AND p.price IS NOT NULL
-                       WHERE b.active GROUP BY 1, 2 ORDER BY 2""")
-        return [{"id": i, "name": n, "count": c} for i, n, c in cur.fetchall()]
+                       WHERE b.active GROUP BY 1, 2, 3 ORDER BY 2""")
+        return [{"id": i, "name": n, "logo_key": k, "count": c} for i, n, k, c in cur.fetchall()]
+
+
+def brand_logos(conn, searcher):
+    """{brand id: logo URL}: a file chosen in config/home.json, else the logo from the brand's SEMA data."""
+    chosen = home_config().get("brand_logos", {})
+    with conn.cursor() as cur:
+        cur.execute("SELECT id, logo_key FROM brands")
+        rows = cur.fetchall()
+    out = {i: searcher.storage.url(k) for i, k in rows if k}
+    out.update({i: f"/static/img/brands/{f}" for i, f in chosen.items()})
+    return out
 
 
 def cart_products(conn, searcher, ids):

@@ -30,6 +30,8 @@ DATABASE_URL=postgresql://... SECRET_KEY=any-long-random-text PHOTO_DIR=/path/to
 | `/cart` | Cart. Checkout is switched off until step 5. |
 | `/garage` | My Garage: saved vehicles, pick which one to shop for. |
 | `/track`, `/account`, `/info/...` | Placeholders until checkout and accounts exist. The info pages need the store's own wording before launch. |
+| `/admin` | Catalog admin (needs `ADMIN_PASSWORD`): upload a brand's SEMA files, watch the import, download photos, photo report. |
+| `/login` | Only when `SITE_PASSWORD` is set: the private test site's sign-in. |
 
 Results pages share these filters (all in the URL, so filtered pages can be bookmarked):
 `brand` (repeatable), `price` (`0-100`, `100-300`, `300-750`, `750-1500`, `1500-`), `carb=1`,
@@ -64,4 +66,5 @@ follow the shopper between devices.
 | `store/queries.py` | Product page, cards, home page numbers. |
 | `store/templates/` | `base.html` (header, Add a Vehicle bar, footer), `_macros.html` (product card, fit badge, Y/M/M menus), one template per page. |
 | `store/static/` | `css/site.css` (from the prototype), `js/site.js`, logos, category and slide images, brand logos, fonts (Barlow, served from the site). |
-| `config/home.json` | Home page slides, category order and photos, popular parts, brand logos. Moves into the admin dashboard later. |
+| `config/home.json` | Home page slides, category order and photos, popular parts, hand-picked brand logos (other brands use the logo from their SEMA data). Moves into the admin dashboard later. |
+| `store/admin.py`, `store/jobs.py` | Admin page, and the background runner for imports. |

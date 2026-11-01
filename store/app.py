@@ -15,7 +15,13 @@ Settings (environment variables):
   SECRET_KEY      signs the shopper's cookie (garage + cart). Set a long random value in production.
   COOKIE_SECURE   1 to send that cookie over HTTPS only (production)
   SITE_PREVIEW    1 (default) shows the "test site" ribbon and tells search engines not to index; 0 at launch
+  SITE_PASSWORD   if set, visitors must enter it before seeing the shop (private test site)
+  ADMIN_PASSWORD  turns on the admin page at /admin (catalog uploads, imports, photo downloads)
+  DATA_DIR        folder for uploaded SEMA files and import logs (default: data)
   PHOTO_STORAGE / PHOTO_DIR / S3_*   where product photos are (see importer/storage.py)
+
+On start the database tables are created or upgraded, and the store categories and brands
+from config/ are written to it.
 """
 import contextlib
 import logging
@@ -31,8 +37,12 @@ from fastapi.staticfiles import StaticFiles
 from psycopg_pool import ConnectionPool
 from starlette.middleware.sessions import SessionMiddleware
 
+from importer import db as importer_db
+from importer import load as importer_load
+from . import admin
 from . import vehicles as veh
 from . import web
+from .jobs import Jobs
 from .search import SORTS, Searcher
 from .settings import search_config
 
@@ -41,10 +51,29 @@ REFRESH_SECONDS = 300   # pick up new imports (vehicles, categories) at most thi
 
 class State:
     def __init__(self, dsn):
+        self.dsn = dsn
         self.pool = ConnectionPool(dsn, min_size=1, max_size=int(os.environ.get("DB_POOL_SIZE", "10")),
                                    kwargs={"autocommit": True}, open=True)
         self.lock = threading.Lock()
         self.searcher, self.loaded_at, self.run_id = None, 0, None
+        self.data_dir = pathlib.Path(os.environ.get("DATA_DIR", "data"))
+        self.uploads_dir = self.data_dir / "uploads"
+        self.uploads_dir.mkdir(parents=True, exist_ok=True)
+        self.jobs = Jobs(self.data_dir, dsn, on_finish=self.reset)
+
+    def reset(self):
+        """Forget cached catalog data (after an import) so pages show it right away."""
+        with self.lock:
+            self.searcher, self.loaded_at = None, 0
+            self.__dict__.pop("page_cache", None)
+
+    def prepare_database(self):
+        with self.pool.connection() as conn:
+            conn.autocommit = False
+            importer_db.migrate(conn)
+            importer_load.seed_reference(conn)
+            conn.commit()
+            conn.autocommit = True
 
     def get_searcher(self, conn):
         now = time.time()
@@ -61,6 +90,8 @@ class State:
 def create_app(dsn=None):
     state = State(dsn or os.environ["DATABASE_URL"])
 
+    state.prepare_database()
+
     @contextlib.asynccontextmanager
     async def lifespan(app):
         yield
@@ -73,6 +104,7 @@ def create_app(dsn=None):
     if not secret:
         logging.getLogger("store").warning("SECRET_KEY is not set: using a temporary key, so carts reset when the server restarts")
         secret = secrets.token_urlsafe(32)
+    web.install_site_gate(app)       # (inside the session middleware below, so it can read the cookie)
     app.add_middleware(SessionMiddleware, secret_key=secret, session_cookie="dab", max_age=90 * 24 * 3600,
                        same_site="lax", https_only=os.environ.get("COOKIE_SECURE") == "1")
     app.mount("/static", StaticFiles(directory=str(pathlib.Path(__file__).resolve().parent / "static")), name="static")
@@ -128,6 +160,7 @@ def create_app(dsn=None):
             raise HTTPException(404, "vehicle not found")
         return v
 
+    app.include_router(admin.router)
     web.install(app)
     return app
 

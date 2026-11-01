@@ -9,12 +9,13 @@ built on SEMA Data (PIES product data and ACES fitment).
 |---|---|
 | `prototype/` | The clickable design prototype. Open `prototype/index.html` in a browser. This is the design reference for the real storefront: colors, layout, slideshow, category cards, product pages, Add a Vehicle bar, My Garage and cart. |
 | `importer/` | **Step 1 of the live site:** the database schema and the catalog importer (SEMA PIES/ACES/vehicle sheet → Postgres, plus photo download and checks). See [docs/IMPORTER.md](docs/IMPORTER.md). |
-| `store/` | **Step 2:** search, autocomplete and Year/Make/Model menus, served as a JSON API (FastAPI). See [docs/SEARCH.md](docs/SEARCH.md). **Step 3:** the storefront pages, built from the prototype's design. See [docs/STOREFRONT.md](docs/STOREFRONT.md). |
+| `store/` | **Step 2:** search, autocomplete and Year/Make/Model menus, served as a JSON API (FastAPI). See [docs/SEARCH.md](docs/SEARCH.md). **Step 3:** the storefront pages, built from the prototype's design. See [docs/STOREFRONT.md](docs/STOREFRONT.md). **Step 4:** the admin page (`/admin`) for uploading SEMA files. |
+| `render.yaml` | **Step 4:** how Render runs the store (web service, disk, database). See [docs/DEPLOY.md](docs/DEPLOY.md). |
 | `config/` | Brands, store categories and the rules that sort SEMA part types into them, search vocabulary, photo review results. |
 | `tests/` | Importer, search and page tests (`DATABASE_URL=... pytest tests/`). |
 | `tools/` | The original prototype-era scripts, kept for reference. |
 
-Still to come: Render deployment (step 4) and Stripe checkout (step 5).
+Still to come: Stripe checkout (step 5).
 
 ## Status
 

@@ -1,12 +1,14 @@
 """Command line for the importer.
 
   python -m importer migrate
-  python -m importer load    --brand readylift --pies PIES.xml --aces ACES.xml --vehicles ADMARK.xlsx
+  python -m importer load    --pies PIES.xml --aces ACES.xml --vehicles ADMARK.xlsx [--brand readylift]
   python -m importer photos  --brand readylift [--zip DIGITAL_ASSETS.zip] [--max-per-product 4]
   python -m importer report  --brand readylift --out report.xlsx
   python -m importer status
 
 Files may be .zip archives as downloaded from SEMA Data; the XML/XLSX inside is used.
+The brand is found from the brand code inside the PIES file. A brand that isn't in
+config/brands.json is added with default settings (--brand-name sets its display name).
 DATABASE_URL must point at the Postgres database.
 """
 import argparse
@@ -16,7 +18,7 @@ import sys
 import tempfile
 import zipfile
 
-from . import db, load, photos, report
+from . import brands, db, load, photos, report
 
 
 def _unzip(path, suffix):
@@ -37,7 +39,8 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("migrate", help="create/upgrade database tables")
     p = sub.add_parser("load", help="load a brand's PIES, ACES and vehicle files")
-    p.add_argument("--brand", required=True)
+    p.add_argument("--brand", help="brand id (optional: found from the PIES file)")
+    p.add_argument("--brand-name", help="display name for a brand that isn't set up yet")
     p.add_argument("--pies", required=True)
     p.add_argument("--aces")
     p.add_argument("--vehicles", help="Admark Vehicle Assignment Template (.xlsx or its .zip)")
@@ -47,6 +50,7 @@ def main(argv=None):
     p.add_argument("--max-per-product", type=int, default=4)
     p.add_argument("--limit-products", type=int)
     p.add_argument("--workers", type=int, default=12)
+    p.add_argument("--retry-failed", action="store_true", help="also try again photos that failed for a temporary reason")
     p = sub.add_parser("report", help="write the photo report spreadsheet")
     p.add_argument("--brand", required=True)
     p.add_argument("--out", required=True)
@@ -58,12 +62,19 @@ def main(argv=None):
         print("applied:", db.migrate(conn) or "nothing new")
     elif a.cmd == "load":
         db.migrate(conn)
-        print(f"Loading {a.brand} ...")
-        stats = load.load_brand(conn, a.brand, _unzip(a.pies, ".xml"), _unzip(a.aces, ".xml"), _unzip(a.vehicles, ".xlsx"))
-        print(json.dumps(stats, indent=2))
+        pies_path = _unzip(a.pies, ".xml")
+        aaia, label = brands.peek(pies_path)
+        try:
+            brand = brands.resolve(conn, aaia, label, a.brand_name, a.brand)
+        except ValueError as e:
+            raise SystemExit(f"Can't load this file: {e}")
+        print(f"Loading {brand['name']} (brand code {aaia}){' as a new brand' if brand.get('new') else ''} ...", flush=True)
+        stats = load.load_brand(conn, brand, pies_path, _unzip(a.aces, ".xml"), _unzip(a.vehicles, ".xlsx"))
+        print(json.dumps({k: v for k, v in stats.items() if k != "parts_missing_fitment"}, indent=2))
     elif a.cmd == "photos":
         print(f"Photos for {a.brand} ...")
-        stats, summary = photos.run(conn, a.brand, a.zip, a.max_per_product, a.limit_products, a.workers)
+        stats, summary = photos.run(conn, a.brand, a.zip, a.max_per_product, a.limit_products, a.workers,
+                                    retry_failed=a.retry_failed)
         print(json.dumps({"files": stats, "products": summary["counts"], "possible_logos": len(summary["suspicious"])}, indent=2))
     elif a.cmd == "report":
         path = report.photo_report(conn, a.brand, a.out)

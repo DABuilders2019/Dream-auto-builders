@@ -420,3 +420,27 @@ footer{background:var(--panel);border-top:1px solid var(--line);margin-top:20px}
 .vbar form{display:contents}
 .vbar form.vsel{display:flex}
 .fitbanner b.fitline{display:inline;font-size:13.5px;font-weight:700}
+/* sign-in and admin */
+body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:center;padding:20px}
+.gatebox{background:#fff;border:1px solid var(--line);border-top:4px solid var(--red);border-radius:var(--radius);padding:30px;max-width:400px;width:100%;text-align:center;display:grid;gap:12px;justify-items:center}
+.gatebox h1{font-size:30px;font-weight:800}
+.gatebox p{color:var(--muted);font-size:14.5px}
+.gatebox form{display:grid;gap:10px;width:100%}
+.gatebox input{border:1px solid var(--line);border-radius:var(--radius);padding:11px 12px;font-size:15px}
+.admintitle{font-family:var(--display);text-transform:uppercase;font-size:22px;letter-spacing:.03em}
+.admin{padding:24px 20px 60px;display:grid;gap:18px}
+.acard{border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;background:#fff}
+.acard h2{font-size:24px;font-weight:800;margin-bottom:8px}
+.acard p{margin-bottom:10px;max-width:90ch}
+.howto{margin:0 0 14px 18px;display:grid;gap:4px;font-size:14px;color:#333338}
+.check{display:flex;gap:8px;align-items:center;margin:4px 0 14px;font-size:14px}
+.check input{accent-color:var(--red);width:16px;height:16px}
+.formrow input[type=file]{padding:8px;background:var(--panel)}
+.log{background:#111113;color:#e6e6ea;border-radius:var(--radius);padding:12px;font-size:12px;line-height:1.45;max-height:340px;overflow:auto;white-space:pre-wrap;margin-top:8px}
+.steps{margin:8px 0 10px 18px;display:grid;gap:4px;font-size:14px}
+.jst.running{color:#1d4f91;font-weight:700}.jst.done{color:var(--ok);font-weight:700}.jst.failed,.jst.interrupted{color:var(--bad);font-weight:700}.jst.waiting{color:var(--muted)}
+.alogo{height:22px;width:auto;max-width:90px;display:inline-block;vertical-align:middle;margin-right:8px;object-fit:contain}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.acts form{display:inline}
+.admin summary{cursor:pointer;font-weight:600;font-size:14px}
+.btn-ghost:disabled{opacity:.45;cursor:not-allowed}

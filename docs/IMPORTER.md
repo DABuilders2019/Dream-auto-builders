@@ -20,20 +20,28 @@ export DATABASE_URL=postgresql://user:pass@host:5432/db
 pip install -r requirements.txt
 
 python -m importer migrate                      # create / upgrade tables
-python -m importer load --brand readylift \
+python -m importer load \
     --pies Readylift_PIES_7.0_XML.zip \
     --aces Readylift_ACES_4.0_XML.zip \
-    --vehicles SDC_BKMQ_Admark_Vehicle_Assignment_Template.zip
-python -m importer photos --brand readylift [--zip Readylift_DIGAST_PIES_Digital_Assets.zip]
+    --vehicles SDC_BKMQ_Admark_Vehicle_Assignment_Template.zip   # brand found from the PIES file
+python -m importer photos --brand readylift [--zip Readylift_DIGAST_PIES_Digital_Assets.zip] [--retry-failed]
 python -m importer report --brand readylift --out readylift_photos.xlsx
 python -m importer status
 ```
 
+On the live site the same commands run from the admin page (`/admin`): upload a brand's files and
+they run in the background. See [DEPLOY.md](DEPLOY.md).
+
 ## Adding a brand
 
-1. Add it to `config/brands.json`: `id`, display `name`, SEMA brand code (`aaia_id`, shown in SEMA export file names, e.g. `SDC_FBHB_…` = MagnaFlow),
-   `display_price` (which PIES price to show: `RET` retail, `RMP` MAP, `LST` list), and `strip_prefix`.
-2. Run `load`, then `photos`, then `report`.
+1. Upload its files on the admin page (or run `load` with `--brand-name "Brand Name"`). A brand that isn't in
+   `config/brands.json` is added automatically from the brand code (AAIA ID) and name in the PIES file, with default
+   settings (price shown: `RET` retail, else `RMP` MAP, else `LST` list). Its logo is the PIES logo asset (`LGO`),
+   downloaded by the `photos` step.
+2. Only brands that need special handling go in `config/brands.json`: `id`, display `name`, SEMA brand code (`aaia_id`,
+   shown in SEMA export file names, e.g. `SDC_FBHB_…` = MagnaFlow), `display_price`, `strip_prefix`, `name_source`.
+   A logo file chosen by hand goes in `store/static/img/brands/` and `config/home.json` (`brand_logos`).
+3. Run `load`, then `photos`, then `report`.
 3. Check `uncategorized_part_types` in the load output. Add a rule to `config/catalog.json` for each, then load again.
 4. Open the report's "Check These Photos" tab (if present): one photo used by many different kinds of parts is usually a logo. Add its md5 to
    `config/image_reviews.json` as `blocked`, and run `photos` again.

@@ -211,9 +211,8 @@ def home(request: Request):
             popular = Q.top_for_vehicle(conn, s, vid, 8)
         else:
             popular = Q.cards_by_slugs(conn, s, cfg.get("popular", [])[:8])
-        logos = cfg.get("brand_logos", {})
-        brands = [dict(b, logo=f"/static/img/brands/{logos[b['id']]}" if b["id"] in logos else None)
-                  for b in cached(request, "brands", lambda: Q.brands_with_counts(conn))]
+        logos = cached(request, "logos", lambda: Q.brand_logos(conn, s))
+        brands = [dict(b, logo=logos.get(b["id"])) for b in cached(request, "brands", lambda: Q.brands_with_counts(conn))]
         return render(request, conn, s, "home.html", cfg=cfg, slides=slides, cat_cards=cards, popular=popular, brands=brands)
 
 
@@ -376,20 +375,13 @@ def _results(request, kind, q="", category=None, brand=None):
                       prev_url=url(page=str(page - 1)) if page > 1 else None,
                       next_url=url(page=str(page + 1)) if page < res["pages"] else None,
                       show_all_url=url(all="1"), fit_only_url=url(all=None), clear_url=_clear_url(kind, base_path, q, category),
-                      brand_logo=_brand_logo(brand))
+                      brand_logo=cached(request, "logos", lambda: Q.brand_logos(conn, s)).get(brand) if brand else None)
 
 
 def _clear_url(kind, base_path, q, category):
     if kind == "search":
         return "/search?" + urlencode({"q": q}) if q else "/search"
     return base_path
-
-
-def _brand_logo(brand):
-    if not brand:
-        return None
-    logos = Q.home_config().get("brand_logos", {})
-    return f"/static/img/brands/{logos[brand]}" if brand in logos else None
 
 
 def _pager(page, pages):
@@ -414,9 +406,8 @@ def brands_page(request: Request):
     st = _state(request)
     with st.pool.connection() as conn:
         s = st.get_searcher(conn)
-        logos = Q.home_config().get("brand_logos", {})
-        brands = [dict(b, logo=f"/static/img/brands/{logos[b['id']]}" if b["id"] in logos else None)
-                  for b in Q.brands_with_counts(conn)]
+        logos = Q.brand_logos(conn, s)
+        brands = [dict(b, logo=logos.get(b["id"])) for b in Q.brands_with_counts(conn)]
         return render(request, conn, s, "brands.html", brands=brands)
 
 
@@ -592,6 +583,56 @@ def robots():
     if is_preview():
         return "User-agent: *\nDisallow: /\n"
     return "User-agent: *\nDisallow: /cart\nDisallow: /garage\nDisallow: /api/\n"
+
+
+# ------------------------------------------------------------------ private test site
+
+GATE_OPEN = ("/login", "/static/", "/api/health", "/robots.txt", "/admin")
+
+
+def site_password():
+    return os.environ.get("SITE_PASSWORD", "")
+
+
+def _site_token():
+    import hmac
+    return hmac.new(site_password().encode(), b"dab-site", "sha256").hexdigest()[:24]
+
+
+def install_site_gate(app):
+    """With SITE_PASSWORD set, visitors sign in once (remembered in their cookie) before seeing the shop."""
+    from . import admin
+
+    @app.middleware("http")
+    async def gate(request, call_next):
+        path = request.url.path
+        if site_password() and not path.startswith(GATE_OPEN) and request.session.get("site") != _site_token() \
+                and not admin.is_admin(request):
+            if path.startswith("/api/"):
+                return JSONResponse({"error": "This test site is private."}, status_code=401)
+            nxt = path + ("?" + request.url.query if request.url.query else "")
+            return RedirectResponse("/login?" + urlencode({"next": nxt}), status_code=303)
+        return await call_next(request)
+
+
+@router.get("/login", response_class=HTMLResponse)
+def site_login_page(request: Request):
+    if not site_password():
+        return RedirectResponse("/", status_code=303)
+    return templates.TemplateResponse(request, "login.html", {"request": request, "title": "Private test site", "error": None,
+                                                              "action": "/login?" + urlencode({"next": request.query_params.get("next", "/")})})
+
+
+@router.post("/login")
+def site_login(request: Request, password: str = Form("")):
+    import hmac
+    if site_password() and hmac.compare_digest(password.encode(), site_password().encode()):
+        request.session["site"] = _site_token()
+        return back(request)
+    time.sleep(1)
+    return templates.TemplateResponse(request, "login.html", {"request": request, "title": "Private test site",
+                                                              "error": "That password isn't right.",
+                                                              "action": "/login?" + urlencode({"next": request.query_params.get("next", "/")})})
 
 
 def not_found(request):

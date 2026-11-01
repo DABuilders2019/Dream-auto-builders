@@ -76,7 +76,7 @@ select.ymm:not(:disabled):hover{border-color:#9a9aa2}
 .btn-ghost{background:#fff;border-color:var(--line);color:var(--text)}
 .btn-ghost:hover{border-color:#111}
 .btn-sm{padding:7px 12px;font-size:14px}
-.vchip{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #d9d9de;border-radius:40px;padding:6px 8px 6px 14px}
+.vchip{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #d9d9de;border-radius:var(--radius);padding:6px 6px 6px 14px}
 .vchip .ok{color:var(--ok);display:flex}
 .vchip b{font-weight:700}
 .linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;font-size:13.5px;padding:4px}

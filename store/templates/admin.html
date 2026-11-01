@@ -1,20 +1,11 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="robots" content="noindex, nofollow">
 {% if job and job.status == 'running' %}<meta http-equiv="refresh" content="6">{% endif %}
-<title>{{ title }} | Dream Auto Builders</title>
-<link rel="icon" type="image/png" href="/static/img/favicon.png">
-<link rel="stylesheet" href="/static/css/site.css?v=2">
+{% include "_admin_head.html" %}
 </head>
 <body>
-<header class="top"><div class="wrap hdr">
-  <a class="logo" href="/"><img src="/static/img/logo-word.png" alt="Dream Auto Builders" width="171" height="44"></a>
-  <b class="admintitle">Catalog admin</b>
-  <div class="hdr-actions"><a class="hbtn" href="/">{{ icon('cart') }}<span class="lbl">View the shop</span></a>
-    <form method="post" action="/admin/logout"><button class="hbtn" type="submit">{{ icon('user') }}<span class="lbl">Sign out</span></button></form></div>
-</div></header>
+{% include "_admin_header.html" %}
 
 <main class="wrap admin">
   {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}

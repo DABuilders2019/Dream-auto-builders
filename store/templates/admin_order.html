@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  <p class="crumbs" style="padding:0"><a href="/admin/orders">Orders</a> <span>/</span> <span>{{ o.number }}</span></p>
+  {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+  {% if done %}<div class="notice">{{ icon('checkc', 18) }} <span>{{ done }}</span></div>{% endif %}
+  {% if o.status == 'on_hold' %}<div class="notice warn">{{ icon('info', 18) }} <span><b>On hold:</b> {{ o.hold_reason }}</span></div>{% endif %}
+
+  <section class="acard">
+    <h2>Order {{ o.number }} <span class="ost {{ o.status }}">{{ o.status_label }}</span></h2>
+    <div class="ogrid">
+      <div><h3>Customer</h3><p>{{ o.name or '' }}<br>{{ o.email or '' }}<br>{{ o.phone or '' }}</p>
+        {% if o.vehicle %}<p class="muted">Shopping for: {{ o.vehicle }}</p>{% endif %}</div>
+      <div><h3>Ship to</h3>{% set a = o.ship_address or {} %}<p>{{ a.name or '' }}<br>{{ a.line1 or '' }}{% if a.line2 %}<br>{{ a.line2 }}{% endif %}<br>{{ a.city or '' }}{% if a.city %},{% endif %} {{ a.state or '' }} {{ a.postal_code or '' }}<br>{{ a.country or '' }}</p></div>
+      <div><h3>Payment</h3><p class="num">Subtotal {{ money(o.subtotal) }}<br>Shipping {{ money(o.shipping or 0) }}<br>Tax {{ money(o.tax or 0) }}<br><b>Total {{ money(o.total) if o.total is not none else '-' }}</b></p>
+        {% if o.payment_intent %}<p class="muted">Stripe payment {{ o.payment_intent }}</p>{% endif %}</div>
+    </div>
+    <div class="tblwrap" style="margin-top:14px"><table class="tbl num">
+      <thead><tr><th>Qty</th><th>Brand</th><th>Part #</th><th>Part</th><th>Each</th><th>Total</th></tr></thead>
+      <tbody>{% for it in o['items'] %}<tr><td>{{ it.qty }}</td><td>{{ it.brand_name }}</td><td>{% if it.slug %}<a href="/p/{{ it.slug }}">{{ it.part_number }}</a>{% else %}{{ it.part_number }}{% endif %}</td>
+        <td>{{ it.title }}{% if it.emissions == 'federal_only' %}<br><span class="em no">Federal only (not CARB)</span>{% endif %}</td><td>{{ money(it.unit_price) }}</td><td>{{ money(it.line_total) }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+
+  {% if o.status in ('paid', 'shipped') %}
+  <section class="acard">
+    <h2>{{ 'Update tracking' if o.status == 'shipped' else 'Mark as shipped' }}</h2>
+    <p>Order the parts from Turn14 or Keystone, then enter the tracking number they send back.</p>
+    <form method="post" action="/admin/orders/{{ o.number }}/ship" class="shipform">
+      <div class="formrow"><label for="carrier"><b>Carrier</b></label><select id="carrier" name="carrier" class="ymm">{% for c in carriers %}<option{% if c == o.carrier %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+      <div class="formrow"><label for="trk"><b>Tracking number</b></label><input id="trk" name="tracking" value="{{ o.tracking_number or '' }}" required maxlength="80"></div>
+      <label class="check"><input type="checkbox" name="notify" value="1" checked> Email the tracking number to the customer</label>
+      <button class="btn btn-red" type="submit">Save</button>
+    </form>
+  </section>
+  {% endif %}
+
+  {% if o.status in ('paid', 'on_hold', 'shipped') %}
+  <section class="acard">
+    <h2>Problems</h2>
+    {% if o.status == 'on_hold' %}<form method="post" action="/admin/orders/{{ o.number }}/release" style="margin-bottom:14px"><button class="btn btn-ghost btn-sm" type="submit">Release the hold (the order is OK to ship)</button></form>{% endif %}
+    <form method="post" action="/admin/orders/{{ o.number }}/refund">
+      <label class="check"><input type="checkbox" name="confirm" value="1"> Refund the full {{ money(o.total) }} to the customer's card</label>
+      <button class="btn btn-ghost btn-sm" type="submit">Refund order</button>
+    </form>
+  </section>
+  {% endif %}
+
+  <section class="acard">
+    <h2>History</h2>
+    <ul class="hist">{% for e in o.events|reverse %}<li><span class="muted">{{ e.at[:16]|replace('T', ' ') }} UTC</span> {{ e.text }}</li>{% endfor %}</ul>
+  </section>
+</main>
+</body></html>

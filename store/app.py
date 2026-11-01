@@ -18,6 +18,8 @@ Settings (environment variables):
   SITE_PASSWORD   if set, visitors must enter it before seeing the shop (private test site)
   ADMIN_PASSWORD  turns on the admin page at /admin (catalog uploads, imports, photo downloads)
   DATA_DIR        folder for uploaded SEMA files and import logs (default: data)
+  STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SITE_URL      checkout (see store/checkout.py)
+  SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, MAIL_FROM, ORDER_NOTIFY_EMAIL   order emails (store/mailer.py)
   PHOTO_STORAGE / PHOTO_DIR / S3_*   where product photos are (see importer/storage.py)
 
 On start the database tables are created or upgraded, and the store categories and brands
@@ -39,7 +41,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import admin
+from . import admin, checkout
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -161,6 +163,7 @@ def create_app(dsn=None):
         return v
 
     app.include_router(admin.router)
+    app.include_router(checkout.router)
     web.install(app)
     return app
 

@@ -51,6 +51,23 @@ A brand that isn't on the site yet is added automatically, using the brand name 
 To update a brand later, upload its newer files the same way. Parts missing from a new full
 PIES file are marked discontinued.
 
+## Turning on checkout (Stripe, test mode)
+
+1. Sign in to Stripe and make sure **Test mode** is on (switch at the top of the dashboard).
+2. **Developers > API keys**: copy the **Secret key** (starts with `sk_test_`).
+3. **Developers > Webhooks > Add endpoint** (newer dashboards: **Add destination**):
+   - Endpoint URL: `https://dream-auto-builders.onrender.com/stripe/webhook`
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+     `checkout.session.async_payment_failed`, `checkout.session.expired`
+   - After saving, copy its **Signing secret** (starts with `whsec_`).
+4. In Render, open the `dream-auto-builders` service > **Environment** > **Add environment variable**:
+   `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` with those two values. Save (the shop restarts).
+5. Test: add a part to the cart, **Secure checkout**, pay with card `4242 4242 4242 4242`.
+   The order appears at `/admin/orders`.
+
+Order emails need an email service's SMTP settings: add `SMTP_HOST`, `SMTP_USERNAME`,
+`SMTP_PASSWORD`, `MAIL_FROM` and `ORDER_NOTIFY_EMAIL` the same way. See [CHECKOUT.md](CHECKOUT.md).
+
 ## After a deploy or restart
 
 Every push to GitHub's `main` branch redeploys the shop. A deploy restarts it, which stops a job

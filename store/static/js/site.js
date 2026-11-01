@@ -167,10 +167,6 @@
     show(tabs[0]);
   }
 
-  /* ---------- track order placeholder ---------- */
-  var tf = $('form[data-track]');
-  if (tf) tf.addEventListener('submit', function (e) { e.preventDefault(); $('#tOut').hidden = false; });
-
   /* ---------- home: promo slideshow ---------- */
   var view = $('#pView');
   if (view) {

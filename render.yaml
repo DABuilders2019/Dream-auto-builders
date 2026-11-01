@@ -52,5 +52,21 @@ services:
         value: /var/data
       - key: PHOTO_DIR
         value: /var/data/photos
+      # Checkout and order emails. Render only asks for these when a Blueprint is first created, so on the
+      # existing service add them on its Environment page (see docs/DEPLOY.md).
+      - key: STRIPE_SECRET_KEY       # sk_test_... until launch
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET   # whsec_... from the webhook endpoint in Stripe
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: MAIL_FROM               # e.g. Dream Auto Builders <orders@yourdomain.com>
+        sync: false
+      - key: ORDER_NOTIFY_EMAIL      # where new-order alerts go
+        sync: false
       - key: PHOTO_WORKERS
         value: "4"

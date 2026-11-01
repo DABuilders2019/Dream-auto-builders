@@ -1,0 +1,36 @@
+<!doctype html>
+<html><body style="margin:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#111113">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-top:4px solid #a8131a">
+  <tr><td style="padding:22px 28px 6px"><img src="{{ site }}/static/img/logo-word.png" alt="Dream Auto Builders" width="171" height="44"></td></tr>
+  <tr><td style="padding:10px 28px">
+    {% if kind == 'confirm' %}
+      <h1 style="font-size:22px;margin:8px 0">Thanks for your order{% if o.name %}, {{ o.name.split(' ')[0] }}{% endif %}!</h1>
+      <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Order <b>{{ o.number }}</b> is confirmed. We'll email you the tracking number as soon as it ships.</p>
+    {% elif kind == 'shipped' %}
+      <h1 style="font-size:22px;margin:8px 0">Your order has shipped</h1>
+      <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Order <b>{{ o.number }}</b> is on its way.<br>{{ o.carrier }} tracking number: <b>{{ o.tracking_number }}</b></p>
+    {% else %}
+      <h1 style="font-size:22px;margin:8px 0">New order {{ o.number }}{% if o.status == 'on_hold' %} (ON HOLD){% endif %}</h1>
+      <p style="font-size:15px;line-height:1.5;margin:0 0 8px">{{ o.name }} &lt;{{ o.email }}&gt; {{ o.phone or '' }}{% if o.vehicle %}<br>Vehicle: {{ o.vehicle }}{% endif %}</p>
+      {% if o.hold_reason %}<p style="font-size:14px;background:#fff7eb;border:1px solid #f1cf98;padding:10px">{{ o.hold_reason }}</p>{% endif %}
+    {% endif %}
+  </td></tr>
+  <tr><td style="padding:6px 28px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse">
+      {% for it in o['items'] %}<tr><td style="padding:8px 0;border-bottom:1px solid #e1e1e5">{{ it.qty }} × <b>{{ it.brand_name }}</b> {{ it.title }}<br><span style="color:#5e5e66">Part # {{ it.part_number }}</span></td>
+        <td align="right" style="padding:8px 0;border-bottom:1px solid #e1e1e5;white-space:nowrap">{{ money(it.line_total) }}</td></tr>{% endfor %}
+      <tr><td style="padding:6px 0 0">Subtotal</td><td align="right" style="padding:6px 0 0">{{ money(o.subtotal) }}</td></tr>
+      <tr><td>Shipping</td><td align="right">{{ 'Free' if not o.shipping else money(o.shipping) }}</td></tr>
+      <tr><td>Sales tax</td><td align="right">{{ money(o.tax or 0) }}</td></tr>
+      <tr><td style="padding-top:6px"><b>Total</b></td><td align="right" style="padding-top:6px"><b>{{ money(o.total) }}</b></td></tr>
+    </table>
+  </td></tr>
+  {% set a = o.ship_address or {} %}
+  <tr><td style="padding:14px 28px;font-size:14px;line-height:1.5"><b>Shipping to</b><br>{{ a.name or o.name or '' }}<br>{{ a.line1 or '' }}{% if a.line2 %}<br>{{ a.line2 }}{% endif %}<br>{{ a.city or '' }}, {{ a.state or '' }} {{ a.postal_code or '' }}</td></tr>
+  <tr><td style="padding:6px 28px 26px">{% if kind == 'notify' %}<a href="{{ site }}/admin/orders/{{ o.number }}" style="background:#a8131a;color:#fff;text-decoration:none;padding:11px 18px;font-weight:bold;display:inline-block">Open the order</a>
+    {% else %}<a href="{{ site }}/track" style="background:#a8131a;color:#fff;text-decoration:none;padding:11px 18px;font-weight:bold;display:inline-block">Check your order</a>{% endif %}</td></tr>
+</table>
+<p style="font-size:12px;color:#5e5e66">Dream Auto Builders</p>
+</td></tr></table>
+</body></html>

@@ -38,7 +38,8 @@ def is_preview():
     return os.environ.get("SITE_PREVIEW", "1") != "0"
 
 
-templates.env.globals.update(icon=icon, preview=is_preview, year=time.strftime("%Y"))
+templates.env.globals.update(icon=icon, preview=is_preview, year=time.strftime("%Y"),
+                             checkout_test=lambda: os.environ.get("STRIPE_SECRET_KEY", "").startswith("sk_test_"))
 templates.env.filters["money"] = money
 
 
@@ -490,8 +491,16 @@ def cart_page(request: Request):
         cart, prods, count, subtotal = cart_summary(conn, s, request)
         lines = [dict(prods[pid], qty=q, line_total=prods[pid]["price"] * q) for pid, q in cart.items() if pid in prods]
         Q.add_fit(conn, lines, active_id(request))
-        free_over = Q.home_config().get("free_shipping_over", 149)
-        return render(request, conn, s, "cart.html", lines=lines, subtotal=subtotal, free_over=free_over, title="Cart")
+        from . import checkout, orders as O
+        cfg = O.store_config()
+        restricted = cfg.get("carb_restricted_states", [])
+        return render(request, conn, s, "cart.html", lines=lines, subtotal=subtotal, free_over=cfg["free_shipping_over"],
+                      flat_shipping=float(cfg["flat_shipping"]), title="Cart", checkout_ready=checkout.checkout_ready(),
+                      needs_state=any(l.get("emissions") == "federal_only" for l in lines), states=O.US_STATES,
+                      restricted_names=", ".join(O.US_STATES[c] for c in restricted[:-1]) + (" or " if len(restricted) > 1 else "")
+                      + (O.US_STATES[restricted[-1]] if restricted else ""),
+                      error=request.query_params.get("error", "")[:300], cancelled=request.query_params.get("cancelled") == "1",
+                      ship_state=request.query_params.get("state", ""))
 
 
 # ------------------------------------------------------------------ garage
@@ -569,7 +578,8 @@ def track_page(request: Request):
     st = _state(request)
     with st.pool.connection() as conn:
         return render(request, conn, st.get_searcher(conn), "page.html", title="Track Your Order", page="track",
-                      paras=["Enter the order number from your confirmation email and the email address you ordered with."])
+                      paras=["Enter the order number from your confirmation email and the email address you ordered with."],
+                      track_error=request.query_params.get("error") == "1", track_number=request.query_params.get("number", "")[:20])
 
 
 @router.get("/account", response_class=HTMLResponse)
@@ -589,7 +599,7 @@ def robots():
 
 # ------------------------------------------------------------------ private test site
 
-GATE_OPEN = ("/login", "/static/", "/api/health", "/robots.txt", "/admin")
+GATE_OPEN = ("/login", "/static/", "/photos/", "/api/health", "/robots.txt", "/admin", "/stripe/webhook")
 
 
 def site_password():

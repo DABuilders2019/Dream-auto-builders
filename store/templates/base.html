@@ -9,11 +9,11 @@
 <link rel="icon" type="image/png" href="/static/img/favicon.png">
 <link rel="preload" href="/static/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/css/site.css?v=2">
+<link rel="stylesheet" href="/static/css/site.css?v=3">
 </head>
 <body data-vehicle="{{ active.id if active else '' }}">
 <a class="sr skip" href="#main">Skip to content</a>
-{% if preview() %}<div class="preview"><b>Test site</b> · Real catalog data from SEMA. Checkout and live stock aren't connected yet.</div>{% endif %}
+{% if preview() %}<div class="preview"><b>Test site</b> · Real catalog data from SEMA. {% if checkout_test() %}Payments are in Stripe test mode (no real charges); live stock isn't connected yet.{% else %}Checkout and live stock aren't connected yet.{% endif %}</div>{% endif %}
 
 <header class="top">
   <div class="wrap hdr">
@@ -58,6 +58,6 @@
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/static/js/site.js?v=2" defer></script>
+<script src="/static/js/site.js?v=3" defer></script>
 </body>
 </html>

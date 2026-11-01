@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  <section class="acard">
+    <h2>Orders</h2>
+    <div class="chips">{% for k, label in filters %}<a href="/admin/orders{{ '?status=' ~ k if k }}"{% if k == status %} class="on"{% endif %}>{{ label }}</a>{% endfor %}</div>
+    <div class="tblwrap"><table class="tbl num">
+      <thead><tr><th>Order</th><th>Date (UTC)</th><th>Customer</th><th>Ship to</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for r in rows %}
+        <tr><td><a href="/admin/orders/{{ r.number }}"><b>{{ r.number }}</b></a></td>
+          <td>{{ r.created_at.strftime('%b %d, %H:%M') }}</td>
+          <td>{{ r.name or '' }}<br><span class="muted">{{ r.email or '' }}</span></td>
+          <td>{{ r.state or '' }}</td><td>{{ r['items'] or 0 }}</td>
+          <td>{{ money(r.total if r.total is not none else r.subtotal) }}</td>
+          <td><span class="ost {{ r.status }}">{{ r.status_label }}</span></td></tr>
+      {% else %}<tr><td colspan="7">No orders yet.</td></tr>{% endfor %}
+      </tbody></table></div>
+    <p class="muted" style="margin-top:8px">“Waiting for payment” orders are shoppers who opened the payment page but haven't paid; they're cancelled automatically when Stripe's page expires (after 24 hours).</p>
+  </section>
+</main>
+</body></html>

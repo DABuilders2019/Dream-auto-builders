@@ -15,7 +15,7 @@ built on SEMA Data (PIES product data and ACES fitment).
 | `tests/` | Importer, search and page tests (`DATABASE_URL=... pytest tests/`). |
 | `tools/` | The original prototype-era scripts, kept for reference. |
 
-Still to come: Stripe checkout (step 5).
+**Step 5:** Stripe checkout, orders and order emails. See [docs/CHECKOUT.md](docs/CHECKOUT.md).
 
 ## Status
 

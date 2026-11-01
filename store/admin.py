@@ -109,7 +109,7 @@ def admin_home(request: Request, error: str = "", started: str = ""):
         b["logo"] = s.storage.url(b["logo_key"]) if b["logo_key"] else None
     job = st.jobs.current()
     return _page(request, "admin.html", title="Catalog admin", brands=brands, runs=runs, job=job, error=error,
-                 started=started, data_dir=str(st.data_dir))
+                 started=started, data_dir=str(st.data_dir), section="catalog")
 
 
 # ------------------------------------------------------------------ uploads
@@ -262,3 +262,106 @@ def _back(error="", started=""):
     from urllib.parse import urlencode
     q = urlencode({k: v for k, v in (("error", error), ("started", started)) if v})
     return RedirectResponse("/admin" + ("?" + q if q else ""), status_code=303)
+
+
+# ------------------------------------------------------------------ orders
+
+ORDER_FILTERS = [("", "Recent"), ("paid", "To ship"), ("on_hold", "On hold"), ("shipped", "Shipped"),
+                 ("refunded", "Refunded"), ("cancelled", "Cancelled")]
+CARRIERS = ["UPS", "FedEx", "USPS", "DHL", "Freight", "Other"]
+
+
+@router.get("/orders", response_class=HTMLResponse)
+def orders_page(request: Request, status: str = ""):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import orders as O
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        rows = O.recent(conn, status if status in O.STATUS_LABELS else None)
+    return _page(request, "admin_orders.html", title="Orders", rows=rows, status=status, filters=ORDER_FILTERS,
+                 money=web.money, section="orders")
+
+
+@router.get("/orders/{number}", response_class=HTMLResponse)
+def order_detail(request: Request, number: str, error: str = "", done: str = ""):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import orders as O
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        o = O.get(conn, number=number)
+    if not o:
+        return web.not_found(request)
+    return _page(request, "admin_order.html", title=f"Order {o['number']}", o=o, money=web.money, carriers=CARRIERS,
+                 error=error, done=done, section="orders", states=O.US_STATES)
+
+
+def _order_back(number, error="", done=""):
+    from urllib.parse import urlencode
+    q = urlencode({k: v for k, v in (("error", error), ("done", done)) if v})
+    return RedirectResponse(f"/admin/orders/{number}" + ("?" + q if q else ""), status_code=303)
+
+
+@router.post("/orders/{number}/ship")
+def order_ship(request: Request, number: str, carrier: str = Form(""), tracking: str = Form(""), notify: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import checkout, orders as O
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        o = O.get(conn, number=number)
+        if not o:
+            return web.not_found(request)
+        if o["status"] not in ("paid", "shipped"):
+            return _order_back(number, error="Only paid orders can be marked shipped.")
+        if not tracking.strip():
+            return _order_back(number, error="Enter the tracking number.")
+        O.set_status(conn, o["id"], "shipped", f"Marked shipped: {carrier} {tracking.strip()}", carrier=carrier[:40],
+                     tracking_number=tracking.strip()[:80], shipped_at=time.strftime("%Y-%m-%d %H:%M:%S%z"))
+        o = O.get(conn, number=number)
+        if notify and checkout.send_shipped_email(request, o):
+            O.add_event(conn, o["id"], f"Shipping email sent to {o['email']}")
+    return _order_back(number, done="Marked as shipped.")
+
+
+@router.post("/orders/{number}/release")
+def order_release(request: Request, number: str):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import orders as O
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        o = O.get(conn, number=number)
+        if o and o["status"] == "on_hold":
+            O.set_status(conn, o["id"], "paid", "Hold released by admin")
+    return _order_back(number, done="Hold released.")
+
+
+@router.post("/orders/{number}/refund")
+def order_refund(request: Request, number: str, confirm: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    import stripe
+    from . import checkout, orders as O
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        o = O.get(conn, number=number)
+        if not o:
+            return web.not_found(request)
+        if not confirm:
+            return _order_back(number, error="Tick the box to confirm the refund.")
+        if o["status"] not in ("paid", "on_hold", "shipped") or not o["payment_intent"]:
+            return _order_back(number, error="This order has no payment to refund.")
+        try:
+            stripe.Refund.create(payment_intent=o["payment_intent"], api_key=checkout.stripe_key(),
+                                 metadata={"order_number": o["number"]})
+        except stripe.StripeError as e:
+            return _order_back(number, error=f"Stripe couldn't refund it: {e.user_message or e}")
+        O.set_status(conn, o["id"], "refunded", f"Refunded in full ({web.money(o['total'])})")
+    return _order_back(number, done="Refunded in full. The customer sees it on their card in 5 to 10 days.")

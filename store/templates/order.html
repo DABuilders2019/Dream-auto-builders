@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>Order {{ o.number }}</span></nav>
+  {% if o.status in ('paid', 'on_hold') %}
+  <div class="thanks">{{ icon('checkc', 40, 1.8) }}<div><h1>Thank you{% if o.name %}, {{ o.name.split(' ')[0] }}{% endif %}!</h1>
+    <p>Your order <b>{{ o.number }}</b> is confirmed{% if o.email %} and a confirmation is on its way to <b>{{ o.email }}</b>{% endif %}. We'll email you the tracking number as soon as it ships.</p></div></div>
+  {% elif o.status == 'pending' %}
+  <div class="thanks wait">{{ icon('sync', 40, 1.8) }}<div><h1>Finishing your order…</h1><p>Your payment is still being confirmed. This page updates when it's done.</p></div></div>
+  <meta http-equiv="refresh" content="5">
+  {% else %}
+  <div class="shop-h"><div><h1>Order {{ o.number }}</h1></div></div>
+  {% endif %}
+
+  <div class="cart">
+    <div>
+      <div class="ostatus"><span>Status</span><b class="ost {{ o.status }}">{{ o.status_label if o.status != 'on_hold' else 'Paid, being reviewed' }}</b>
+        {% if o.status == 'shipped' %}<span>{{ o.carrier }} tracking <b class="num">{{ o.tracking_number }}</b></span>{% endif %}</div>
+      {% for it in o['items'] %}
+      <div class="line">{% if it.image_url %}<div class="pimg photo"><img src="{{ it.image_url }}" alt=""></div>{% else %}<div class="pimg noimg">{{ icon('box', 34, 1.4) }}</div>{% endif %}
+        <div>{% if it.slug %}<a class="t" href="/p/{{ it.slug }}">{{ it.title }}</a>{% else %}<span class="t">{{ it.title }}</span>{% endif %}
+          <div class="sub num">{{ it.brand_name }} · Part # {{ it.part_number }} · {{ it.qty }} × {{ money(it.unit_price) }}</div></div>
+        <div class="r"><b class="num">{{ money(it.line_total) }}</b></div></div>
+      {% endfor %}
+    </div>
+    <aside class="summary"><h2>Summary</h2>
+      <div class="row num"><span>Subtotal</span><span>{{ money(o.subtotal) }}</span></div>
+      {% if o.total is not none %}
+      <div class="row num"><span>Shipping</span><span>{{ 'Free' if not o.shipping else money(o.shipping) }}</span></div>
+      <div class="row num"><span>Sales tax</span><span>{{ money(o.tax or 0) }}</span></div>
+      <div class="row total num"><span>Total paid</span><span>{{ money(o.total) }}</span></div>
+      {% endif %}
+      {% set a = o.ship_address %}
+      {% if a %}<h3 class="shipto">Shipping to</h3><p class="addr">{{ a.name or o.name or '' }}<br>{{ a.line1 or '' }}{% if a.line2 %}<br>{{ a.line2 }}{% endif %}<br>{{ a.city or '' }}, {{ a.state or '' }} {{ a.postal_code or '' }}</p>{% endif %}
+      <a class="btn btn-ghost" href="/search" style="width:100%;margin-top:14px">Keep shopping</a>
+    </aside>
+  </div>
+</div>
+{% endblock %}

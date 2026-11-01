@@ -509,7 +509,9 @@ def cart_page(request: Request):
 def garage_page(request: Request):
     st = _state(request)
     with st.pool.connection() as conn:
-        return render(request, conn, st.get_searcher(conn), "garage.html", title="My Garage")
+        from .orders import store_config
+        ig = store_config().get("interactive_garage") or {}
+        return render(request, conn, st.get_searcher(conn), "garage.html", title="My Garage", ig=ig)
 
 
 @router.post("/garage/add")

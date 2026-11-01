@@ -468,3 +468,10 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .summary .formrow{max-width:none}
 .summary .formrow small{font-size:12px;line-height:1.4}
 @media (max-width:720px){ .ogrid{grid-template-columns:1fr} }
+/* Interactive Garage (embedded vehicle builder), full width as its maker recommends */
+.igarage{border-top:1px solid var(--line);background:var(--panel);padding:30px 0 0}
+.ig-head h2{font-size:clamp(26px,3vw,36px);font-weight:800}
+.ig-head h2 em{font-style:normal;color:var(--red)}
+.ig-head p{color:#333338;max-width:70ch;margin:6px 0 18px}
+#nestedIFrame{display:block;width:100%;max-width:none;min-height:900px;border:0;background:#fff}
+@media (max-width:720px){ #nestedIFrame{min-height:700px} }

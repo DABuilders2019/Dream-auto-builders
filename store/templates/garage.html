@@ -21,4 +21,17 @@
   <div class="ymm-block">{{ ymm('gm', 'Add to garage', '/garage') }}</div>
   <p style="font-size:13px;color:var(--muted);margin-top:14px">Your garage is saved in this browser. Customer accounts will keep it on every device.</p>
 </div>
+{% if ig.url %}
+<section class="igarage" aria-labelledby="igTitle">
+  <div class="wrap ig-head"><h2 id="igTitle">Build your <em>dream ride</em></h2>
+    <p>See how lift kits, wheels and tires change the look of your vehicle. Pick your vehicle, try parts on it, and save or email the build.</p></div>
+  {# Interactive Garage's embed code. It must be full width, so it sits outside the page's centred column. #}
+  <iframe id="nestedIFrame" title="Interactive Garage vehicle builder" allowtransparency="true" width="100%" scrolling="no"
+          frameborder="0" marginheight="0" marginwidth="0" src="{{ ig.url }}"></iframe>
+</section>
+{% endif %}
 {% endblock %}
+{% block scripts %}{% if ig.url %}
+<script src="{{ ig.resizer_script }}"></script>
+<script>if (window.iFrameResize) { iFrameResize({log: false, checkOrigin: false}, '#nestedIFrame'); }</script>
+{% endif %}{% endblock %}

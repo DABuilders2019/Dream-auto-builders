@@ -1,9 +1,20 @@
 {
-  "_comment": "Checkout settings. Amounts in US dollars. carb_restricted_states: states where catalytic converters that aren't CARB-approved (emissions 'federal_only') can't be shipped. automatic_tax needs Stripe Tax turned on in the Stripe dashboard first.",
+  "_comment": "Checkout settings. Amounts in US dollars. carb_restricted_states: states where catalytic converters that aren't CARB-approved (emissions 'federal_only') can't be shipped. automatic_tax needs Stripe Tax turned on in the Stripe dashboard first. interactive_garage: the Interactive Garage vehicle builder shown on My Garage (empty url hides it).",
   "currency": "usd",
-  "ship_to_countries": ["US"],
+  "ship_to_countries": [
+    "US"
+  ],
   "free_shipping_over": 149,
   "flat_shipping": 14.95,
   "automatic_tax": false,
-  "carb_restricted_states": ["CA", "CO", "ME", "NY"]
+  "carb_restricted_states": [
+    "CA",
+    "CO",
+    "ME",
+    "NY"
+  ],
+  "interactive_garage": {
+    "url": "https://www.interactivegarage.com/dreamauto/",
+    "resizer_script": "https://www.interactivegarage.com/scripts/iframeResizer.min.js"
+  }
 }

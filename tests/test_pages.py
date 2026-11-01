@@ -108,3 +108,9 @@ def test_redirects_stay_on_this_site(client):
 
 def test_robots(client):
     assert "Disallow: /" in client.get("/robots.txt").text
+
+
+def test_garage_has_interactive_garage(client):
+    page = client.get("/garage").text
+    assert 'id="nestedIFrame"' in page and "interactivegarage.com/dreamauto/" in page
+    assert "iFrameResize(" in page and "Add a vehicle" in page

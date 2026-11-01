@@ -8,10 +8,19 @@ built on SEMA Data (PIES product data and ACES fitment).
 | Folder | What it is |
 |---|---|
 | `prototype/` | The clickable design prototype. Open `prototype/index.html` in a browser. This is the design reference for the real storefront: colors, layout, slideshow, category cards, product pages, Add a Vehicle bar, My Garage and cart. |
-| `tools/` | Scripts that turn SEMA Data exports into store products. They will become the nightly import on the live server. |
+| `importer/` | **Step 1 of the live site:** the database schema and the catalog importer (SEMA PIES/ACES/vehicle sheet → Postgres, plus photo download and checks). See [docs/IMPORTER.md](docs/IMPORTER.md). |
+| `config/` | Brands, store categories and the rules that sort SEMA part types into them, photo review results. |
+| `tests/` | Importer tests (`DATABASE_URL=... pytest tests/`). |
+| `tools/` | The original prototype-era scripts, kept for reference. |
 
-The live application (database, importer, search, storefront and Stripe checkout) will be
-added to this repository next and deployed on Render.
+Still to come: search, the storefront (built from the prototype's design), Render deployment, and Stripe checkout.
+
+## Status
+
+| Brand | Products | Fitment rows | Vehicles (year/make/model) | With a real photo |
+|---|---|---|---|---|
+| ReadyLift | 561 active (+2 hidden: no price) | 54,470 | 1,100 | 550 (11 small parts have none anywhere) |
+| MagnaFlow | 6,894 active | 143,426 | 14,030 | 6,894 |
 
 ## Prototype data
 

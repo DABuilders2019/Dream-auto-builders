@@ -1,0 +1,19 @@
+{
+  "_comment": "Brands loaded from SEMA Data. display_price: which PIES price types to show shoppers, first one present wins. RET = retail, RMP = minimum advertised price (MAP), LST = list. strip_prefix: removed from the start of product names because the brand is shown separately.",
+  "brands": [
+    {
+      "id": "readylift",
+      "name": "ReadyLift",
+      "aaia_id": "BKMQ",
+      "display_price": ["RET", "RMP", "LST"],
+      "strip_prefix": ["ReadyLift", "ReadyLIFT", "RL"]
+    },
+    {
+      "id": "magnaflow",
+      "name": "MagnaFlow",
+      "aaia_id": "FBHB",
+      "display_price": ["RET", "RMP", "LST"],
+      "strip_prefix": ["MagnaFlow", "Magnaflow"]
+    }
+  ]
+}

@@ -1,0 +1,569 @@
+{
+ "_comment": "Photo review results. md5 = of the original file bytes; url = the photo link. blocked = never show (logos, placeholders, warranty cards); vehicle = truck/install shot, packaging = box shot; both are shown after photos of the part itself. Reviewed by eye, Nov 2026.",
+ "reviews": [
+  {
+   "key": "c9030b30d634b7cea2bda7e7c1a45a11",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "Blank placeholder image (ReadyLift zip file 67-21360.jpg)"
+  },
+  {
+   "key": "a8ddfbd7c08056d6977029b4eb0e84a1",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "Wheel Pros logo, not the part (ReadyLift zip file 69-98200-1.png)"
+  },
+  {
+   "key": "3b17c062e963358190c9c43245c479eb",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "Wheel Pros logo, not the part (ReadyLift zip file 77-19000.jpg)"
+  },
+  {
+   "key": "3bc1fe3ac4f1ad7acdd8141eb96c42a8",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "ReadyLift warranty card, not the part (ReadyLift zip file 44-35625.jpg)"
+  },
+  {
+   "key": "a5edc0cbfa88438c16fd7d794d331e5b",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "ReadyLift warranty card, not the part (ReadyLift zip file 62-35440.jpg)"
+  },
+  {
+   "key": "65cf400636ef71ef1043ed02c7962754",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "ReadyLift warranty card, not the part (ReadyLift zip file 62-55345-5.jpg)"
+  },
+  {
+   "key": "d5999185ebb2bd630faeaa761cc05e5b",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "ReadyLift warranty card, not the part (ReadyLift zip file 67-31320.jpg)"
+  },
+  {
+   "key": "84fb65e70ae5baaf4aa9eeb72f77c8b6",
+   "key_type": "md5",
+   "verdict": "blocked",
+   "reason": "Exploded parts diagram, not a product photo (ReadyLift zip file uca-parts_2.jpg)"
+  },
+  {
+   "key": "ae564e9c6e2d0585be20671992bcc645",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2019_gm_1500_max3.3_sb_products-42_1.jpg)"
+  },
+  {
+   "key": "37d392fc75cb94305e3443b2fba4a231",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2019_gm_1500_max3.3_sb_products-59_1.jpg)"
+  },
+  {
+   "key": "11aac37fc3f3f53319b9ac5d010f0c19",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2020_ram_2500_3in_sst2.1-13_1_1.jpg)"
+  },
+  {
+   "key": "e4534985393fe3b6f51508a7b1c8821a",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2020_ram_2500_3in_sst2.1-15_1.jpg)"
+  },
+  {
+   "key": "bce0d85a24aad50e73b0c699b8c3e238",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2020f-150-big-premium.jpg)"
+  },
+  {
+   "key": "0b8a4eb0d062e4012bacd9ddf75992fe",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2023_f350_4in_coil_lift_kit-20_1.jpg)"
+  },
+  {
+   "key": "d44f00bac87f37114290a2c1a2bc383b",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2023_f350_4in_coil_lift_kit-31_1.jpg)"
+  },
+  {
+   "key": "1f5cb32ee690b90857b28847a6ae8b65",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2023fordsd6inch_1_1.jpg)"
+  },
+  {
+   "key": "61fd940134dfa8eac5dad80797b374c8",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2024_gm_3500_hd_3.5inch-16.jpg)"
+  },
+  {
+   "key": "d3e70adb9ec770bc64e314abeb7363cc",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2024_toyota_landcruiser_leveled-033.jpg)"
+  },
+  {
+   "key": "d1f1c315df9b173df45ff1f6bb260d24",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025_ford_f-150_max3.3-03.jpg)"
+  },
+  {
+   "key": "8674f14b3b516b35b03f52986ae6412b",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025_ford_f-150_max3.3-05.jpg)"
+  },
+  {
+   "key": "eec9cb765fe67d798ff0c78472d89c89",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025_ford_sd_level2.1-28_1_.jpg)"
+  },
+  {
+   "key": "bc68c0a31f522a131dddb703e83e6d9e",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025_ford_sd_level2.1-32.jpg)"
+  },
+  {
+   "key": "3112f2ad9bb74cd84310ee5fc6dc58e9",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025-ford-super-duty-max3.jpg)"
+  },
+  {
+   "key": "dcecb9ee2eb23c15da72075ed0a9ff49",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025-ford-super-duty-tremor_1_1.jpg)"
+  },
+  {
+   "key": "3c72997f8083ad48cd81c7d04ff69372",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025-ford-super-duty-tremor.jpg)"
+  },
+  {
+   "key": "1ace6df4f94f6a5a1d1e5d8655ba3809",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025-gm-1500-big_2.jpg)"
+  },
+  {
+   "key": "2f06e0acf05e9bf8481564d54cff99ea",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025-gm-1500-big_3.jpg)"
+  },
+  {
+   "key": "44ee19920e20ae5714b10e73ed2a7cd8",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025-sst-3inch-v1_1.jpg)"
+  },
+  {
+   "key": "7baa7046fe9b2aafce058868cbf15ec3",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 2025-toyota-4runner-stock-1825.jpg)"
+  },
+  {
+   "key": "1a2eb2e1ab0a10588691c5bc979655d9",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 42-30640-a_1.jpg)"
+  },
+  {
+   "key": "af2094ebf07cae88de4e134aa0428a42",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 42-30660-1.jpg)"
+  },
+  {
+   "key": "b44d7f046814ff412c6a4939617ee6de",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 42-30660.jpg)"
+  },
+  {
+   "key": "036393e62df949d9f02d87944c9ffd1d",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 42-30840-a.jpg)"
+  },
+  {
+   "key": "76b9442cb784b8b3cac4406ce0b82cf8",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 42-30840.jpg)"
+  },
+  {
+   "key": "68cf2e7663c434b45e13397e9de2e67e",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 44-30621-truck.jpg)"
+  },
+  {
+   "key": "64b3089a1f1605501e6642e74cfa9f99",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 44-30621.jpg)"
+  },
+  {
+   "key": "cb884fd9f6b34a45b13e9a5b6fc67047",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 44-30821-truck.jpg)"
+  },
+  {
+   "key": "e4ded7cd94ba594c522cdec4cbc544b3",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 44-30821.jpg)"
+  },
+  {
+   "key": "8873d062d63567c56956b15d12774cb1",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 49-27422-3_1.jpg)"
+  },
+  {
+   "key": "cfc1b91ab474c43f1358f47fb1660195",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 49-27422-3.jpg)"
+  },
+  {
+   "key": "5f3970bd831736cdd20f5f41f2b3f19f",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 5th-gen-toyota-4runner-rl--sb-products-03_1.jpg)"
+  },
+  {
+   "key": "71a458b4285962c0e3baca2d43fd2c76",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 62-35160-a.jpg)"
+  },
+  {
+   "key": "33067e9d731275a757b7ab89d587d6c1",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 62-35160.jpg)"
+  },
+  {
+   "key": "01472c9a51d504b5d60884318f35708e",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file 69-52311-a_1_1.jpg)"
+  },
+  {
+   "key": "34429aaa9569a2ebcd13e6566168f4d8",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file _b5a7702_1.jpg)"
+  },
+  {
+   "key": "35d4c6be2c5be6b265f0fa7b72c64e5f",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file fuel_off-road-surge-fc881-matte_black_gloss_black_lip-20x9-2025_lexus_gx550_.jpg)"
+  },
+  {
+   "key": "65958114bc8d6d0cfbe038f81cb38d55",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file fuel_off-road-surgefc881-matte_black_gloss_black_lip-20x9-2025_lexus_gx550_.jpg)"
+  },
+  {
+   "key": "4d833e11688891f1393c7cc16dad7cfe",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file imgp0999_1.jpg)"
+  },
+  {
+   "key": "288f35742f2afc44a38937c95787335e",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file imgp3979_1.jpg)"
+  },
+  {
+   "key": "7ba13a7348922b77924a18977d55af4d",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file ram_2500-4.5.jpg)"
+  },
+  {
+   "key": "90257a5175a506c4116a2117a4b7a25d",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file ram_3500-1.5.jpg)"
+  },
+  {
+   "key": "1e2544ce0ab7c9d92e2fd9bc2bb3dbbd",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file ram3500_4.5__lift_kit-229.jpg)"
+  },
+  {
+   "key": "845b1c8348d69cb3b96e5470b040e313",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file ready_lift_shoot_and_zbroz_colab_ford_f150_shoot_at_oca_with_motrobikes_and_.jpg)"
+  },
+  {
+   "key": "6e14cdb05eaf316b2dd2fe40cb10b40c",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file readylift-4-inch-super-duty_1.jpg)"
+  },
+  {
+   "key": "16ea6159f51718b8c1458815f2415612",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file readylift-4-inch-super-duty_2_1.jpg)"
+  },
+  {
+   "key": "e0c01d4c0731a1ec3d2577264bf2ff39",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file readylift-4-inch-super-duty-a_1.jpg)"
+  },
+  {
+   "key": "1facf3ca509dcccc99f662d99096c709",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file readylift-4-inch-super-duty-a_2_1.jpg)"
+  },
+  {
+   "key": "958e24791730f9180ed6f5bce0cfd5c5",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file readylift-4-inch-super-duty-d.jpg)"
+  },
+  {
+   "key": "ebd72ccf77da9b2766381174116cd965",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file rl-f-150-tremor.jpg)"
+  },
+  {
+   "key": "22cfecfda01eea8bb6a6b0def25c67a6",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file screenshot_2026-05-12_at_12.07.05_pm.png)"
+  },
+  {
+   "key": "b8548ddfc65787e8f8f269bc4a1601ae",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file super-duty-leveling-21falcons_1.jpg)"
+  },
+  {
+   "key": "1138d0002e1c48f38a1ec2de685f3b6c",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file super-duty-leveling-21falcons_2_1.jpg)"
+  },
+  {
+   "key": "c8e7bcdb6b2a7ff3dfbb01f82e38d6f6",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (ReadyLift zip file toyota_tacoma_1100.jpg)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/6/7/67-19150_1.jpg",
+   "key_type": "url",
+   "verdict": "blocked",
+   "reason": "Blank placeholder (link for 67-1041)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/1e074de1-071e-480b-b8e9-3f78500f9c05/DAT/62-35160-a-jpg.webp",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 62-35160)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/3ff57932-fba5-4048-a333-12f9ff794029/62-35160-a-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 62-35160)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/f3fe8448-3a91-49bf-a343-7befff751b3e/62-52420-Blog-Banner-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 62-52420)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/10da5daa-4532-4791-b297-7a99a10d93b9/SB-Product-Shots-04-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 62-52420)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/1139426c-f24d-4bc2-b3b7-2915896a305d/SB-Product-Shots-14-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 62-52420)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/14653dc1-d09b-4f84-b722-0d600ce0dbf8/SB-Product-Shots-20-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 62-52420)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/eb6f84c5-5e9d-451f-b4f4-a18fd9a915c1/2024-Chevy-1500-Trail-Boss-SST2-1-19-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 67-35150UB)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/27bb63eb-f492-4af7-8c70-f5f511163146/2024-Chevy-1500-Trail-Boss-SST2-1-20-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 67-35150UB)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/856498f0-aebd-4d11-a23e-1c5f81244127/2025-GM-1500-Blog-Banner-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 67-35150UB)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/276ac374-aeb2-401f-95b1-1410a207a757/Super-Duty-Leveling-21Falcons-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 46-20254)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/9ccca226-f461-4a0e-8bcd-cad0b97df0d7/2019_gm_1500_max3-3_sb_products-42_1-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 42-35640)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/291af07d-e6bf-4358-9b1e-6df0c3012900/2019_gm_1500_max3-3_sb_products-59-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 42-39840)"
+  },
+  {
+   "key": "https://media.wheelpros.com/asset/2a7de6e1-8cd0-4d30-82f4-078b20ea65a9/2019_gm_1500_max3-3_sb_products-59_1-jpg.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 42-35840)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/2/0/2026_ford_expedition_sst-12.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 69-25300)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/2/0/2026_ford_expedition_sst.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 69-25150)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/g/m/gmc_1500-1.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 44-35621)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/g/m/gmc_1500.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 44-35621)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/g/m/gmc_1500-1_1.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 44-39606)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/g/m/gmc_1500_1.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 44-39606)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/2/0/2022_ram_3500_mega_cab-12.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 49-19431)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/2/0/2022_ram_3500_mega_cab-15.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 49-19431)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/2/0/2022_ram_3500_mega_cab-16.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 49-19431)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/r/a/ram3500_4.5__lift_kit-229_1.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 49-19431)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/10cff4c527d4b6411ae6053f6d60ea91/r/e/ready_lift_shoot_and_zbroz_colab_ford_f150_shoot_at_oca_with_motrobikes_and_clint_2022-0278_1_1.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 44-21621)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/8890f72d51b91b29e2605f774050ac88/4/2/42-35841-1.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 42-35841)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/8890f72d51b91b29e2605f774050ac88/4/2/42-35841-1_1.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 42-39841)"
+  },
+  {
+   "key": "https://www.readylift.com/media/catalog/product/cache/8890f72d51b91b29e2605f774050ac88/g/m/gmc-8-inch-lift-1500_44-39811.jpg",
+   "key_type": "url",
+   "verdict": "vehicle",
+   "reason": "Truck/install photo (link for 44-39811)"
+  },
+  {
+   "key": "00b234302af7dd95e5da835dc74f7e1d",
+   "key_type": "md5",
+   "verdict": "packaging",
+   "reason": "MagnaFlow muffler box (packaging), not the part"
+  },
+  {
+   "key": "24062a462c958ab88f372ca46f75c9e3",
+   "key_type": "md5",
+   "verdict": "packaging",
+   "reason": "MagnaFlow muffler box (packaging), not the part"
+  },
+  {
+   "key": "37db4e56ac07d82d024a09393888fa54",
+   "key_type": "md5",
+   "verdict": "vehicle",
+   "reason": "MagnaFlow exhaust tip installed on a truck"
+  }
+ ]
+}

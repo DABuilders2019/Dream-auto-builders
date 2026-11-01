@@ -1,0 +1,77 @@
+"""Command line for the importer.
+
+  python -m importer migrate
+  python -m importer load    --brand readylift --pies PIES.xml --aces ACES.xml --vehicles ADMARK.xlsx
+  python -m importer photos  --brand readylift [--zip DIGITAL_ASSETS.zip] [--max-per-product 4]
+  python -m importer report  --brand readylift --out report.xlsx
+  python -m importer status
+
+Files may be .zip archives as downloaded from SEMA Data; the XML/XLSX inside is used.
+DATABASE_URL must point at the Postgres database.
+"""
+import argparse
+import json
+import pathlib
+import sys
+import tempfile
+import zipfile
+
+from . import db, load, photos, report
+
+
+def _unzip(path, suffix):
+    """Accept either the file itself or the SEMA .zip that contains it."""
+    if not path or not path.lower().endswith(".zip"):
+        return path
+    z = zipfile.ZipFile(path)
+    names = [n for n in z.namelist() if n.lower().endswith(suffix)]
+    if len(names) != 1:
+        raise SystemExit(f"{path}: expected one {suffix} file inside, found {names}")
+    out = pathlib.Path(tempfile.mkdtemp()) / pathlib.Path(names[0]).name
+    out.write_bytes(z.read(names[0]))
+    return str(out)
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="python -m importer", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("migrate", help="create/upgrade database tables")
+    p = sub.add_parser("load", help="load a brand's PIES, ACES and vehicle files")
+    p.add_argument("--brand", required=True)
+    p.add_argument("--pies", required=True)
+    p.add_argument("--aces")
+    p.add_argument("--vehicles", help="Admark Vehicle Assignment Template (.xlsx or its .zip)")
+    p = sub.add_parser("photos", help="download and check product photos")
+    p.add_argument("--brand", required=True)
+    p.add_argument("--zip", help="SEMA Digital Assets zip (optional; links are used otherwise)")
+    p.add_argument("--max-per-product", type=int, default=4)
+    p.add_argument("--limit-products", type=int)
+    p.add_argument("--workers", type=int, default=12)
+    p = sub.add_parser("report", help="write the photo report spreadsheet")
+    p.add_argument("--brand", required=True)
+    p.add_argument("--out", required=True)
+    sub.add_parser("status", help="show catalog counts and the latest import runs")
+    a = ap.parse_args(argv)
+
+    conn = db.connect()
+    if a.cmd == "migrate":
+        print("applied:", db.migrate(conn) or "nothing new")
+    elif a.cmd == "load":
+        db.migrate(conn)
+        print(f"Loading {a.brand} ...")
+        stats = load.load_brand(conn, a.brand, _unzip(a.pies, ".xml"), _unzip(a.aces, ".xml"), _unzip(a.vehicles, ".xlsx"))
+        print(json.dumps(stats, indent=2))
+    elif a.cmd == "photos":
+        print(f"Photos for {a.brand} ...")
+        stats, summary = photos.run(conn, a.brand, a.zip, a.max_per_product, a.limit_products, a.workers)
+        print(json.dumps({"files": stats, "products": summary["counts"], "possible_logos": len(summary["suspicious"])}, indent=2))
+    elif a.cmd == "report":
+        path = report.photo_report(conn, a.brand, a.out)
+        print("wrote", path)
+    elif a.cmd == "status":
+        report.print_status(conn)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

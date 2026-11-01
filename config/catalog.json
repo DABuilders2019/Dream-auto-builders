@@ -1,0 +1,363 @@
+{
+ "_comment": "Store categories, and the rules that place each SEMA part type into one. Rules are checked top to bottom; the first match wins. 'part_type' matches the PIES part type name exactly, 'part_type_contains' matches part of it, 'text_contains' looks in the product name and short descriptions. Anything unmatched goes to 'uncategorized' and is listed in the import report.",
+ "categories": [
+  {
+   "id": "suspension",
+   "name": "Suspension",
+   "subs": [
+    [
+     "lift-kits",
+     "Lift Kits"
+    ],
+    [
+     "leveling-kits",
+     "Leveling Kits"
+    ],
+    [
+     "lift-blocks",
+     "Lift Blocks"
+    ],
+    [
+     "shocks",
+     "Shocks & Struts"
+    ],
+    [
+     "coilovers",
+     "Coilovers"
+    ],
+    [
+     "lowering-springs",
+     "Lowering Springs"
+    ],
+    [
+     "suspension-components",
+     "Suspension Components"
+    ]
+   ]
+  },
+  {
+   "id": "exhaust",
+   "name": "Exhaust",
+   "subs": [
+    [
+     "cat-back",
+     "Cat-Back Systems"
+    ],
+    [
+     "axle-back",
+     "Axle-Back Systems"
+    ],
+    [
+     "exhaust-kits",
+     "Other Exhaust Kits"
+    ],
+    [
+     "mufflers",
+     "Mufflers"
+    ],
+    [
+     "catalytic-converters",
+     "Catalytic Converters"
+    ],
+    [
+     "exhaust-tips",
+     "Exhaust Tips"
+    ],
+    [
+     "exhaust-pipes",
+     "Pipes, Clamps & Hardware"
+    ],
+    [
+     "headers",
+     "Headers"
+    ]
+   ]
+  },
+  {
+   "id": "intake",
+   "name": "Air Intake",
+   "subs": [
+    [
+     "cold-air-intakes",
+     "Cold Air Intakes"
+    ],
+    [
+     "air-filters",
+     "Air Filters"
+    ]
+   ]
+  },
+  {
+   "id": "lighting",
+   "name": "Lighting",
+   "subs": [
+    [
+     "headlights",
+     "Headlights"
+    ],
+    [
+     "light-bars",
+     "LED Light Bars"
+    ],
+    [
+     "tail-lights",
+     "Tail Lights"
+    ]
+   ]
+  },
+  {
+   "id": "tires",
+   "name": "Tires",
+   "subs": [
+    [
+     "all-terrain",
+     "All-Terrain Tires"
+    ],
+    [
+     "mud-terrain",
+     "Mud-Terrain Tires"
+    ],
+    [
+     "performance-tires",
+     "Performance Tires"
+    ],
+    [
+     "all-season",
+     "All-Season Tires"
+    ]
+   ]
+  },
+  {
+   "id": "wheels",
+   "name": "Wheels",
+   "subs": [
+    [
+     "wheels",
+     "Wheels"
+    ],
+    [
+     "wheel-spacers",
+     "Wheel Spacers"
+    ]
+   ]
+  },
+  {
+   "id": "exterior",
+   "name": "Exterior",
+   "subs": [
+    [
+     "running-boards",
+     "Running Boards & Steps"
+    ],
+    [
+     "bumpers",
+     "Bumpers"
+    ],
+    [
+     "fender-flares",
+     "Fender Flares"
+    ],
+    [
+     "tonneau",
+     "Tonneau Covers"
+    ],
+    [
+     "recovery",
+     "Recovery Gear"
+    ]
+   ]
+  },
+  {
+   "id": "interior",
+   "name": "Interior",
+   "subs": [
+    [
+     "floor-liners",
+     "Floor Liners"
+    ],
+    [
+     "seat-covers",
+     "Seat Covers"
+    ]
+   ]
+  },
+  {
+   "id": "performance",
+   "name": "Performance",
+   "subs": [
+    [
+     "tuners",
+     "Tuners & Programmers"
+    ],
+    [
+     "gauges",
+     "Gauges & Displays"
+    ],
+    [
+     "ignition",
+     "Spark Plugs & Ignition"
+    ]
+   ]
+  },
+  {
+   "id": "brakes",
+   "name": "Brakes",
+   "subs": [
+    [
+     "big-brake-kits",
+     "Big Brake Kits"
+    ],
+    [
+     "pads-rotors",
+     "Pads & Rotors"
+    ]
+   ]
+  },
+  {
+   "id": "uncategorized",
+   "name": "Uncategorized",
+   "subs": []
+  }
+ ],
+ "rules": [
+  {
+   "part_type": [
+    "Suspension Lift Kit"
+   ],
+   "category": "lift-kits"
+  },
+  {
+   "part_type": [
+    "Suspension Leveling Kit"
+   ],
+   "category": "leveling-kits"
+  },
+  {
+   "part_type": [
+    "Suspension Leaf Spring Block Kit"
+   ],
+   "category": "lift-blocks"
+  },
+  {
+   "part_type": [
+    "Suspension Shock Absorber",
+    "Suspension Shock Absorber Kit",
+    "Suspension Strut",
+    "Suspension Strut Assembly"
+   ],
+   "category": "shocks"
+  },
+  {
+   "part_type": [
+    "Coil Over Shock Absorber",
+    "Suspension Coil Over Kit"
+   ],
+   "category": "coilovers"
+  },
+  {
+   "part_type": [
+    "Wheel Spacer",
+    "Wheel Adapter"
+   ],
+   "category": "wheel-spacers"
+  },
+  {
+   "part_type_contains": [
+    "Catalytic Converter",
+    "Oxidation Catalyst"
+   ],
+   "category": "catalytic-converters"
+  },
+  {
+   "part_type": [
+    "Exhaust System Kit",
+    "Exhaust Muffler Kit"
+   ],
+   "text_contains": [
+    "axle-back",
+    "axle back"
+   ],
+   "category": "axle-back"
+  },
+  {
+   "part_type": [
+    "Exhaust System Kit",
+    "Exhaust Muffler Kit"
+   ],
+   "text_contains": [
+    "cat-back",
+    "cat back"
+   ],
+   "category": "cat-back"
+  },
+  {
+   "part_type": [
+    "Exhaust System Kit",
+    "Exhaust Muffler Kit"
+   ],
+   "category": "exhaust-kits"
+  },
+  {
+   "part_type": [
+    "Exhaust Muffler"
+   ],
+   "category": "mufflers"
+  },
+  {
+   "part_type": [
+    "Exhaust Tail Pipe Tip"
+   ],
+   "category": "exhaust-tips"
+  },
+  {
+   "part_type_contains": [
+    "Header"
+   ],
+   "category": "headers"
+  },
+  {
+   "part_type_contains": [
+    "Exhaust",
+    "Down Pipe",
+    "Oxygen Sensor Bung"
+   ],
+   "category": "exhaust-pipes"
+  },
+  {
+   "part_type_contains": [
+    "Suspension",
+    "Coil Spring",
+    "Leaf Spring",
+    "Leaf Helper",
+    "Control Arm",
+    "Track Bar",
+    "Ball Joint",
+    "Steering",
+    "Radius Arm",
+    "Jounce",
+    "Stabilizer",
+    "Sway Bar",
+    "Differential",
+    "Skid Plate",
+    "Transfer Case",
+    "Alignment",
+    "Tie Rod",
+    "Chassis",
+    "Brake Hydraulic Hose",
+    "Axle",
+    "CV",
+    "Headlight Level Sensor",
+    "Shackle",
+    "U-Bolt",
+    "Fender Bracket"
+   ],
+   "category": "suspension-components"
+  }
+ ],
+ "_universal_comment": "Part types in these categories fit any vehicle by nature (weld-in mufflers, tips, pipes and clamps), so they count as universal even without vehicle data.",
+ "universal_categories": [
+  "mufflers",
+  "exhaust-tips",
+  "exhaust-pipes"
+ ]
+}

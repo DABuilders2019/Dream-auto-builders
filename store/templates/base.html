@@ -40,7 +40,7 @@
       <form method="post" action="/garage/shop-all?next={{ here|urlencode }}"><button class="linkbtn" type="submit">Shop all vehicles</button></form>
     {% else %}
       <div class="vtitle">{{ icon('plus', 22, 2.6) }} Add a vehicle</div>
-      {{ ymm('vb', 'Add vehicle') }}
+      {% if years %}{{ ymm('vb', 'Add vehicle') }}{% else %}<span class="muted">The vehicle list fills in once a brand with vehicle fitment is loaded.</span>{% endif %}
     {% endif %}
   </div></div>
 </header>

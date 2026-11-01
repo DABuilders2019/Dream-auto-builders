@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% from "_macros.html" import card, shopby with context %}
 {% block main %}
+{% if catalog_empty and preview() %}
+<div class="wrap"><div class="notice warn" style="margin-top:16px">{{ icon('info', 18) }} <span><b>No parts are loaded yet.</b> Sign in to the <a href="/admin" style="text-decoration:underline">admin page</a> and upload each brand's SEMA files (PIES, ACES and the Admark sheet). Brands, prices, photos and the vehicle list appear as soon as each brand finishes loading.</span></div></div>
+{% endif %}
 {% if slides %}
 <section class="promo" aria-roledescription="carousel" aria-label="Featured products and deals"><div class="wrap">
   <div class="pviewport" id="pView">

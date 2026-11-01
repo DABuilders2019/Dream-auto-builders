@@ -33,7 +33,7 @@
       "price_from": "cat-back",
       "cta": "Shop cat-backs",
       "href": "/c/cat-back",
-      "image": "product:magnaflow-19097"
+      "image": "catback.jpg"
     },
     {
       "kicker": "Mickey Thompson",
@@ -43,7 +43,7 @@
       "price_from": "all-terrain",
       "cta": "Shop tires",
       "href": "/c/tires",
-      "image": "product:mickeythompson-331035001"
+      "image": "tire.jpg"
     },
     {
       "kicker": "Free shipping",
@@ -69,9 +69,9 @@
   ],
   "category_images": {
     "suspension": "suspension.jpg",
-    "exhaust": "product:magnaflow-11214",
+    "exhaust": "exhaust.jpg",
     "tires": "tires.jpg",
-    "wheels": "product:mickeythompson-250572",
+    "wheels": "wheels.jpg",
     "intake": "intake.jpg",
     "lighting": "lighting.jpg",
     "exterior": "exterior.jpg",

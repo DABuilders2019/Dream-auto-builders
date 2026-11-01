@@ -444,3 +444,4 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .acts form{display:inline}
 .admin summary{cursor:pointer;font-weight:600;font-size:14px}
 .btn-ghost:disabled{opacity:.45;cursor:not-allowed}
+.notice > span{flex:1;min-width:220px}

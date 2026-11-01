@@ -213,7 +213,9 @@ def home(request: Request):
             popular = Q.cards_by_slugs(conn, s, cfg.get("popular", [])[:8])
         logos = cached(request, "logos", lambda: Q.brand_logos(conn, s))
         brands = [dict(b, logo=logos.get(b["id"])) for b in cached(request, "brands", lambda: Q.brands_with_counts(conn))]
-        return render(request, conn, s, "home.html", cfg=cfg, slides=slides, cat_cards=cards, popular=popular, brands=brands)
+        catalog_empty = not any(cached(request, "sub_counts", lambda: Q.sub_counts(conn)).values())
+        return render(request, conn, s, "home.html", cfg=cfg, slides=slides, cat_cards=cards, popular=popular, brands=brands,
+                      catalog_empty=catalog_empty)
 
 
 def _slides(conn, s, cfg):

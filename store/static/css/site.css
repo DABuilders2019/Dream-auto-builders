@@ -477,5 +477,18 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 @media (max-width:720px){ #nestedIFrame{min-height:700px} }
 .vbar .buildbtn{margin-left:auto;border-color:var(--red);color:var(--red)}
 .vbar .buildbtn:hover{background:var(--red);color:#fff}
-#build{scroll-margin-top:150px}
 @media (max-width:720px){ .vbar .buildbtn{margin-left:0;flex:1 1 100%} }
+.igarage{border-top:0;padding-top:4px}
+.ig-head h1{font-size:clamp(30px,4vw,44px);font-weight:800}
+.ig-head h1 em{font-style:normal;color:var(--red)}
+.ig-head p a{text-decoration:underline}
+.builds{scroll-margin-top:150px}
+.build{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-top:12px;scroll-margin-top:150px}
+.build-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.build-h b{font-size:17px}.build-h small{display:block;color:var(--muted);font-size:12.5px}
+.build-items{list-style:none;margin:10px 0;display:grid;gap:6px;font-size:14px}
+.build-items li{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.build-items a{display:flex;gap:10px;align-items:center}.build-items a:hover{color:var(--red)}
+.build-items img{width:40px;height:40px;object-fit:contain;border:1px solid var(--line);border-radius:4px;background:#fff}
+.build-a{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.build-a form{display:inline}

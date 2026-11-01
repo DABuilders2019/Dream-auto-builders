@@ -511,9 +511,12 @@ def cart_page(request: Request):
 def garage_page(request: Request):
     st = _state(request)
     with st.pool.connection() as conn:
+        from .builds import builds_for_page
         from .orders import store_config
+        s = st.get_searcher(conn)
         ig = store_config().get("interactive_garage") or {}
-        return render(request, conn, st.get_searcher(conn), "garage.html", title="My Garage", ig=ig)
+        return render(request, conn, s, "garage.html", title="My Garage", ig=ig, builds=builds_for_page(conn, s, request),
+                      build_error=request.query_params.get("build_error", "")[:200])
 
 
 @router.post("/garage/add")

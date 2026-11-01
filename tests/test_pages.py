@@ -110,8 +110,23 @@ def test_robots(client):
     assert "Disallow: /" in client.get("/robots.txt").text
 
 
-def test_garage_has_interactive_garage(client):
-    page = client.get("/garage").text
-    assert 'id="nestedIFrame"' in page and "interactivegarage.com/dreamauto/" in page
-    assert "iFrameResize(" in page and "Add a vehicle" in page and 'id="build"' in page
-    assert 'href="/garage#build"' in client.get("/").text       # button in the Add a Vehicle bar
+def test_builder_page_and_saved_builds(client):
+    page = client.get("/build").text
+    assert 'id="nestedIFrame"' in page and "interactivegarage.com/dreamauto/" in page and "iFrameResize(" in page
+    assert "nestedIFrame" not in client.get("/garage").text           # separate pages
+    assert 'href="/build"' in client.get("/").text                     # button in the Add a Vehicle bar
+
+    r = client.get("/build/import", params={"items": "lk100:1, TIRE-1:4, NOPE-9", "year": "2020", "make": "Ram",
+                                            "model": "1500", "name": "Trail rig"}, follow_redirects=False)
+    assert r.status_code == 303 and r.headers["location"].startswith("/garage#build-")
+    g = client.get("/garage").text
+    assert "Trail rig" in g and "2020 Ram 1500" in g and "4 × " in g and "NOPE-9" in g
+    assert "Shopping for" in g                                          # builder's vehicle selected
+    bid = r.headers["location"].split("build-")[1]
+    client.post(f"/garage/builds/{bid}/cart")
+    cart = client.get("/cart").text
+    assert "LK-100" in cart and "TIRE-1" in cart
+
+    r = client.post("/build/import", data={"pn": ["LV-200"], "qty": ["2"], "action": "cart"}, follow_redirects=False)
+    assert r.headers["location"] == "/cart" and "LV-200" in client.get("/cart").text
+    assert "None of the parts" in client.get("/build/import", params={"items": "XX-1"}).text

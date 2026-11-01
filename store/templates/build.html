@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block main %}
+<section class="igarage" aria-labelledby="igTitle">
+  <div class="wrap ig-head">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>Build your dream ride</span></nav>
+    <h1 id="igTitle">Build your <em>dream ride</em></h1>
+    <p>See how lift kits, wheels and tires change the look of your vehicle. Builds you send to the store are saved in
+      <a href="/garage#builds">My Garage</a>{% if n_builds %} ({{ n_builds }} saved){% endif %}, ready to add to your cart.</p></div>
+  {# Interactive Garage's embed code. It must be full width, so it sits outside the page's centred column. #}
+  <iframe id="nestedIFrame" title="Interactive Garage vehicle builder" allowtransparency="true" width="100%" scrolling="no"
+          frameborder="0" marginheight="0" marginwidth="0" src="{{ ig.url }}"></iframe>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ ig.resizer_script }}"></script>
+<script>if (window.iFrameResize) { iFrameResize({log: false, checkOrigin: false}, '#nestedIFrame'); }</script>
+{% endblock %}

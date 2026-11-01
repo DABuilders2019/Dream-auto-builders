@@ -19,19 +19,26 @@
   {% endif %}
   <h2 style="font-size:22px;margin-top:26px">Add a vehicle</h2>
   <div class="ymm-block">{{ ymm('gm', 'Add to garage', '/garage') }}</div>
-  <p style="font-size:13px;color:var(--muted);margin-top:14px">Your garage is saved in this browser. Customer accounts will keep it on every device.</p>
+
+  <section class="builds" id="builds">
+    <h2 style="font-size:22px;margin-top:34px">Saved builds</h2>
+    {% if build_error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ build_error }}</span></div>{% endif %}
+    {% for b in builds %}
+    <article class="build" id="build-{{ b.id }}">
+      <div class="build-h"><div><b>{{ b.name }}</b><small>{% if b.vehicle %}{{ b.vehicle }} · {% endif %}saved {{ b.date }} · {{ b.lines|length }} part{{ 's' if b.lines|length != 1 }}</small></div>
+        <span class="price num">{{ b.total|money }}</span></div>
+      <ul class="build-items">{% for l in b.lines %}<li><a href="/p/{{ l.slug }}">{% if l.image_url %}<img src="{{ l.image_url }}" alt="" loading="lazy">{% endif %}<span>{{ l.qty }} × {{ l.title }}</span></a><span class="num">{{ l.line_total|money }}</span></li>{% endfor %}</ul>
+      {% if b.missing %}<p class="muted">Not sold here yet: {{ b.missing|join(', ') }}</p>{% endif %}
+      <div class="build-a">
+        <form method="post" action="/garage/builds/{{ b.id }}/cart"><button class="btn btn-red btn-sm" type="submit">{{ icon('cart', 16) }} Add all to cart</button></form>
+        {% if ig.url %}<a class="btn btn-ghost btn-sm" href="/build">Open the builder</a>{% endif %}
+        <form method="post" action="/garage/builds/{{ b.id }}/remove"><button class="linkbtn" type="submit">Remove</button></form>
+      </div>
+    </article>
+    {% else %}
+    <div class="empty" style="padding:26px"><b>No saved builds yet</b>{% if ig.url %}Put your dream ride together in the builder, then send it here.<br><a class="btn btn-red" href="/build">Build your dream ride</a>{% else %}Builds you save will show here.{% endif %}</div>
+    {% endfor %}
+  </section>
+  <p style="font-size:13px;color:var(--muted);margin-top:14px">Your garage and builds are saved in this browser. Customer accounts will keep them on every device.</p>
 </div>
-{% if ig.url %}
-<section class="igarage" id="build" aria-labelledby="igTitle">
-  <div class="wrap ig-head"><h2 id="igTitle">Build your <em>dream ride</em></h2>
-    <p>See how lift kits, wheels and tires change the look of your vehicle. Pick your vehicle, try parts on it, and save or email the build.</p></div>
-  {# Interactive Garage's embed code. It must be full width, so it sits outside the page's centred column. #}
-  <iframe id="nestedIFrame" title="Interactive Garage vehicle builder" allowtransparency="true" width="100%" scrolling="no"
-          frameborder="0" marginheight="0" marginwidth="0" src="{{ ig.url }}"></iframe>
-</section>
-{% endif %}
 {% endblock %}
-{% block scripts %}{% if ig.url %}
-<script src="{{ ig.resizer_script }}"></script>
-<script>if (window.iFrameResize) { iFrameResize({log: false, checkOrigin: false}, '#nestedIFrame'); }</script>
-{% endif %}{% endblock %}

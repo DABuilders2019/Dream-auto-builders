@@ -68,5 +68,13 @@ services:
         sync: false
       - key: ORDER_NOTIFY_EMAIL      # where new-order alerts go
         sync: false
+      - key: TURN14_CLIENT_ID        # Turn 14 API keys (turn14.com > Settings & Data > API Settings)
+        sync: false
+      - key: TURN14_CLIENT_SECRET
+        sync: false
+      - key: TURN14_ENV              # test until Turn 14 grants production access
+        value: test
+      - key: TURN14_AUTO             # 1 = run the Turn 14 sync on schedule (after the first full load)
+        value: "0"
       - key: PHOTO_WORKERS
         value: "4"

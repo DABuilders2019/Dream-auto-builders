@@ -444,7 +444,14 @@ def product_page(request: Request, slug: str):
         specs = [(k, val) for k, val in (p["specs"] or {}).items() if val not in (None, "")]
         size = (p["attributes"] or {}).get("Tire Size")
         return render(request, conn, s, "product.html", p=p, v=v, fit_info=fit_info, summary=summary, related=related,
-                      in_cart=in_cart, specs=specs, size=size, title=p["short_name"])
+                      in_cart=in_cart, specs=specs, size=size, title=p["short_name"], t14_on=_t14_has_data(conn))
+
+
+def _t14_has_data(conn):
+    try:
+        return bool(conn.execute("SELECT 1 FROM t14_inventory LIMIT 1").fetchone())
+    except Exception:      # noqa: BLE001
+        return False
 
 
 # ------------------------------------------------------------------ cart

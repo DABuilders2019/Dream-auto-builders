@@ -38,9 +38,15 @@ before launch day.
 - [ ] Delete `SITE_PASSWORD`, set `SITE_PREVIEW` to `0`.
 - [ ] Check the shop at the new address on desktop and phone.
 
+## Turn 14
+
+- [ ] Turn 14 approval of the testing-server integration, then production access (`TURN14_ENV=production`).
+- [ ] `TURN14_AUTO=1` once the first full load and matching look right.
+- [ ] Sales tax certificates filed with Turn 14 for the states we ship to (needed for their orders).
+
 ## Soon after launch
 
 - [ ] Automatic nightly SEMA imports (scheduled FTP delivery).
-- [ ] Turn14 / Keystone: live stock and sending orders automatically.
+- [ ] Sending orders to Turn 14 automatically (quote, then order from quote), and Keystone.
 - [ ] Photos to Cloudflare R2 once the catalog grows; database size check.
 - [ ] Customer accounts (order history, garage and builds on every device).

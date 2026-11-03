@@ -20,6 +20,8 @@ Settings (environment variables):
   DATA_DIR        folder for uploaded SEMA files and import logs (default: data)
   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, SITE_URL      checkout (see store/checkout.py)
   SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, MAIL_FROM, ORDER_NOTIFY_EMAIL   order emails (store/mailer.py)
+  TURN14_CLIENT_ID, TURN14_CLIENT_SECRET, TURN14_ENV (test|production), TURN14_AUTO (1 = run on schedule)
+                  Turn 14 stock and pricing feed (docs/TURN14.md)
   PHOTO_STORAGE / PHOTO_DIR / S3_*   where product photos are (see importer/storage.py)
 
 On start the database tables are created or upgraded, and the store categories and brands
@@ -41,7 +43,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import admin, builds, checkout
+from . import admin, builds, checkout, turn14_schedule
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -62,6 +64,7 @@ class State:
         self.uploads_dir = self.data_dir / "uploads"
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
         self.jobs = Jobs(self.data_dir, dsn, on_finish=self.reset)
+        self.t14 = Jobs(self.data_dir, dsn, on_finish=self.reset, subdir="turn14", module="turn14")
 
     def reset(self):
         """Forget cached catalog data (after an import) so pages show it right away."""
@@ -96,7 +99,9 @@ def create_app(dsn=None):
 
     @contextlib.asynccontextmanager
     async def lifespan(app):
+        stop_t14 = turn14_schedule.launch(state)
         yield
+        stop_t14.set()
         state.pool.close()
 
     app = FastAPI(title="Dream Auto Builders", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)

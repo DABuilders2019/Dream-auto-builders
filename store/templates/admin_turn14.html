@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head>{% if job and job.status == 'running' %}<meta http-equiv="refresh" content="6">{% endif %}{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+  {% if started %}<div class="notice">{{ icon('checkc', 18) }} <span>Started: <b>{{ started }}</b>. This page refreshes while it runs.</span></div>{% endif %}
+
+  <section class="acard">
+    <h2>Turn 14 feed</h2>
+    <div class="t14status">
+      <div><span class="muted">Server</span><b>{% if env == 'production' %}<span class="ost on_hold">LIVE (api.turn14.com)</span>{% else %}<span class="ost paid">Testing (apitest.turn14.com)</span>{% endif %}</b></div>
+      <div><span class="muted">Keys</span><b>{% if configured %}<span class="ost shipped">Set in Render</span>{% else %}<span class="ost on_hold">Not set</span>{% endif %}</b></div>
+      <div><span class="muted">Automatic schedule</span><b>{% if auto %}<span class="ost shipped">On</span>{% else %}<span class="ost cancelled">Off</span>{% endif %}</b></div>
+      <div><span class="muted">Requests, last hour</span><b class="num">{{ hour|num }} <span class="muted">of 5,000 allowed (we stop at {{ caps[0]|num }})</span></b></div>
+      <div><span class="muted">Requests, last 24 hours</span><b class="num">{{ day|num }} <span class="muted">of 30,000 allowed (we stop at {{ caps[1]|num }})</span></b></div>
+    </div>
+    {% if not configured %}<p class="muted" style="margin-top:10px">Add <b>TURN14_CLIENT_ID</b> and <b>TURN14_CLIENT_SECRET</b> on the service's Environment page in Render. They are never shown here.</p>{% endif %}
+  </section>
+
+  {% if job %}
+  <section class="acard">
+    <h2>{% if job.status == 'running' %}Running now{% else %}Last task{% endif %}: {{ job.title }}</h2>
+    <p class="muted">Started {{ job.started[:16]|replace('T', ' ') }} UTC{% if job.finished %} · finished {{ job.finished[:16]|replace('T', ' ') }} UTC{% endif %} ·
+      <b class="jst {{ job.status }}">{{ {'running': 'Running', 'done': 'Finished', 'failed': 'Stopped', 'interrupted': 'Interrupted by a restart'}[job.status] }}</b></p>
+    <details open><summary>Log</summary><pre class="log">{{ job.log_tail }}</pre></details>
+  </section>
+  {% endif %}
+
+  <section class="acard">
+    <h2>Run a task</h2>
+    <div class="t14tasks">
+      {% for key, label, help in tasks %}
+      <form method="post" action="/admin/turn14/run/{{ key }}"><button class="btn {{ 'btn-red' if key in ('test', 'setup') else 'btn-ghost' }} btn-sm" type="submit"{% if not configured or (job and job.status == 'running') %} disabled{% endif %}>{{ label }}</button>
+        <span class="muted">{{ help }}</span>
+        {% set r = runs.get(key) %}{% if r %}<span class="lastrun">Last: {{ r.finished[:16]|replace('T', ' ') if r.finished }} UTC · <b class="jst {{ 'done' if r.status == 'ok' else 'failed' }}">{{ r.status }}</b> · {{ r.requests }} requests{% if r.error %}<br><span class="err">{{ r.error }}</span>{% endif %}</span>{% endif %}</form>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="acard">
+    <h2>Our brands at Turn 14</h2>
+    <div class="tblwrap"><table class="tbl num">
+      <thead><tr><th>Our brand</th><th>Turn 14 brand</th><th>Approved</th><th>Our parts</th><th>Matched</th><th>Can buy</th><th>In stock</th><th></th></tr></thead>
+      <tbody>{% for b in brands %}
+        <tr><td><b>{{ b.name }}</b><br><span class="muted">code {{ b.aaia or '-' }}</span></td>
+          <td>{% if b.t14_id %}{{ b.t14_name }}<br><span class="muted">id {{ b.t14_id }} · {{ b.t14_items|num }} items</span>{% else %}<span class="muted">Not found yet (run Test connection)</span>{% endif %}</td>
+          <td>{% if b.t14_id %}{% if b.approved %}<span class="ost shipped">Yes</span>{% if b.restricted %}<br><span class="muted">some price groups not</span>{% endif %}{% else %}<span class="ost on_hold">No</span>{% endif %}{% endif %}</td>
+          <td>{{ b.parts|num }}</td>
+          <td>{% if b.t14_id %}{{ b.matched|num }} <span class="muted">({{ (100 * b.matched / b.parts)|round|int if b.parts else 0 }}%)</span>{% endif %}</td>
+          <td>{% if b.t14_id %}{{ b.buyable|num }}{% endif %}</td>
+          <td>{% if b.t14_id %}{{ b.in_stock|num }}{% endif %}</td>
+          <td>{% if b.t14_id %}<a class="btn btn-ghost btn-sm" href="/admin/turn14/unmatched/{{ b.id }}.csv">Unmatched (CSV)</a>{% endif %}</td></tr>
+      {% endfor %}</tbody></table></div>
+    <p class="muted" style="margin-top:8px">Parts are matched by brand code and manufacturer part number, then UPC, then alternate part number. Kits (Turn 14 item ids ending in “G”) are preferred.</p>
+  </section>
+
+  <section class="acard">
+    <h2>Recent requests to Turn 14</h2>
+    <div class="tblwrap"><table class="tbl num"><thead><tr><th>Time (UTC)</th><th>Request</th><th>Answer</th><th>Took</th><th>Task</th></tr></thead><tbody>
+      {% for at, method, path, status, ms, task in recent %}<tr><td>{{ at.strftime('%b %d %H:%M:%S') }}</td><td>{{ method }} {{ path }}</td>
+        <td><span class="jst {{ 'done' if status == 200 else 'failed' }}">{{ status or 'no answer' }}</span></td><td>{{ ms }} ms</td><td>{{ task }}</td></tr>
+      {% else %}<tr><td colspan="5">No requests yet.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</main>
+</body></html>

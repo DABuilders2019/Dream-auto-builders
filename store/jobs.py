@@ -19,8 +19,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 class Jobs:
-    def __init__(self, data_dir, dsn, on_finish=None):
-        self.dir = pathlib.Path(data_dir) / "jobs"
+    def __init__(self, data_dir, dsn, on_finish=None, subdir="jobs", module="importer"):
+        self.dir = pathlib.Path(data_dir) / subdir
+        self.module = module
         self.dir.mkdir(parents=True, exist_ok=True)
         self.dsn = dsn
         self.on_finish = on_finish
@@ -86,7 +87,7 @@ class Jobs:
                 log.flush()
                 t0 = time.time()
                 try:
-                    rc = subprocess.run([sys.executable, "-m", "importer", *args], cwd=ROOT, env=env,
+                    rc = subprocess.run([sys.executable, "-m", self.module, *args], cwd=ROOT, env=env,
                                         stdout=log, stderr=subprocess.STDOUT).returncode
                 except Exception as e:      # noqa: BLE001 - report anything to the admin page
                     log.write(f"could not start: {e!r}\n")

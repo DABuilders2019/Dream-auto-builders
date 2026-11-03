@@ -58,6 +58,7 @@ def add_fit(conn, items, vehicle_id=None):
     summaries = fit_summaries(conn, [it["id"] for it in items if it["fitment_status"] == "vehicle_specific"])
     for it in items:
         it["fit_summary"] = summaries.get(it["id"])
+    add_stock(conn, items)
     return items
 
 
@@ -116,6 +117,7 @@ def product(conn, searcher, slug):
         cur.execute("SELECT price_type, amount FROM product_prices WHERE product_id = %s", (p["id"],))
         p["prices"] = {t: float(a) for t, a in cur.fetchall()}
     p["fitment"], p["fitment_total"] = fitment_table(conn, p["id"])
+    p["stock"] = stock_for(conn, [p["id"]]).get(p["id"])
     return p
 
 
@@ -253,3 +255,51 @@ def top_for_vehicle(conn, searcher, vehicle_id, limit=8):
     for it in items:
         it.pop("rn", None)
     return add_fit(conn, decorate(items, searcher), vehicle_id)
+
+
+# ------------------------------------------------------------------ stock (Turn 14 feed)
+
+def stock_for(conn, product_ids):
+    """{product id: stock info} for products matched to a Turn 14 item that has a stock record."""
+    if not product_ids:
+        return {}
+    try:
+        rows = conn.execute("""
+            SELECT DISTINCT ON (i.product_id) i.product_id, i.active, i.regular_stock, pr.can_purchase,
+                   v.by_location, v.total, v.mfr_stock, v.eta
+            FROM t14_items i JOIN t14_inventory v ON v.item_id = i.item_id
+            LEFT JOIN t14_pricing pr ON pr.item_id = i.item_id
+            WHERE i.product_id = ANY(%s)
+            ORDER BY i.product_id, i.active DESC, (i.item_id LIKE '%%G') DESC""", (list(product_ids),)).fetchall()
+        states = dict(conn.execute("SELECT id, state FROM t14_locations").fetchall())
+    except Exception:          # noqa: BLE001 - tables not there yet (older database): no stock shown
+        return {}
+    out = {}
+    for pid, active, regular, can_buy, by_loc, total, mfr, eta in rows:
+        s = stock_status(active, regular, can_buy, by_loc or {}, total or 0, mfr or 0, eta, states)
+        if s:
+            out[pid] = s
+    return out
+
+
+def stock_status(active, regular, can_buy, by_loc, total, mfr, eta, states):
+    if not active or can_buy is False:
+        return None
+    if total > 0:
+        where = [(f"{states.get(k) or k} warehouse", q) for k, q in sorted(by_loc.items()) if q and q > 0]
+        return {"code": "in", "label": "In stock", "detail": "Usually ships in 1-2 business days", "where": where}
+    if mfr > 0:
+        return {"code": "mfr", "label": "Ships from the manufacturer", "detail": "Usually takes a few extra days", "where": []}
+    dates = sorted(d for d in ((eta or {}).get("estimated_availability") or {}).values() if d)
+    if dates:
+        return {"code": "bo", "label": "Backordered", "detail": f"Expected around {dates[0]}", "where": []}
+    if regular is False:
+        return {"code": "special", "label": "Special order", "detail": "Ordered for you from the manufacturer", "where": []}
+    return {"code": "out", "label": "Out of stock", "detail": "", "where": []}
+
+
+def add_stock(conn, items):
+    stock = stock_for(conn, [it["id"] for it in items if it.get("id")])
+    for it in items:
+        it["stock"] = stock.get(it.get("id"))
+    return items

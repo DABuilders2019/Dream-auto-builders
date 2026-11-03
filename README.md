@@ -11,11 +11,13 @@ built on SEMA Data (PIES product data and ACES fitment).
 | `importer/` | **Step 1 of the live site:** the database schema and the catalog importer (SEMA PIES/ACES/vehicle sheet → Postgres, plus photo download and checks). See [docs/IMPORTER.md](docs/IMPORTER.md). |
 | `store/` | **Step 2:** search, autocomplete and Year/Make/Model menus, served as a JSON API (FastAPI). See [docs/SEARCH.md](docs/SEARCH.md). **Step 3:** the storefront pages, built from the prototype's design. See [docs/STOREFRONT.md](docs/STOREFRONT.md). **Step 4:** the admin page (`/admin`) for uploading SEMA files. |
 | `render.yaml` | **Step 4:** how Render runs the store (web service, disk, database). See [docs/DEPLOY.md](docs/DEPLOY.md). |
+| `turn14/` | Turn 14 Distribution feed: brands, item matching, pricing, stock. See [docs/TURN14.md](docs/TURN14.md). |
 | `config/` | Brands, store categories and the rules that sort SEMA part types into them, search vocabulary, photo review results. |
 | `tests/` | Importer, search and page tests (`DATABASE_URL=... pytest tests/`). |
 | `tools/` | The original prototype-era scripts, kept for reference. |
 
 **Step 5:** Stripe checkout, orders and order emails. See [docs/CHECKOUT.md](docs/CHECKOUT.md).
+Turn 14 stock and pricing feed: [docs/TURN14.md](docs/TURN14.md).
 
 Before going live: see [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md).
 

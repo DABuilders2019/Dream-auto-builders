@@ -365,3 +365,96 @@ def order_refund(request: Request, number: str, confirm: str = Form("")):
             return _order_back(number, error=f"Stripe couldn't refund it: {e.user_message or e}")
         O.set_status(conn, o["id"], "refunded", f"Refunded in full ({web.money(o['total'])})")
     return _order_back(number, done="Refunded in full. The customer sees it on their card in 5 to 10 days.")
+
+
+# ------------------------------------------------------------------ Turn 14
+
+T14_TASKS = [("test", "Test connection", "Sign in and read the brand and warehouse lists (2-3 requests)."),
+             ("setup", "First full load", "All items for our approved brands, matching to our parts, pricing and stock."),
+             ("daily", "Daily sync", "Brands, changed items, pricing and a full stock count. Runs by itself after 1:30 AM Eastern."),
+             ("changes", "Stock changes", "Stock that changed since the last run. Runs by itself every hour."),
+             ("full-items", "Full item check", "Every item again, to catch discontinued ones. Runs by itself on the 1st and 15th.")]
+
+
+@router.get("/turn14", response_class=HTMLResponse)
+def turn14_page(request: Request, error: str = "", started: str = ""):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from turn14 import client as t14
+    from . import turn14_schedule
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        hour, day = conn.execute("""SELECT count(*) FILTER (WHERE at > now() - interval '1 hour'),
+                                           count(*) FILTER (WHERE at > now() - interval '24 hours') FROM t14_requests""").fetchone()
+        runs = {k[5:]: v for k, v in conn.execute("SELECT key, value FROM t14_state WHERE key LIKE 'last\\_%'").fetchall()}
+        brands = conn.execute("""
+            SELECT b.id, b.name, b.aaia_id, t.id, t.name, t.approved, t.restricted,
+                   (SELECT count(*) FROM products p WHERE p.brand_id = b.id AND p.status = 'active'),
+                   (SELECT count(*) FROM t14_items i WHERE i.t14_brand_id = t.id AND i.active),
+                   (SELECT count(DISTINCT i.product_id) FROM t14_items i JOIN products p ON p.id = i.product_id
+                     WHERE i.t14_brand_id = t.id AND p.status = 'active'),
+                   (SELECT count(*) FROM t14_items i JOIN t14_pricing pr ON pr.item_id = i.item_id
+                     WHERE i.t14_brand_id = t.id AND i.product_id IS NOT NULL AND pr.can_purchase),
+                   (SELECT count(*) FROM t14_items i JOIN t14_inventory v ON v.item_id = i.item_id
+                     WHERE i.t14_brand_id = t.id AND i.product_id IS NOT NULL AND v.total > 0)
+            FROM brands b LEFT JOIN t14_brands t ON t.brand_id = b.id
+            WHERE EXISTS (SELECT 1 FROM products p WHERE p.brand_id = b.id)
+            ORDER BY b.name""").fetchall()
+        cols = ["id", "name", "aaia", "t14_id", "t14_name", "approved", "restricted", "parts", "t14_items", "matched",
+                "buyable", "in_stock"]
+        brands = [dict(zip(cols, r)) for r in brands]
+        recent = conn.execute("""SELECT at, method, path, status, ms, task FROM t14_requests ORDER BY id DESC LIMIT 25""").fetchall()
+    return _page(request, "admin_turn14.html", title="Turn 14", section="turn14", env=t14.environment(),
+                 configured=t14.configured(), auto=turn14_schedule.enabled(), hour=hour, day=day, runs=runs,
+                 tasks=T14_TASKS, labels=turn14_schedule.LABELS, brands=brands, recent=recent, job=st.t14.current(),
+                 error=error, started=started, caps=(t14.HOURLY_CAP, t14.DAILY_CAP))
+
+
+@router.post("/turn14/run/{task}")
+def turn14_run(request: Request, task: str):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from turn14 import client as t14
+    from . import turn14_schedule
+    from urllib.parse import urlencode
+    st = web._state(request)
+    back = lambda **q: RedirectResponse("/admin/turn14?" + urlencode(q), status_code=303)   # noqa: E731
+    if task not in dict((t, l) for t, l, _ in T14_TASKS):
+        return back(error="Unknown task.")
+    if not t14.configured():
+        return back(error="Add TURN14_CLIENT_ID and TURN14_CLIENT_SECRET in Render's Environment settings first.")
+    if not turn14_schedule.start(st, task):
+        return back(error="A Turn 14 task is already running.")
+    return back(started=turn14_schedule.LABELS[task])
+
+
+@router.get("/turn14/unmatched/{brand_id}.csv")
+def turn14_unmatched(request: Request, brand_id: str):
+    """Our parts with no Turn 14 match, and Turn 14 items for the brand that match none of our parts."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    import csv
+    import io
+    from fastapi.responses import Response
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        t = conn.execute("SELECT id FROM t14_brands WHERE brand_id = %s", (brand_id,)).fetchone()
+        ours = conn.execute("""SELECT p.part_number, p.upc, p.title FROM products p
+                               WHERE p.brand_id = %s AND p.status = 'active'
+                                 AND NOT EXISTS (SELECT 1 FROM t14_items i WHERE i.product_id = p.id)
+                               ORDER BY p.part_number""", (brand_id,)).fetchall()
+        theirs = conn.execute("""SELECT item_id, mfr_part_number, barcode, product_name FROM t14_items
+                                 WHERE t14_brand_id = %s AND active AND product_id IS NULL ORDER BY mfr_part_number""",
+                              (t[0] if t else -1,)).fetchall()
+    out = io.StringIO()
+    w = csv.writer(out)
+    w.writerow(["list", "part number", "UPC / barcode", "Turn 14 item id", "name"])
+    for pn, u, title in ours:
+        w.writerow(["our part, not found at Turn 14", pn, u or "", "", title])
+    for iid, pn, bc, name in theirs:
+        w.writerow(["Turn 14 item, not on our site", pn or "", bc or "", iid, name or ""])
+    return Response(out.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="{brand_id}-turn14-unmatched.csv"'})

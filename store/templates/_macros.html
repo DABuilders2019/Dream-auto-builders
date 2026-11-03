@@ -41,6 +41,7 @@
     <span class="pn num">Part # {{ p.part_number }}</span>
     {{ fit_badge(p, active) }}
     {{ emissions(p) }}
+    {% if p.stock %}<span class="stock"><span class="dot {{ p.stock.code }}"></span>{{ p.stock.label }}</span>{% endif %}
     <div class="foot"><div class="price num">{{ p.price|money }}</div>
       <form method="post" action="/cart/add" data-cart><input type="hidden" name="product_id" value="{{ p.id }}">
         <button class="addbtn" type="submit" aria-label="Add {{ p.short_name }} to cart">{{ icon('cart', 20) }}</button></form></div>

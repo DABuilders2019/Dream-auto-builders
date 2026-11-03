@@ -49,8 +49,18 @@
         <button class="btn btn-red" type="submit">{{ icon('cart', 20) }} Add to cart</button>
       </form>
       {% if in_cart %}<p class="incart num"><a href="/cart">{{ in_cart }} already in your cart</a></p>{% endif %}
-      <div class="avail num"><div class="h"><span>Availability</span><span class="stock"><span class="dot bo"></span>Live stock coming soon</span></div>
-        <div><span>Ships from</span><span style="color:var(--muted)">Distributor warehouse closest to you</span></div></div>
+      <div class="avail num">
+        {% if p.stock %}
+        <div class="h"><span>Availability</span><span class="stock"><span class="dot {{ p.stock.code }}"></span>{{ p.stock.label }}</span></div>
+        {% if p.stock.detail %}<div><span>{{ p.stock.detail }}</span><span></span></div>{% endif %}
+        {% for where, qty in p.stock.where %}<div><span>{{ where }}</span><span style="color:var(--ok)">{{ qty }} in stock</span></div>{% endfor %}
+        {% elif t14_on %}
+        <div class="h"><span>Availability</span><span class="stock"><span class="dot bo"></span>Not listed</span></div>
+        <div><span style="color:var(--muted)">We'll confirm availability by email after you order.</span><span></span></div>
+        {% else %}
+        <div class="h"><span>Availability</span><span class="stock"><span class="dot bo"></span>Live stock coming soon</span></div>
+        <div><span>Ships from</span><span style="color:var(--muted)">Distributor warehouse closest to you</span></div>
+        {% endif %}</div>
     </div>
   </div>
 

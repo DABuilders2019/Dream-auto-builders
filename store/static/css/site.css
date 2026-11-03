@@ -499,3 +499,13 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .build-items img{width:40px;height:40px;object-fit:contain;border:1px solid var(--line);border-radius:4px;background:#fff}
 .build-a{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .build-a form{display:inline}
+.t14status{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:6px}
+.t14status div{display:grid;gap:4px}
+.t14tasks{display:grid;gap:14px}
+.t14tasks form{display:grid;grid-template-columns:170px 1fr;gap:4px 14px;align-items:start}
+.t14tasks .btn{width:100%}
+.t14tasks .lastrun{grid-column:2;font-size:13px;color:var(--muted)}
+.t14tasks .err{color:var(--bad)}
+@media (max-width:720px){ .t14tasks form{grid-template-columns:1fr} .t14tasks .lastrun{grid-column:1} }
+.dot.in{background:var(--ok)}.dot.mfr{background:#1d4f91}.dot.bo,.dot.special{background:var(--warn)}.dot.out{background:var(--bad)}
+.card .stock{margin-top:2px}

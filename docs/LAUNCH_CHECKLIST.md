@@ -1,0 +1,46 @@
+# Before the site goes live
+
+Items to settle before switching the test site to the public store. Go through this list together
+before launch day.
+
+## To discuss first
+
+- [ ] **Our own vehicle builder (decide before launch).** Option discussed on Nov 1, 2026 and put on
+      hold: build a "see it on your truck" builder inside the site (vehicle picker, parts layered onto
+      the vehicle as they're picked, lift height, wheels and tires, build list, add build to cart).
+      The software can be built here; the vehicle and part images have to be licensed, drawn or
+      supplied by the brands. Suggested start: a one-truck proof of concept (2022 Ram 1500, side view,
+      ReadyLift lift heights, Mickey Thompson wheels and tires). Compare with keeping Interactive
+      Garage, or with iConfigurator Elite / 3DTuning.
+- [ ] **Interactive Garage:** logo without the white box and a red Search button (asked of them),
+      their "My Garage" link renamed, and the cart connection with Dane (spec: docs/INTERACTIVE_GARAGE.md).
+      Builds sent from the builder should land in My Garage > Saved builds.
+
+## Decisions
+
+- [ ] Shipping rate under $149 (placeholder $14.95) and countries shipped to (US only now).
+- [ ] Sales tax: which states to collect in; turn on Stripe Tax if needed.
+- [ ] Confirm the states that can't receive non-CARB catalytic converters (CA, CO, ME, NY now).
+- [ ] Pricing for the 50 Mickey Thompson parts that only have a jobber (JBR) price (hidden now).
+
+## Content
+
+- [ ] Wording for About, Contact, Privacy policy, Terms of sale, Shipping & returns and Fitment guarantee.
+- [ ] Home page builder slide with a picture of a built-up truck (optional).
+- [ ] Clean up ReadyLift product names that are shorthand in their SEMA data.
+- [ ] Missing photos: 11 ReadyLift small parts, 63 Mickey Thompson parts (ask the brands).
+
+## Switching on
+
+- [ ] Stripe live keys (`sk_live_...`) and a live-mode webhook endpoint; a real test order and refund.
+- [ ] Order emails set up (SMTP) and tested.
+- [ ] Domain: add it in Render (Custom Domains), set `SITE_URL`.
+- [ ] Delete `SITE_PASSWORD`, set `SITE_PREVIEW` to `0`.
+- [ ] Check the shop at the new address on desktop and phone.
+
+## Soon after launch
+
+- [ ] Automatic nightly SEMA imports (scheduled FTP delivery).
+- [ ] Turn14 / Keystone: live stock and sending orders automatically.
+- [ ] Photos to Cloudflare R2 once the catalog grows; database size check.
+- [ ] Customer accounts (order history, garage and builds on every device).

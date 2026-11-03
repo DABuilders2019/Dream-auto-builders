@@ -17,6 +17,8 @@ built on SEMA Data (PIES product data and ACES fitment).
 
 **Step 5:** Stripe checkout, orders and order emails. See [docs/CHECKOUT.md](docs/CHECKOUT.md).
 
+Before going live: see [docs/LAUNCH_CHECKLIST.md](docs/LAUNCH_CHECKLIST.md).
+
 ## Status
 
 | Brand | Products | Fitment rows | Vehicles (year/make/model) | With a real photo |

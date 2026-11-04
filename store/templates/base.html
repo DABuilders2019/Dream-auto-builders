@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" href="/static/img/favicon.png">
 <link rel="preload" href="/static/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/css/site.css?v=10">
+<link rel="stylesheet" href="/static/css/site.css?v=11">
 </head>
 <body data-vehicle="{{ active.id if active else '' }}">
 <a class="sr skip" href="#main">Skip to content</a>
@@ -17,7 +17,7 @@
 
 <header class="top">
   <div class="wrap hdr">
-    <a class="logo" href="/" aria-label="Dream Auto Builders home"><img src="/static/img/logo-header.png" alt="Dream Auto Builders" width="188" height="54"></a>
+    <a class="logo" href="/" aria-label="Dream Auto Builders home"><img src="/static/img/logo-header.png" alt="Dream Auto Builders" width="182" height="60"></a>
     <div class="search" id="searchBox">
       <form id="searchForm" role="search" action="/search" method="get">
         <label for="q" class="sr">Search parts, categories, brands or part numbers</label>
@@ -50,7 +50,7 @@
 
 <footer>
   <div class="wrap fgrid">
-    <div><img src="/static/img/logo-full.png" alt="Dream Auto Builders" width="150" height="152" style="height:auto"><p>Parts and accessories matched to your exact vehicle, shipped from distributor warehouses across the U.S.</p></div>
+    <div><p>Parts and accessories matched to your exact vehicle, shipped from distributor warehouses across the U.S.</p></div>
     <div><h4>Shop</h4><ul>{% for c in footer_cats %}<li><a href="/c/{{ c.id }}">{{ c.name }}</a></li>{% endfor %}<li><a href="/brands">All brands</a></li></ul></div>
     <div><h4>Help</h4><ul><li><a href="/track">Track an order</a></li><li><a href="/info/shipping-returns">Shipping &amp; returns</a></li><li><a href="/info/fitment-guarantee">Fitment guarantee</a></li><li><a href="/info/contact">Contact us</a></li></ul></div>
     <div><h4>Company</h4><ul><li><a href="/info/about">About Dream Auto Builders</a></li><li><a href="/brands">Brands we carry</a></li><li><a href="/info/privacy">Privacy policy</a></li><li><a href="/info/terms">Terms of sale</a></li></ul></div>

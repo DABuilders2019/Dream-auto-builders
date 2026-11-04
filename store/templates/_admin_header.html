@@ -1,5 +1,5 @@
 <header class="top"><div class="wrap hdr">
-  <a class="logo" href="/"><img src="/static/img/logo-header.png" alt="Dream Auto Builders" width="188" height="54"></a>
+  <a class="logo" href="/"><img src="/static/img/logo-header.png" alt="Dream Auto Builders" width="182" height="60"></a>
   <nav class="anav"><a href="/admin"{% if section == 'catalog' %} class="on"{% endif %}>Catalog</a><a href="/admin/orders"{% if section == 'orders' %} class="on"{% endif %}>Orders</a><a href="/admin/turn14"{% if section == 'turn14' %} class="on"{% endif %}>Turn 14</a></nav>
   <div class="hdr-actions"><a class="hbtn" href="/">{{ icon('cart') }}<span class="lbl">View the shop</span></a>
     <form method="post" action="/admin/logout"><button class="hbtn" type="submit">{{ icon('user') }}<span class="lbl">Sign out</span></button></form></div>

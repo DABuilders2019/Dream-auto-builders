@@ -92,7 +92,7 @@ class Client:
                 return t["access_token"]
         if self._count("1 minute", "/v1/token") >= TOKEN_PER_MINUTE_CAP:
             raise StopSync("Too many sign-in requests in the last minute; stopped to protect the account.")
-        cid, secret = os.environ.get("TURN14_CLIENT_ID", ""), os.environ.get("TURN14_CLIENT_SECRET", "")
+        cid, secret = (os.environ.get(k, "").strip().strip('"').strip() for k in ("TURN14_CLIENT_ID", "TURN14_CLIENT_SECRET"))
         if not (cid and secret):
             raise StopSync("TURN14_CLIENT_ID and TURN14_CLIENT_SECRET aren't set in Render's Environment settings.")
         self._throttle()

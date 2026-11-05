@@ -310,21 +310,49 @@ def part_numbers(c, aaia):
     return list(dict.fromkeys(str(p).strip() for p in pns if str(p).strip()))
 
 
+MAX_QUERY = 1500      # characters of part numbers per request: SEMA's server refuses long addresses (IIS 404.15)
+
+
+def url_batches(parts, most, max_chars):
+    """Groups of at most `most` part numbers whose encoded length stays under max_chars."""
+    from urllib.parse import quote
+    out, cur, size = [], [], 0
+    for p in parts:
+        n = len("&partnumbers=") + len(quote(p, safe=""))
+        if cur and (len(cur) >= most or size + n > max_chars):
+            out.append(cur)
+            cur, size = [], 0
+        cur.append(p)
+        size += n
+    if cur:
+        out.append(cur)
+    return out
+
+
 def fetch_pies(c, aaia, parts, path, log):
     """Product data for every part, 100 per call, written out as one PIES file for the loader."""
     tmp = path.with_suffix(".tmp")
-    batches = [parts[i:i + PIES_BATCH] for i in range(0, len(parts), PIES_BATCH)]
+    batches = url_batches(parts, PIES_BATCH, MAX_QUERY)
     with open(tmp, "w", encoding="utf-8") as out:
         out.write('<?xml version="1.0" encoding="utf-8"?>\n<PIES xmlns="http://www.aftermarket.org">\n'
                   '<Header><SubmissionType>FULL</SubmissionType>'
                   f'<BlanketEffectiveDate>{dt.date.today().isoformat()}</BlanketEffectiveDate></Header>\n<Items>\n')
-        got = 0
-        for i, batch in enumerate(batches):
-            body = c.call("GET", "/products/bulk", [("brandaaiaid", aaia)] + [("partnumbers", p) for p in batch])
+        got, n = 0, 0
+        while batches:
+            batch = batches.pop(0)
+            try:
+                body = c.call("GET", "/products/bulk", [("brandaaiaid", aaia)] + [("partnumbers", p) for p in batch])
+            except sc.RequestTooLong:
+                if len(batch) == 1:
+                    raise sc.BrandError(f"SEMA won't accept part number {batch[0]!r} in a request (too long)")
+                half = len(batch) // 2
+                batches[:0] = [batch[:half], batch[half:]]      # ask again in two smaller pieces
+                continue
             for prod in body.get("Products") or []:
                 out.write(product_xml(prod, aaia))
                 got += 1
-            if (i + 1) % 20 == 0:
+            n += 1
+            if n % 20 == 0:
                 log(f"  product data: {got:,} of {len(parts):,}")
         out.write("</Items>\n</PIES>\n")
     if got < len(parts) * 0.9:

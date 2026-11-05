@@ -37,6 +37,19 @@ class _TokenRejected(Exception):
     pass
 
 
+class RequestTooLong(Exception):
+    """SEMA's web server refused the request because its address was too long: send fewer parts at once."""
+
+
+def _short(text):
+    """An error page as one short line (SEMA's server sends HTML error pages)."""
+    import re
+    m = re.search(r"<title>(.*?)</title>", text or "", re.S | re.I)
+    if m:
+        return " ".join(m.group(1).split())
+    return " ".join(re.sub(r"<[^>]+>", " ", text or "").split())[:300]
+
+
 def credentials():
     clean = lambda k: os.environ.get(k, "").strip().strip('"').strip()   # noqa: E731
     return clean("SEMA_USERNAME"), clean("SEMA_PASSWORD")
@@ -212,8 +225,10 @@ class Client:
                 raise StopSync(f"SEMA refused the sign-in ({r.status_code}). Check SEMA_USERNAME and SEMA_PASSWORD in Render.")
             if r.status_code == 401 and sign:
                 raise _TokenRejected()
+            if r.status_code == 414 or (r.status_code == 404 and "404.15" in r.text):
+                raise RequestTooLong()
             if r.status_code != 200:
-                raise StopSync(f"SEMA answered {r.status_code} on {path}: {r.text[:300]}")
+                raise StopSync(f"SEMA answered {r.status_code} on {path}: {_short(r.text)}")
             try:
                 return r.json()
             except ValueError:

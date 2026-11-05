@@ -29,6 +29,7 @@ class FakeSema:
         self.api_count, self.api_max = 100, 100000
         self.batch_ok = False
         self.limit = 10
+        self.max_query = 100000
         self.parts = {"985-24-001": product("985-24-001", "Front Shock 0-2 in. Lift", 129.95),
                       "985-24-002": product("985-24-002", "Rear Shock 0-1 in. Lift", 119.95),
                       "UNI-1": product("UNI-1", "Shock Boot", 19.95)}
@@ -59,6 +60,8 @@ class FakeSema:
                 {"AAIABrandId": "RLTK", "BrandName": "RealTruck", "DatasetId": 3, "LastUpdated": "2026-10-01"}]})
         if path == "/products" and q.get("brandaaiaid") == "TSTB":
             return httpx.Response(200, json={"PartNumbers": list(self.parts), "Success": True})
+        if path == "/products/bulk" and len(request.url.query) > self.max_query:
+            return httpx.Response(404, text="<html><head><title>IIS 10.0 Detailed Error - 404.15 - Not Found</title></head></html>")
         if path == "/products/bulk":
             pns = request.url.params.get_list("partnumbers")
             assert len(pns) <= 100
@@ -80,7 +83,7 @@ class FakeSema:
                         "985-24-002": [{"Year": 2021, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "XLT"}],
                         "985-24-003": [{"Year": 2023, "MakeName": "Ram", "ModelName": "2500", "SubmodelName": "Big Horn"}]}
             table.update({p: [{"Year": 2024, "MakeName": "Jeep", "ModelName": "Gladiator"}] for p in self.parts if p.startswith("BIG-")})
-            return httpx.Response(200, json={"success": True, "Parts": [{"PartNumber": pn, "Vehicles": table[pn]} for pn in pns]})
+            return httpx.Response(200, json={"success": True, "Parts": [{"PartNumber": pn, "Vehicles": table.get(pn, [])} for pn in pns]})
         return httpx.Response(404, text="no route")
 
 
@@ -256,3 +259,17 @@ def test_fitment_batch_size_follows_semas_limit(conn, sema, monkeypatch):
     ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
     assert conn.execute("SELECT count(*) FROM fitment").fetchone()[0] == 3 + 23
     assert conn.execute("SELECT fitted_parts FROM sema_brands WHERE aaia = 'TSTB'").fetchone()[0] == 25
+
+
+def test_long_part_numbers_are_sent_in_smaller_requests(conn, sema, monkeypatch):
+    fake, c, tmp = sema
+    for i in range(40):
+        pn = f"VERY-LONG-PART-NUMBER-{i:03d}-ABCDEFGHIJKLMNOP"
+        fake.parts[pn] = product(pn, f"Gauge {i}", 50.0)
+    fake.max_query = 900                              # SEMA's server refuses longer addresses
+    monkeypatch.setattr(ss, "MAX_QUERY", 5000)        # start too long: the 404.15 answer splits the request
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    stats = ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
+    assert stats["loaded"] == 1
+    assert conn.execute("SELECT count(*) FROM products WHERE brand_id = 'testshocks'").fetchone()[0] == 43
+    assert ss.url_batches(["A" * 50] * 10, 100, 200) == [["A" * 50] * 3] * 3 + [["A" * 50]]

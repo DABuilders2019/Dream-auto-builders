@@ -227,5 +227,15 @@ def test_fitment_in_batches_when_sema_allows(conn, sema):
     ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
     fit_calls = [x for x in fake.calls if x[1] == "/lookup/vehiclesbyproduct"]
     assert len(fit_calls) == 2                       # one probe (2 parts), then one batch call
-    assert conn.execute("SELECT value FROM sema_state WHERE key = 'fit_mode'").fetchone()[0] == "repeat"
+    assert conn.execute("SELECT value FROM sema_state WHERE key = 'fit_mode_v2'").fetchone()[0] == "repeat"
     assert conn.execute("SELECT count(*) FROM fitment").fetchone()[0] == 3
+
+
+def test_fitment_answer_shapes():
+    a = {"success": True, "Parts": [{"PartNumber": "X1", "Vehicles": [{"Year": 2020, "MakeName": "Jeep", "ModelName": "Wrangler"}]}]}
+    b = {"Success": True, "parts": [{"partNumber": "X1", "vehicles": [{"year": "2020", "make": "Jeep", "model": "Wrangler", "subModel": "Rubicon"}]}]}
+    c = {"success": True, "Vehicles": [{"YearFrom": 2019, "YearTo": 2021, "Make": "Ram", "Model": "1500", "Notes": "4WD"}]}
+    assert ss.fitment_parts(a) == [("X1", [{"year": 2020, "make": "Jeep", "model": "Wrangler", "submodel": None, "notes": None, "engine": None}])]
+    assert ss.fitment_parts(b)[0][1][0]["submodel"] == "Rubicon"
+    rows = ss.fitment_parts(c)[0][1]
+    assert [r["year"] for r in rows] == [2019, 2020, 2021] and rows[0]["notes"] == "4WD"

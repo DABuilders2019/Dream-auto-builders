@@ -55,7 +55,7 @@ def _read_jsonl(path):
     with open(path, encoding="utf-8") as f:
         for line in f:
             r = json.loads(line)
-            row = {k: _clean(r.get(k)) for k in ("sku", "make", "model", "submodel", "notes", "year")}
+            row = {k: _clean(r.get(k)) for k in ("sku", "make", "model", "submodel", "notes", "year", "engine")}
             if not (row["make"] and row["model"] and row["year"] and row["sku"]):
                 continue
             try:

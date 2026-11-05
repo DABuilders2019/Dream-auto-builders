@@ -27,6 +27,7 @@ class FakeSema:
         self.calls = []
         self.fail = {}
         self.api_count, self.api_max = 100, 100000
+        self.batch_ok = False
         self.parts = {"985-24-001": product("985-24-001", "Front Shock 0-2 in. Lift", 129.95),
                       "985-24-002": product("985-24-002", "Rear Shock 0-1 in. Lift", 119.95),
                       "UNI-1": product("UNI-1", "Shock Boot", 19.95)}
@@ -66,12 +67,15 @@ class FakeSema:
                 {"PartNumber": "985-24-001", "FitmentCount": 2}, {"PartNumber": "985-24-002", "FitmentCount": 1},
                 {"PartNumber": "UNI-1", "FitmentCount": 0}] + [{"PartNumber": p, "FitmentCount": 1} for p in self.parts if p.endswith("003")]})
         if path == "/lookup/vehiclesbyproduct":
-            pn = form["partNumber"]
-            vehicles = {"985-24-001": [{"Year": 2021, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "XLT"},
+            multi = urllib.parse.parse_qs(request.content.decode())
+            pns = multi.get("partNumber") or multi.get("partNumbers") or []
+            if not self.batch_ok or "partNumber" not in multi:
+                pns = pns[:1]
+            table = {"985-24-001": [{"Year": 2021, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "XLT"},
                                        {"Year": 2022, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "Lariat", "FitmentNotes": "4WD"}],
                         "985-24-002": [{"Year": 2021, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "XLT"}],
-                        "985-24-003": [{"Year": 2023, "MakeName": "Ram", "ModelName": "2500", "SubmodelName": "Big Horn"}]}[pn]
-            return httpx.Response(200, json={"success": True, "Parts": [{"PartNumber": pn, "Vehicles": vehicles}]})
+                        "985-24-003": [{"Year": 2023, "MakeName": "Ram", "ModelName": "2500", "SubmodelName": "Big Horn"}]}
+            return httpx.Response(200, json={"success": True, "Parts": [{"PartNumber": pn, "Vehicles": table[pn]} for pn in pns]})
         return httpx.Response(404, text="no route")
 
 
@@ -138,7 +142,7 @@ def test_load_brand_through_normal_loader(conn, sema):
     conn.execute("UPDATE sema_brands SET loaded_updated = 'old'")
     n = len(fake.calls)
     ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
-    looked_up = [f["partNumber"] for m, p, q, f in fake.calls[n:] if p == "/lookup/vehiclesbyproduct"]
+    looked_up = [f.get("partNumber") for m, p, q, f in fake.calls[n:] if p == "/lookup/vehiclesbyproduct"]
     assert looked_up == ["985-24-003"]
     assert conn.execute("SELECT count(*) FROM products WHERE brand_id = 'testshocks'").fetchone()[0] == 4
     assert conn.execute("SELECT count(*) FROM fitment").fetchone()[0] == 4
@@ -214,3 +218,14 @@ def test_admin_sema_page(conn, sema, tmp_path, monkeypatch):
         monkeypatch.setattr(ss, "wishlist", lambda c=None: ["RealTruck"])
         tc.post("/admin/sema/list", data={"names": "RealTruck"})
         assert {r[0] for r in conn.execute("SELECT aaia FROM sema_brands WHERE wanted").fetchall()} == {"RLTK"}
+
+
+def test_fitment_in_batches_when_sema_allows(conn, sema):
+    fake, c, tmp = sema
+    fake.batch_ok = True
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
+    fit_calls = [x for x in fake.calls if x[1] == "/lookup/vehiclesbyproduct"]
+    assert len(fit_calls) == 2                       # one probe (2 parts), then one batch call
+    assert conn.execute("SELECT value FROM sema_state WHERE key = 'fit_mode'").fetchone()[0] == "repeat"
+    assert conn.execute("SELECT count(*) FROM fitment").fetchone()[0] == 3

@@ -165,9 +165,18 @@ def test(conn, c, log):
     return {"approved_brands": n, "on_our_list": sum(1 for v in matches.values() if v["aaia"]), "estimated_calls": total}
 
 
+def refresh_estimates(conn, fit_mode):
+    """Recount the calls each unloaded brand needs (fewer once we know SEMA answers fitment in batches)."""
+    per = FIT_BATCH if fit_mode in ("repeat", "plural") else 1
+    conn.execute("""UPDATE sema_brands SET est_calls = ((est_parts + 99) / 100) + 2 + ((est_fit + %s - 1) / %s)
+                    WHERE est_parts IS NOT NULL AND est_fit IS NOT NULL""", (per, per))
+    return conn.execute("""SELECT coalesce(sum(est_calls), 0) FROM sema_brands
+                           WHERE wanted AND approved AND status IS DISTINCT FROM 'loaded'""").fetchone()[0]
+
+
 def estimate(conn, c, log):
     """Count parts and parts with fitment for brands on our list that aren't loaded yet (2 calls a brand)."""
-    rows = conn.execute("""SELECT aaia, name FROM sema_brands WHERE wanted AND approved AND est_calls IS NULL
+    rows = conn.execute("""SELECT aaia, name FROM sema_brands WHERE wanted AND approved AND est_fit IS NULL
                            AND status IS DISTINCT FROM 'loaded' ORDER BY name""").fetchall()
     if rows:
         log(f"Sizing {len(rows)} brand(s) on our list ...")
@@ -179,11 +188,12 @@ def estimate(conn, c, log):
         except sc.BrandError as e:
             log(f"  {name}: {e}")
             continue
-        calls = -(-len(parts) // PIES_BATCH) + 2 + fit
-        conn.execute("UPDATE sema_brands SET est_parts = %s, est_calls = %s WHERE aaia = %s", (len(parts), calls, aaia))
+        per = FIT_BATCH if c.state("fit_mode") in ("repeat", "plural") else 1
+        calls = -(-len(parts) // PIES_BATCH) + 2 + -(-fit // per)
+        conn.execute("UPDATE sema_brands SET est_parts = %s, est_fit = %s, est_calls = %s WHERE aaia = %s",
+                     (len(parts), fit, calls, aaia))
         log(f"  {name}: {len(parts):,} parts, {fit:,} fit specific vehicles: about {calls:,} calls to load")
-    total = conn.execute("""SELECT coalesce(sum(est_calls), 0) FROM sema_brands
-                            WHERE wanted AND approved AND status IS DISTINCT FROM 'loaded'""").fetchone()[0]
+    total = refresh_estimates(conn, c.state("fit_mode"))
     log(f"Loading everything on the list not loaded yet: about {total:,} API calls")
     return total
 
@@ -324,6 +334,33 @@ def fetch_pies(c, aaia, parts, path, log):
     return path
 
 
+FIT_BATCH = 50
+FIT_KEYS = {"repeat": "partNumber", "plural": "partNumbers", "single": "partNumber"}
+
+
+def fitment_mode(c, aaia, todo, log):
+    """Can /lookup/vehiclesbyproduct answer for several parts in one call? SEMA's documentation shows one part
+    per call; asking about two parts once (and remembering the answer) can save thousands of calls."""
+    saved = c.state("fit_mode")
+    if saved in FIT_KEYS:
+        return saved
+    pair = todo[:2]
+    for mode in ("repeat", "plural"):
+        try:
+            body = c.call("POST", "/lookup/vehiclesbyproduct", [("aaia_brandid", aaia)] + [(FIT_KEYS[mode], p) for p in pair])
+        except sc.BrandError:
+            continue
+        got = {str(p.get("PartNumber") or "").strip() for p in body.get("Parts") or [] if p.get("Vehicles")}
+        if set(pair) <= got:
+            log(f"  SEMA answers fitment for several parts per call: {FIT_BATCH} parts per call")
+            c.set_state("fit_mode", mode)
+            refresh_estimates(c.conn, mode)
+            return mode
+    log("  SEMA answers fitment one part per call")
+    c.set_state("fit_mode", "single")
+    return "single"
+
+
 def fetch_fitment(c, aaia, parts, work, log, refresh=False):
     """Vehicle fitment rows for the brand's parts. Kept in fitment.jsonl so reloads only ask about new parts."""
     cache = work / "fitment.jsonl"
@@ -344,22 +381,30 @@ def fetch_fitment(c, aaia, parts, work, log, refresh=False):
     with_fit = [p for p in parts if counts.get(p, 1)]          # unknown -> ask
     todo = [p for p in with_fit if p not in done]
     log(f"  fitment: {len(with_fit):,} parts fit specific vehicles; {len(todo):,} to look up")
+    mode = fitment_mode(c, aaia, todo, log) if len(todo) > 1 else "single"
+    size = FIT_BATCH if mode != "single" else 1
     with open(cache, "a", encoding="utf-8") as out:
-        for i, pn in enumerate(todo):
+        for i in range(0, len(todo), size):
+            batch = todo[i:i + size]
+            fields = [("aaia_brandid", aaia)] + [(FIT_KEYS.get(mode, "partNumber"), pn) for pn in batch]
             try:
-                body = c.call("POST", "/lookup/vehiclesbyproduct", {"aaia_brandid": aaia, "partNumber": pn})
+                body = c.call("POST", "/lookup/vehiclesbyproduct", fields)
             except sc.BrandError as e:
-                log(f"  {pn}: {e}")
+                log(f"  {', '.join(batch[:3])}{'…' if len(batch) > 3 else ''}: {e}")
                 continue
             for part in body.get("Parts") or []:
+                pn = str(part.get("PartNumber") or (batch[0] if len(batch) == 1 else "")).strip()
+                if pn not in batch:
+                    continue
                 for v in part.get("Vehicles") or []:
                     out.write(json.dumps({"sku": pn, "year": v.get("Year"), "make": v.get("MakeName"),
                                           "model": v.get("ModelName"), "submodel": v.get("SubmodelName"),
                                           "notes": v.get("FitmentNotes")}) + "\n")
-            out.write(json.dumps({"sku": pn, "done": True}) + "\n")
+            for pn in batch:
+                out.write(json.dumps({"sku": pn, "done": True}) + "\n")
             out.flush()
-            if (i + 1) % 250 == 0:
-                log(f"  fitment: {i + 1:,} of {len(todo):,} looked up")
+            if (i // size + 1) % 250 == 0:
+                log(f"  fitment: {min(i + size, len(todo)):,} of {len(todo):,} looked up")
     current = set(parts)
     veh = work / "vehicles.jsonl"
     fitted = set()

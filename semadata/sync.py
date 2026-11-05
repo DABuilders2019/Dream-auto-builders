@@ -334,7 +334,7 @@ def fetch_pies(c, aaia, parts, path, log):
     return path
 
 
-FIT_BATCH = 50
+FIT_BATCH = 10        # SEMA: "Part Numbers parameter is limited to 10"
 FIT_MODE_KEY = "fit_mode_v2"
 CACHE_VERSION = 2     # fitment answers read by an older version of the parser are asked again
 
@@ -431,15 +431,28 @@ def fetch_fitment(c, aaia, parts, work, log, refresh=False):
     mode = fitment_mode(c, aaia, todo, log) if len(todo) > 1 else "single"
     size = FIT_BATCH if mode != "single" else 1
     sampled, written = False, 0
+    errors = 0
     with open(cache, "a", encoding="utf-8") as out:
-        for i in range(0, len(todo), size):
+        i, n_calls = 0, 0
+        while i < len(todo):
             batch = todo[i:i + size]
             fields = [("aaia_brandid", aaia)] + [(FIT_KEYS.get(mode, "partNumber"), pn) for pn in batch]
             try:
                 body = c.call("POST", "/lookup/vehiclesbyproduct", fields)
             except sc.BrandError as e:
+                m = re.search(r"limited to (\d+)", str(e))
+                if m and 0 < int(m.group(1)) < size:       # SEMA tells us its limit: use it and ask again
+                    size = int(m.group(1))
+                    log(f"  SEMA takes {size} parts per fitment call")
+                    continue
                 log(f"  {', '.join(batch[:3])}{'…' if len(batch) > 3 else ''}: {e}")
+                errors += 1
+                if errors >= 20 and written == 0:
+                    raise sc.BrandError(f"fitment lookups keep failing ({e})")
+                i += size
                 continue
+            i += size
+            n_calls += 1
             if not sampled:
                 (work / "fitment_sample.json").write_text(json.dumps(body, indent=1)[:20000])
                 log("  first fitment answer from SEMA: " + json.dumps(body)[:700])
@@ -458,8 +471,8 @@ def fetch_fitment(c, aaia, parts, work, log, refresh=False):
             for pn in batch:
                 out.write(json.dumps({"sku": pn, "done": True, "v": CACHE_VERSION}) + "\n")
             out.flush()
-            if (i // size + 1) % 250 == 0:
-                log(f"  fitment: {min(i + size, len(todo)):,} of {len(todo):,} looked up")
+            if n_calls % 250 == 0:
+                log(f"  fitment: {min(i, len(todo)):,} of {len(todo):,} looked up")
     if todo:
         log(f"  fitment: {written:,} vehicle rows from SEMA")
     current = set(parts)

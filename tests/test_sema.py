@@ -28,6 +28,7 @@ class FakeSema:
         self.fail = {}
         self.api_count, self.api_max = 100, 100000
         self.batch_ok = False
+        self.limit = 10
         self.parts = {"985-24-001": product("985-24-001", "Front Shock 0-2 in. Lift", 129.95),
                       "985-24-002": product("985-24-002", "Rear Shock 0-1 in. Lift", 119.95),
                       "UNI-1": product("UNI-1", "Shock Boot", 19.95)}
@@ -65,16 +66,20 @@ class FakeSema:
         if path == "/lookup/products":
             return httpx.Response(200, json={"success": True, "Products": [
                 {"PartNumber": "985-24-001", "FitmentCount": 2}, {"PartNumber": "985-24-002", "FitmentCount": 1},
-                {"PartNumber": "UNI-1", "FitmentCount": 0}] + [{"PartNumber": p, "FitmentCount": 1} for p in self.parts if p.endswith("003")]})
+                {"PartNumber": "UNI-1", "FitmentCount": 0}] + [{"PartNumber": p, "FitmentCount": 1} for p in self.parts
+                                                                if p.endswith("003") or p.startswith("BIG-")]})
         if path == "/lookup/vehiclesbyproduct":
             multi = urllib.parse.parse_qs(request.content.decode())
             pns = multi.get("partNumber") or multi.get("partNumbers") or []
             if not self.batch_ok or "partNumber" not in multi:
                 pns = pns[:1]
+            if len(pns) > self.limit:
+                return httpx.Response(200, json={"success": False, "message": f"Part Numbers parameter is limited to {self.limit}."})
             table = {"985-24-001": [{"Year": 2021, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "XLT"},
                                        {"Year": 2022, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "Lariat", "FitmentNotes": "4WD"}],
                         "985-24-002": [{"Year": 2021, "MakeName": "Ford", "ModelName": "F-150", "SubmodelName": "XLT"}],
                         "985-24-003": [{"Year": 2023, "MakeName": "Ram", "ModelName": "2500", "SubmodelName": "Big Horn"}]}
+            table.update({p: [{"Year": 2024, "MakeName": "Jeep", "ModelName": "Gladiator"}] for p in self.parts if p.startswith("BIG-")})
             return httpx.Response(200, json={"success": True, "Parts": [{"PartNumber": pn, "Vehicles": table[pn]} for pn in pns]})
         return httpx.Response(404, text="no route")
 
@@ -239,3 +244,15 @@ def test_fitment_answer_shapes():
     assert ss.fitment_parts(b)[0][1][0]["submodel"] == "Rubicon"
     rows = ss.fitment_parts(c)[0][1]
     assert [r["year"] for r in rows] == [2019, 2020, 2021] and rows[0]["notes"] == "4WD"
+
+
+def test_fitment_batch_size_follows_semas_limit(conn, sema, monkeypatch):
+    fake, c, tmp = sema
+    fake.batch_ok, fake.limit = True, 10
+    for i in range(23):
+        fake.parts[f"BIG-{i}"] = product(f"BIG-{i}", f"Part {i}", 10.0)
+    monkeypatch.setattr(ss, "FIT_BATCH", 50)            # start too big: SEMA's error message sets it to 10
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
+    assert conn.execute("SELECT count(*) FROM fitment").fetchone()[0] == 3 + 23
+    assert conn.execute("SELECT fitted_parts FROM sema_brands WHERE aaia = 'TSTB'").fetchone()[0] == 25

@@ -569,3 +569,15 @@ def sema_pick(request: Request, wish: str = Form(...), aaia: str = Form("")):
                         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""", (Jsonb(picks),))
         ss.match_wishlist(conn, log=lambda m: None)
     return _sema_back(saved=f"Saved the choice for “{wish}”.")
+
+
+@router.get("/sema/log.txt")
+def sema_log(request: Request):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from fastapi.responses import PlainTextResponse
+    job = web._state(request).sema.current()
+    if not job or not pathlib.Path(job["log"]).exists():
+        return web.not_found(request)
+    return PlainTextResponse(pathlib.Path(job["log"]).read_text(errors="replace"), headers={"Cache-Control": "no-store"})

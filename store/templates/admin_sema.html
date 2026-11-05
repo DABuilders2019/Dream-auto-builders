@@ -28,6 +28,7 @@
     <p class="muted">Started {{ job.started[:16]|replace('T', ' ') }} UTC{% if job.finished %} · finished {{ job.finished[:16]|replace('T', ' ') }} UTC{% endif %} ·
       <b class="jst {{ job.status }}">{{ {'running': 'Running', 'done': 'Finished', 'failed': 'Stopped', 'interrupted': 'Interrupted by a restart (run it again to continue)'}[job.status] }}</b></p>
     <details open><summary>Log</summary><pre class="log">{{ job.log_tail }}</pre></details>
+    <p style="margin-top:8px"><a href="/admin/sema/log.txt" target="_blank" rel="noopener">Open the full log</a></p>
   </section>
   {% endif %}
 

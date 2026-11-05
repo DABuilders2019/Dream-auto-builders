@@ -18,6 +18,15 @@ PRODUCT_COLS = ["brand_id", "part_number", "slug", "status", "title", "short_nam
 JSON_COLS = {"features", "specs", "attributes", "descriptions"}
 
 
+LOGO_RASTER = ("PNG", "JPG", "JPEG", "GIF", "WEBP", "BMP", "TIF", "TIFF")
+
+
+def logo_rank_of(asset):
+    """0 = PNG (keeps transparency), 1 = other photo formats, 5 = anything else (EPS, AI, PDF: can't be shown)."""
+    ft = (asset.get("file_type") or "").upper() or asset["uri"].rsplit(".", 1)[-1].split("?")[0].upper()
+    return 0 if ft == "PNG" else 1 if ft in LOGO_RASTER else 5
+
+
 def seed_reference(conn):
     """Insert/refresh brands and categories from config."""
     cat = config.catalog()
@@ -97,7 +106,7 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
 
     # ---------- products (PIES)
     rows, prices, docs, photos = [], {}, {}, {}
-    logo_url = None
+    logo_url, logo_rank = None, 9
     uncategorized = collections.Counter()
     extra = [e for e in config.extra_images() if e["brand"] == brand["id"]]
     for item in pies.read_items(pies_path):
@@ -108,8 +117,12 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
             stats["pies_items_other_brand"] += 1
             continue
         p = catalog.build_product(item, brand, categorizer, file_date)
-        if logo_url is None:
-            logo_url = next((a["uri"] for a in item["assets"] if a["asset_type"] == "LGO" and a["uri"]), None)
+        if logo_rank:
+            for a in item["assets"]:
+                if a["asset_type"] == "LGO" and a["uri"]:
+                    rank = logo_rank_of(a)
+                    if rank < logo_rank:
+                        logo_url, logo_rank = a["uri"], rank
         rows.append(p)
         prices[p["part_number"]] = item["prices"]
         docs[p["part_number"]] = catalog.install_docs(item)

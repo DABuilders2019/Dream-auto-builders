@@ -10,6 +10,7 @@
 <main class="wrap admin">
   {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
   {% if started %}<div class="notice">{{ icon('checkc', 18) }} <span>Started: <b>{{ started }}</b>. This page refreshes while it runs.</span></div>{% endif %}
+  {% if saved %}<div class="notice">{{ icon('checkc', 18) }} <span>{{ saved }}</span></div>{% endif %}
 
   {% if job %}
   <section class="acard">
@@ -52,7 +53,12 @@
           <td>{{ b.last_import.strftime('%b %d, %Y') if b.last_import else '-' }}</td>
           <td>{% if b.active %}<div class="acts">
             <form method="post" action="/admin/photos/{{ b.id }}"><button class="btn btn-ghost btn-sm" type="submit"{% if job and job.status == 'running' %} disabled{% endif %}>Download photos</button></form>
-            <a class="btn btn-ghost btn-sm" href="/admin/report/{{ b.id }}">Photo report</a></div>{% endif %}</td></tr>
+            <a class="btn btn-ghost btn-sm" href="/admin/report/{{ b.id }}">Photo report</a></div>
+            <details class="logoset"><summary>{{ 'Change logo' if b.logo else 'Add logo' }}</summary>
+              <form method="post" action="/admin/logo/{{ b.id }}" enctype="multipart/form-data">
+                <label>Logo file (PNG, JPG, WebP) <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>
+                <label>or a link to the logo image <input type="url" name="url" placeholder="https://…/logo.png"></label>
+                <button class="btn btn-ghost btn-sm" type="submit">Save logo</button></form></details>{% endif %}</td></tr>
       {% else %}<tr><td colspan="7">No brands yet.</td></tr>{% endfor %}
       </tbody></table></div>
     <p class="muted" style="margin-top:8px">“Download photos” fetches photos that haven't been checked yet and tries again the ones that failed for a temporary reason (a busy server), so it's safe to run again, for example after a job was interrupted.</p>

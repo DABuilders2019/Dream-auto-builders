@@ -257,6 +257,7 @@ def load(conn, c, codes, log, data_dir, photos=True):
             pies_aaia, label = brand_lookup.peek(str(pies_path))
             brand = brand_lookup.resolve(conn, aaia, label or name, name)
             st = loader.load_brand(conn, brand, str(pies_path), None, str(veh_path), log=log)
+            find_logo(conn, c, aaia, brand["id"], log)
             conn.execute("""UPDATE sema_brands SET status = 'loaded', brand_id = %s, loaded_updated = %s, last_loaded = now(),
                             parts = %s, fitted_parts = %s, last_error = NULL, updated_at = now() WHERE aaia = %s""",
                          (brand["id"], updated, st.get("products_in_file", len(parts)), fitted, aaia))
@@ -288,6 +289,29 @@ def disk_free_gb():
         return shutil.disk_usage(path).free / 1e9
     except OSError:
         return None
+
+
+def find_logo(conn, c, aaia, brand_id, log):
+    """If the brand's product data has no usable logo (none, or only EPS/AI files), ask SEMA's brand assets for one."""
+    from importer.load import logo_rank_of
+    r = conn.execute("SELECT logo_url, logo_src FROM brands WHERE id = %s", (brand_id,)).fetchone()
+    if r and r[1] == "upload":
+        return
+    if r and r[0] and logo_rank_of({"uri": r[0], "file_type": ""}) < 5:
+        return
+    try:
+        body = c.call("POST", "/export/digitalassets", [("AAIA_BrandId", aaia), ("assetTypeCodes[]", "LGO")])
+    except (sc.BrandError, sc.StopSync) as e:
+        log(f"  no logo in the product data, and SEMA's brand assets didn't give one ({e})")
+        return
+    links = [a for a in (body.get("DigitalAssets") or body.get("digitalassets") or [])
+             if str(_g(a, "AssetTypeCode", "AssetType") or "").upper() == "LGO" and _g(a, "Link", "URI")]
+    best = sorted(links, key=lambda a: logo_rank_of({"uri": _g(a, "Link", "URI"), "file_type": _ext(_g(a, "FileName") or "")}))
+    if best and logo_rank_of({"uri": _g(best[0], "Link", "URI"), "file_type": _ext(_g(best[0], "FileName") or "")}) < 5:
+        conn.execute("UPDATE brands SET logo_url = %s WHERE id = %s", (_g(best[0], "Link", "URI"), brand_id))
+        log("  logo found in SEMA's brand assets")
+    else:
+        log("  SEMA has no logo image for this brand: upload one on the Catalog page")
 
 
 def run_photos(conn, brand_id, log):

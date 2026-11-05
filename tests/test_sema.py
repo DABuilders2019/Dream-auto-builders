@@ -273,3 +273,41 @@ def test_long_part_numbers_are_sent_in_smaller_requests(conn, sema, monkeypatch)
     assert stats["loaded"] == 1
     assert conn.execute("SELECT count(*) FROM products WHERE brand_id = 'testshocks'").fetchone()[0] == 43
     assert ss.url_batches(["A" * 50] * 10, 100, 200) == [["A" * 50] * 3] * 3 + [["A" * 50]]
+
+
+def test_logo_upload_on_catalog_page(conn, sema, tmp_path, monkeypatch):
+    import io
+    from fastapi.testclient import TestClient
+    from PIL import Image
+    fake, c, tmp = sema
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("PHOTO_DIR", str(tmp_path / "data" / "photos"))
+    monkeypatch.setenv("SECRET_KEY", "test-secret")
+    monkeypatch.setenv("ADMIN_PASSWORD", "admin-pw")
+    monkeypatch.delenv("SITE_PASSWORD", raising=False)
+    from store.app import create_app
+    img = Image.new("RGB", (300, 100), "white")
+    img.paste((200, 0, 0), (20, 20, 280, 80))
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    with TestClient(create_app(conn.info.dsn)) as tc:
+        tc.post("/admin/login", data={"password": "admin-pw"})
+        assert "Add logo" in tc.get("/admin").text
+        r = tc.post("/admin/logo/testshocks", files={"file": ("bbk.png", buf.getvalue(), "image/png")})
+        assert "logo saved" in r.text
+        key, src = conn.execute("SELECT logo_key, logo_src FROM brands WHERE id = 'testshocks'").fetchone()
+        assert key.startswith("logos/testshocks-") and src == "upload"
+        r = tc.post("/admin/logo/testshocks", files={"file": ("x.png", b"not an image", "image/png")})
+        assert "logo not saved" in r.text
+    # a later photo run keeps the uploaded logo
+    from importer import photos as ph
+    assert ph.fetch_logo(conn, "testshocks", log=lambda *a: None) == key
+
+
+def test_logo_rank_prefers_png():
+    from importer.load import logo_rank_of
+    assert logo_rank_of({"uri": "https://x/logo.eps", "file_type": "EPS"}) == 5
+    assert logo_rank_of({"uri": "https://x/logo.png", "file_type": ""}) == 0
+    assert logo_rank_of({"uri": "https://x/logo.jpg", "file_type": "JPG"}) == 1

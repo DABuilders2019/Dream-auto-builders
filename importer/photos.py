@@ -101,13 +101,29 @@ def _process_logo(raw):
     return out.getvalue()
 
 
+def save_logo(conn, brand_id, raw, source, storage=None):
+    """Store a logo given as file bytes. source: 'upload' (kept until replaced) or the link it came from."""
+    data = _process_logo(raw)
+    storage = storage or get_storage()
+    key = f"logos/{brand_id}-{hashlib.md5(data).hexdigest()[:10]}.png"
+    storage.put(key, data, "image/png")
+    with conn.cursor() as cur:
+        cur.execute("UPDATE brands SET logo_key = %s, logo_src = %s WHERE id = %s", (key, source, brand_id))
+    conn.commit()
+    return key
+
+
+def fetch_url(url):
+    return _fetch(url)
+
+
 def fetch_logo(conn, brand_id, storage=None, log=print):
     """Download the brand logo named in the PIES file (if it changed since last time)."""
     with conn.cursor() as cur:
         cur.execute("SELECT logo_url, logo_src, logo_key FROM brands WHERE id = %s", (brand_id,))
         r = cur.fetchone()
-    if not r or not r[0] or (r[0] == r[1] and r[2]):
-        return r[2] if r else None
+    if not r or not r[0] or (r[0] == r[1] and r[2]) or (r[1] == "upload" and r[2]):
+        return r[2] if r else None      # nothing new, or a logo uploaded on the admin page (kept)
     storage = storage or get_storage()
     try:
         data = _process_logo(_fetch(r[0]))

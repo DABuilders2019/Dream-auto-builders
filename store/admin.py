@@ -79,7 +79,7 @@ def logout(request: Request):
 # ------------------------------------------------------------------ status page
 
 @router.get("", response_class=HTMLResponse)
-def admin_home(request: Request, error: str = "", started: str = ""):
+def admin_home(request: Request, error: str = "", started: str = "", saved: str = ""):
     stop = _guard(request)
     if stop:
         return stop
@@ -108,7 +108,7 @@ def admin_home(request: Request, error: str = "", started: str = ""):
     for b in brands:
         b["logo"] = s.storage.url(b["logo_key"]) if b["logo_key"] else None
     job = st.jobs.current()
-    return _page(request, "admin.html", title="Catalog admin", brands=brands, runs=runs, job=job, error=error,
+    return _page(request, "admin.html", title="Catalog admin", brands=brands, runs=runs, job=job, error=error, saved=saved,
                  started=started, data_dir=str(st.data_dir), section="catalog")
 
 
@@ -243,6 +243,39 @@ def photos(request: Request, brand_id: str):
     return _back(started=name[0] + " photos")
 
 
+@router.post("/logo/{brand_id}")
+def brand_logo(request: Request, brand_id: str, file: UploadFile = File(None), url: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from importer import photos as ph
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        name = conn.execute("SELECT name FROM brands WHERE id = %s", (brand_id,)).fetchone()
+        if not name:
+            return _back(error="Unknown brand.")
+        try:
+            if file is not None and file.filename:
+                raw = file.file.read(10 * 1024 * 1024 + 1)
+                if len(raw) > 10 * 1024 * 1024:
+                    raise ValueError("that file is over 10 MB")
+                source = "upload"
+            elif url.strip().lower().startswith(("http://", "https://")):
+                raw, source = ph.fetch_url(url.strip()), "upload"
+            else:
+                raise ValueError("choose a logo file or paste a link to one")
+            conn.autocommit = False
+            ph.save_logo(conn, brand_id, raw, source)
+        except Exception as e:      # noqa: BLE001 - bad image, unreachable link: say so on the page
+            conn.rollback()
+            msg = str(e) if isinstance(e, ValueError) else "that isn't an image the site can read (use PNG, JPG or WebP)"
+            return _back(error=f"{name[0]} logo not saved: {msg}.")
+        finally:
+            conn.autocommit = True
+    st.reset()
+    return _back(saved=f"{name[0]} logo saved. It shows in Featured Brands within a few minutes.")
+
+
 @router.get("/report/{brand_id}")
 def photo_report(request: Request, brand_id: str):
     stop = _guard(request)
@@ -258,9 +291,9 @@ def photo_report(request: Request, brand_id: str):
                         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
 
-def _back(error="", started=""):
+def _back(error="", started="", saved=""):
     from urllib.parse import urlencode
-    q = urlencode({k: v for k, v in (("error", error), ("started", started)) if v})
+    q = urlencode({k: v for k, v in (("error", error), ("started", started), ("saved", saved)) if v})
     return RedirectResponse("/admin" + ("?" + q if q else ""), status_code=303)
 
 

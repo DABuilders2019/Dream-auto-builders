@@ -513,3 +513,7 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 @media (max-width:720px){ .t14tasks form{grid-template-columns:1fr} .t14tasks .lastrun{grid-column:1} }
 .dot.in{background:var(--ok)}.dot.mfr{background:#1d4f91}.dot.bo,.dot.special{background:var(--warn)}.dot.out{background:var(--bad)}
 .card .stock{margin-top:2px}
+.pickf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.pickf select{max-width:260px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:13.5px}
+.linkbtn{background:none;border:0;padding:0;color:var(--red);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;margin-top:4px}
+.brandlist{width:100%;font:inherit;font-size:14px;padding:10px;border:1px solid var(--line);border-radius:var(--radius)}

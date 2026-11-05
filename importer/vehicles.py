@@ -24,7 +24,10 @@ def _clean(v):
 
 
 def read_rows(path):
-    """Yield one dict per vehicle-sheet row."""
+    """Yield one dict per vehicle-sheet row (.xlsx), or per line of a SEMA API fitment file (.jsonl)."""
+    if str(path).lower().endswith(".jsonl"):
+        yield from _read_jsonl(path)
+        return
     ws = openpyxl.load_workbook(path, read_only=True).worksheets[0]
     rows = ws.iter_rows(values_only=True)
     header = next(rows)
@@ -45,3 +48,18 @@ def read_rows(path):
         except ValueError:
             continue
         yield row
+
+
+def _read_jsonl(path):
+    import json
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            r = json.loads(line)
+            row = {k: _clean(r.get(k)) for k in ("sku", "make", "model", "submodel", "notes", "year")}
+            if not (row["make"] and row["model"] and row["year"] and row["sku"]):
+                continue
+            try:
+                row["year"] = int(float(row["year"]))
+            except ValueError:
+                continue
+            yield row

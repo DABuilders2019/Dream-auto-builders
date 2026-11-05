@@ -76,5 +76,11 @@ services:
         value: test
       - key: TURN14_AUTO             # 1 = run the Turn 14 sync on schedule (after the first full load)
         value: "0"
+      - key: SEMA_USERNAME           # SEMA Data website login, used by the SEMA Data API connection
+        sync: false
+      - key: SEMA_PASSWORD
+        sync: false
+      - key: SEMA_AUTO               # 1 = load updated SEMA brands nightly (after the first load)
+        value: "0"
       - key: PHOTO_WORKERS
         value: "4"

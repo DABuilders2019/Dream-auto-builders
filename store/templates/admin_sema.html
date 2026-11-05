@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en"><head>{% if job and job.status == 'running' %}<meta http-equiv="refresh" content="8">{% endif %}{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+  {% if started %}<div class="notice">{{ icon('checkc', 18) }} <span>Started: <b>{{ started }}</b>. This page refreshes while it runs.</span></div>{% endif %}
+  {% if saved %}<div class="notice">{{ icon('checkc', 18) }} <span>{{ saved }}</span></div>{% endif %}
+
+  <section class="acard">
+    <h2>SEMA Data connection</h2>
+    <div class="t14status">
+      <div><span class="muted">Login</span><b>{% if configured %}<span class="ost shipped">Set in Render</span>{% else %}<span class="ost on_hold">Not set</span>{% endif %}</b></div>
+      <div><span class="muted">Nightly update</span><b>{% if auto %}<span class="ost shipped">On</span>{% else %}<span class="ost cancelled">Off</span>{% endif %}</b></div>
+      {% if receiver %}
+      <div><span class="muted">API calls used (plan)</span><b class="num">{{ (receiver.APICount or 0)|num }} <span class="muted">of {{ (receiver.APIMaxCount or 0)|num }}</span></b></div>
+      <div><span class="muted">Exports used (plan)</span><b class="num">{{ (receiver.ExportCount or 0)|num }} <span class="muted">of {{ (receiver.ExportMaxCount or 0)|num }}</span></b></div>
+      <div><span class="muted">Subscription renews</span><b>{{ (receiver.MembershipExpirationDate or '-')[:10] }}</b></div>
+      {% endif %}
+      <div><span class="muted">Calls in the last hour</span><b class="num">{{ hour|num }}</b></div>
+    </div>
+    {% if not configured %}<p class="muted" style="margin-top:10px">Add <b>SEMA_USERNAME</b> and <b>SEMA_PASSWORD</b> (your SEMA Data website login) on the service's Environment page in Render. They are never shown here.</p>{% endif %}
+  </section>
+
+  {% if job %}
+  <section class="acard">
+    <h2>{% if job.status == 'running' %}Running now{% else %}Last job{% endif %}: {{ job.title }}</h2>
+    <p class="muted">Started {{ job.started[:16]|replace('T', ' ') }} UTC{% if job.finished %} · finished {{ job.finished[:16]|replace('T', ' ') }} UTC{% endif %} ·
+      <b class="jst {{ job.status }}">{{ {'running': 'Running', 'done': 'Finished', 'failed': 'Stopped', 'interrupted': 'Interrupted by a restart (run it again to continue)'}[job.status] }}</b></p>
+    <details open><summary>Log</summary><pre class="log">{{ job.log_tail }}</pre></details>
+  </section>
+  {% endif %}
+
+  <section class="acard">
+    <h2>Run</h2>
+    {% set busy = not configured or (job and job.status == 'running') %}
+    <div class="t14tasks">
+      <form method="post" action="/admin/sema/run/test"><button class="btn btn-red btn-sm" type="submit"{% if busy %} disabled{% endif %}>Test connection</button>
+        <span class="muted">Sign in, read your plan's usage, list the brands SEMA has approved for you and match the list below to them (a few calls).</span>
+        {% if last_test %}<span class="lastrun">Last: {{ last_test.finished[:16]|replace('T', ' ') }} UTC · <b class="jst {{ 'done' if last_test.status == 'ok' else 'failed' }}">{{ last_test.status }}</b>{% if last_test.error %}<br><span class="err">{{ last_test.error }}</span>{% endif %}</span>{% endif %}</form>
+      <form method="post" action="/admin/sema/run/load"><button class="btn btn-red btn-sm" type="submit"{% if busy or not tested %} disabled{% endif %}>Load my brands</button>
+        <span class="muted">Loads every matched brand below that's new, changed at SEMA or failed last time: products, vehicle fitment and logo, then photos. Brands already up to date are skipped, so this is also how to continue after an interruption.</span>
+        {% if last_load %}<span class="lastrun">Last: {{ last_load.finished[:16]|replace('T', ' ') }} UTC · <b class="jst {{ 'done' if last_load.status == 'ok' else 'failed' }}">{{ last_load.status }}</b> · {{ last_load.calls|num }} calls{% if last_load.error %}<br><span class="err">{{ last_load.error }}</span>{% endif %}</span>{% endif %}</form>
+    </div>
+  </section>
+
+  <section class="acard">
+    <h2>Our brands</h2>
+    {% if not tested %}<p class="muted">Run <b>Test connection</b> to match this list to the brands SEMA has approved for you.</p>
+    {% elif to_load %}<p class="muted">Loading the brands not on the site yet takes about <b>{{ to_load|num }}</b> API calls{% if receiver and receiver.APIMaxCount %} of the <b>{{ ((receiver.APIMaxCount or 0) - (receiver.APICount or 0))|num }}</b> left on your plan{% endif %}. Most of it is the vehicle fitment (one call per part that fits specific vehicles); later updates only ask about new parts. Use <b>Load now</b> on single brands to load the most important ones first.</p>{% endif %}
+    <div class="tblwrap"><table class="tbl num">
+      <thead><tr><th>On our list</th><th>SEMA brand</th><th>Status</th><th>Parts</th><th>Fit vehicles</th><th>Photos</th><th>Calls to load</th><th></th></tr></thead>
+      <tbody>{% for l in listed %}{% set b = l.brand %}
+        <tr><td><b>{{ l.wish }}</b></td>
+          <td>{% if b %}{{ b.name }}<br><span class="muted">code {{ b.aaia }}{% if l.picked %} · picked{% endif %}</span>
+              {% elif l.skipped %}<span class="muted">Skipped</span>
+              {% elif tested %}<form method="post" action="/admin/sema/pick" class="pickf"><input type="hidden" name="wish" value="{{ l.wish }}">
+                <select name="aaia" required><option value="">{{ 'Which one?' if l.choices else 'Not found: pick a brand' }}</option>
+                  {% for a, n in l.choices %}<option value="{{ a }}">{{ n }} ({{ a }})</option>{% endfor %}
+                  {% if l.choices %}<option disabled>──────────</option>{% endif %}
+                  {% for a, n in approved %}<option value="{{ a }}">{{ n }} ({{ a }})</option>{% endfor %}
+                  <option value="-">Not approved at SEMA: skip it</option></select>
+                <button class="btn btn-ghost btn-sm" type="submit">Save</button></form>{% endif %}</td>
+          <td>{% if b %}{% if b.status == 'loaded' %}<span class="ost shipped">On the site</span>{% if b.sema_updated != b.loaded_updated %}<br><span class="muted">update waiting</span>{% endif %}
+              {% elif b.status == 'loading' %}<span class="ost paid">Loading</span>
+              {% elif b.status == 'failed' %}<span class="ost on_hold">Failed</span><br><span class="err">{{ b.error }}</span>
+              {% else %}<span class="ost pending">Not loaded yet</span>{% endif %}
+              {% if b.last_loaded %}<br><span class="muted">{{ b.last_loaded.strftime('%b %d %H:%M') }} UTC</span>{% endif %}{% endif %}</td>
+          <td>{% if b and b.live %}{{ b.live|num }}{% elif b and b.est_parts is not none %}<span class="muted">{{ b.est_parts|num }}</span>{% endif %}</td>
+          <td>{% if b and b.fitted is not none %}{{ b.fitted|num }}{% endif %}</td>
+          <td>{% if b and b.live %}{{ b.with_photo|num }}{% endif %}</td>
+          <td>{% if b and b.status != 'loaded' and b.est_calls %}{{ b.est_calls|num }}{% endif %}</td>
+          <td>{% if b %}<form method="post" action="/admin/sema/run/load"><input type="hidden" name="aaia" value="{{ b.aaia }}"><button class="btn btn-ghost btn-sm" type="submit"{% if busy %} disabled{% endif %}>{{ 'Reload' if b.status == 'loaded' else 'Load now' }}</button></form>
+              {% if l.picked %}<form method="post" action="/admin/sema/pick"><input type="hidden" name="wish" value="{{ l.wish }}"><input type="hidden" name="aaia" value=""><button class="linkbtn" type="submit">change</button></form>{% endif %}{% endif %}
+              {% if l.skipped %}<form method="post" action="/admin/sema/pick"><input type="hidden" name="wish" value="{{ l.wish }}"><input type="hidden" name="aaia" value=""><button class="linkbtn" type="submit">undo</button></form>{% endif %}</td></tr>
+      {% endfor %}</tbody></table></div>
+  </section>
+
+  <section class="acard">
+    <h2>Edit the brand list</h2>
+    <form method="post" action="/admin/sema/list">
+      <textarea name="names" rows="12" class="brandlist">{{ wish_text }}</textarea>
+      <p class="muted">One brand per line, written however you like: it's matched to SEMA's brand names. Removing a brand here stops it from updating; its parts stay on the site.</p>
+      <button class="btn btn-ghost btn-sm" type="submit">Save list</button>
+    </form>
+  </section>
+
+  <section class="acard">
+    <h2>Recent requests to SEMA</h2>
+    <div class="tblwrap"><table class="tbl num"><thead><tr><th>Time (UTC)</th><th>Request</th><th>Answer</th><th>Took</th><th>Job</th></tr></thead><tbody>
+      {% for at, method, path, status, ms, task in recent %}<tr><td>{{ at.strftime('%b %d %H:%M:%S') }}</td><td>{{ method }} {{ path }}</td>
+        <td><span class="jst {{ 'done' if status == 200 else 'failed' }}">{{ status or 'no answer' }}</span></td><td>{{ ms }} ms</td><td>{{ task }}</td></tr>
+      {% else %}<tr><td colspan="5">No requests yet.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</main>
+</body></html>

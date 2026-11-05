@@ -171,7 +171,7 @@ def upload(request: Request, files: List[UploadFile] = File(...), brand_name: st
     if stop:
         return stop
     st = web._state(request)
-    if st.jobs.running():
+    if st.jobs.running() or st.sema.running():
         return _back(error="An import is already running. Wait for it to finish, then upload again.")
     work = pathlib.Path(tempfile.mkdtemp(prefix="upload-", dir=st.uploads_dir))
     found = {}
@@ -238,7 +238,7 @@ def photos(request: Request, brand_id: str):
         if (st.uploads_dir / brand_id).exists() else None
     args = ["photos", "--brand", brand_id, "--retry-failed", "--workers", os.environ.get("PHOTO_WORKERS", "4")] + \
         (["--zip", str(assets)] if assets else [])
-    if not st.jobs.start(f"{name[0]} photos", [(f"Download {name[0]} photos", args)], brand_id):
+    if st.sema.running() or not st.jobs.start(f"{name[0]} photos", [(f"Download {name[0]} photos", args)], brand_id):
         return _back(error="An import is already running.")
     return _back(started=name[0] + " photos")
 
@@ -458,3 +458,114 @@ def turn14_unmatched(request: Request, brand_id: str):
         w.writerow(["Turn 14 item, not on our site", pn or "", bc or "", iid, name or ""])
     return Response(out.getvalue(), media_type="text/csv",
                     headers={"Content-Disposition": f'attachment; filename="{brand_id}-turn14-unmatched.csv"'})
+
+
+# ------------------------------------------------------------------ SEMA Data
+
+def _sema_back(**q):
+    from urllib.parse import urlencode
+    return RedirectResponse("/admin/sema" + ("?" + urlencode(q) if q else ""), status_code=303)
+
+
+@router.get("/sema", response_class=HTMLResponse)
+def sema_page(request: Request, error: str = "", started: str = "", saved: str = ""):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from semadata import client as sc
+    from semadata import sync as ss
+    from . import sema_schedule
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        state = dict(conn.execute("SELECT key, value FROM sema_state WHERE key <> 'token'").fetchall())
+        rows = conn.execute("""SELECT s.aaia, s.name, s.wanted, s.wish_name, s.status, s.last_loaded, s.last_error, s.parts,
+                                      s.fitted_parts, s.sema_updated, s.loaded_updated, s.brand_id, s.approved,
+                                      (SELECT count(*) FROM products p WHERE p.brand_id = s.brand_id AND p.status = 'active'),
+                                      (SELECT count(*) FROM products p WHERE p.brand_id = s.brand_id AND p.status = 'active'
+                                         AND p.main_image IS NOT NULL),
+                                      s.est_parts, s.est_calls
+                               FROM sema_brands s ORDER BY s.name""").fetchall()
+        hour = conn.execute("SELECT count(*) FROM sema_requests WHERE at > now() - interval '1 hour'").fetchone()[0]
+        recent = conn.execute("SELECT at, method, path, status, ms, task FROM sema_requests ORDER BY id DESC LIMIT 25").fetchall()
+        wish = ss.wishlist(conn)
+    cols = ["aaia", "name", "wanted", "wish", "status", "last_loaded", "error", "parts", "fitted", "sema_updated",
+            "loaded_updated", "brand_id", "approved", "live", "with_photo", "est_parts", "est_calls"]
+    brands = {r[0]: dict(zip(cols, r)) for r in rows}
+    matches = state.get("matches") or {}
+    listed = []
+    for w in dict.fromkeys(x.strip() for x in wish if x.strip()):
+        m = matches.get(w) or {"aaia": None, "choices": []}
+        listed.append({"wish": w, **m, "brand": brands.get(m.get("aaia"))})
+    approved = sorted(((b["aaia"], b["name"]) for b in brands.values() if b["approved"]), key=lambda x: x[1].lower())
+    to_load = sum((l["brand"] or {}).get("est_calls") or 0 for l in listed
+                  if l["brand"] and l["brand"]["status"] != "loaded")
+    return _page(request, "admin_sema.html", title="SEMA Data", section="sema", configured=sc.configured(),
+                 auto=sema_schedule.enabled(), receiver=state.get("receiver"), last_test=state.get("last_test"),
+                 last_load=state.get("last_load"), listed=listed, approved=approved, wish_text="\n".join(wish),
+                 hour=hour, recent=recent, job=st.sema.current(), error=error, started=started, saved=saved,
+                 tested=bool(brands), to_load=to_load)
+
+
+@router.post("/sema/run/{task}")
+def sema_run(request: Request, task: str, aaia: str = Form(""), refresh: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from semadata import client as sc
+    from . import sema_schedule
+    st = web._state(request)
+    if not sc.configured():
+        return _sema_back(error="Add SEMA_USERNAME and SEMA_PASSWORD in Render's Environment settings first.")
+    if st.jobs.running():
+        return _sema_back(error="A catalog upload is running on the Catalog page. Wait for it to finish.")
+    if task == "test":
+        ok = st.sema.start("SEMA: connection test", [("Connection test", ["test"])])
+        label = "Connection test"
+    elif task == "load":
+        codes = [aaia.strip().upper()] if aaia.strip() else []
+        if codes and refresh:
+            codes.append("--refresh-fitment")
+        label = f"Load {aaia.strip().upper()}" if codes else "Load the brands on our list"
+        ok = sema_schedule.start(st, codes, title="SEMA: " + label.lower())
+    else:
+        return _sema_back(error="Unknown task.")
+    if not ok:
+        return _sema_back(error="A SEMA job is already running.")
+    return _sema_back(started=label)
+
+
+@router.post("/sema/list")
+def sema_list(request: Request, names: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from psycopg.types.json import Jsonb
+    from semadata import sync as ss
+    st = web._state(request)
+    wish = list(dict.fromkeys(n.strip() for n in names.splitlines() if n.strip()))
+    with st.pool.connection() as conn:
+        conn.execute("""INSERT INTO sema_state (key, value, updated_at) VALUES ('wishlist', %s, now())
+                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""", (Jsonb(wish),))
+        ss.match_wishlist(conn, log=lambda m: None)
+    return _sema_back(saved=f"Brand list saved ({len(wish)} brands).")
+
+
+@router.post("/sema/pick")
+def sema_pick(request: Request, wish: str = Form(...), aaia: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from psycopg.types.json import Jsonb
+    from semadata import sync as ss
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        r = conn.execute("SELECT value FROM sema_state WHERE key = 'picks'").fetchone()
+        picks = dict((r[0] if r else None) or {})
+        if aaia:
+            picks[wish] = aaia.strip().upper() if aaia != "-" else "-"
+        else:
+            picks.pop(wish, None)
+        conn.execute("""INSERT INTO sema_state (key, value, updated_at) VALUES ('picks', %s, now())
+                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""", (Jsonb(picks),))
+        ss.match_wishlist(conn, log=lambda m: None)
+    return _sema_back(saved=f"Saved the choice for “{wish}”.")

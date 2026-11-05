@@ -311,3 +311,31 @@ def test_logo_rank_prefers_png():
     assert logo_rank_of({"uri": "https://x/logo.eps", "file_type": "EPS"}) == 5
     assert logo_rank_of({"uri": "https://x/logo.png", "file_type": ""}) == 0
     assert logo_rank_of({"uri": "https://x/logo.jpg", "file_type": "JPG"}) == 1
+
+
+def test_jobber_only_brand_priced_with_markup(conn, sema, tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    fake, c, tmp = sema
+    for p in fake.parts.values():                      # this brand only shares jobber prices (and a MAP on one part)
+        p["Prices"] = [{"Code": "JBR", "Value": 10.0}]
+    fake.parts["985-24-001"]["Prices"].append({"Code": "RMP", "Value": 15.0})
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
+    assert conn.execute("SELECT count(*) FROM products WHERE brand_id = 'testshocks' AND status = 'hidden'").fetchone()[0] == 2   # the one with a MAP shows
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("SECRET_KEY", "test-secret")
+    monkeypatch.setenv("ADMIN_PASSWORD", "admin-pw")
+    monkeypatch.delenv("SITE_PASSWORD", raising=False)
+    from store.app import create_app
+    with TestClient(create_app(conn.info.dsn)) as tc:
+        tc.post("/admin/login", data={"password": "admin-pw"})
+        page = tc.get("/admin").text
+        assert "Jobber</b> (3)" in page and "hidden (no price)" in page
+        r = tc.post("/admin/pricing/testshocks", data={"price_from": "JBR", "markup": "40"})
+        assert "3 of 3 parts now have a price" in r.text
+    prices = dict(conn.execute("SELECT part_number, price FROM products WHERE brand_id = 'testshocks'").fetchall())
+    assert float(prices["985-24-002"]) == 14.0 and float(prices["985-24-001"]) == 15.0     # never below MAP
+    # a reload keeps the rule
+    conn.execute("UPDATE sema_brands SET loaded_updated = 'old'")
+    ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
+    assert float(conn.execute("SELECT price FROM products WHERE part_number = '985-24-002'").fetchone()[0]) == 14.0

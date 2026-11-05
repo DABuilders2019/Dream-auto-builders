@@ -96,20 +96,69 @@ def admin_home(request: Request, error: str = "", started: str = "", saved: str 
                        count(p.id) FILTER (WHERE p.status = 'active' AND p.fitment_status = 'vehicle_specific'),
                        (SELECT max(finished_at) FROM import_runs r WHERE r.brand_id = b.id AND r.step = 'catalog' AND r.status = 'ok'),
                        (SELECT count(*) FROM product_images i JOIN products p2 ON p2.id = i.product_id
-                        WHERE p2.brand_id = b.id AND p2.status = 'active' AND i.status = 'pending')
+                        WHERE p2.brand_id = b.id AND p2.status = 'active' AND i.status = 'pending'),
+                       b.display_price, b.price_markup,
+                       (SELECT jsonb_object_agg(k, n) FROM (SELECT e.key AS k, count(*) AS n FROM products p3, jsonb_each(p3.prices) e
+                         WHERE p3.brand_id = b.id AND p3.status <> 'discontinued' GROUP BY e.key) x),
+                       count(p.id) FILTER (WHERE p.status <> 'discontinued' AND p.prices IS NULL)
                 FROM brands b LEFT JOIN products p ON p.brand_id = b.id
                 GROUP BY b.id ORDER BY b.name""")
             cols = ["id", "name", "aaia", "logo_key", "active", "hidden", "discontinued", "with_photo", "with_fitment",
-                    "last_import", "photos_pending"]
+                    "last_import", "photos_pending", "display_price", "markup", "price_types", "no_price_data"]
             brands = [dict(zip(cols, r)) for r in cur.fetchall()]
             cur.execute("""SELECT r.id, r.brand_id, r.step, r.status, r.started_at, r.finished_at, r.error
                            FROM import_runs r ORDER BY r.id DESC LIMIT 12""")
             runs = [dict(zip(["id", "brand", "step", "status", "started", "finished", "error"], r)) for r in cur.fetchall()]
+    from importer.catalog import RETAIL_TYPES
     for b in brands:
         b["logo"] = s.storage.url(b["logo_key"]) if b["logo_key"] else None
+        extra = [t for t in (b["display_price"] or []) if t not in RETAIL_TYPES]
+        b["price_from"] = extra[0] if extra else "retail"
+        b["cost_types"] = sorted(t for t in (b["price_types"] or {}) if t not in RETAIL_TYPES)
     job = st.jobs.current()
     return _page(request, "admin.html", title="Catalog admin", brands=brands, runs=runs, job=job, error=error, saved=saved,
-                 started=started, data_dir=str(st.data_dir), section="catalog")
+                 started=started, data_dir=str(st.data_dir), section="catalog", price_names=PRICE_NAMES)
+
+
+PRICE_NAMES = {"RET": "Retail", "RMP": "MAP (minimum advertised)", "LST": "List", "JBR": "Jobber", "WD1": "Warehouse distributor",
+               "WD2": "Warehouse distributor 2", "DLR": "Dealer", "NET": "Net", "EXP": "Export", "SUG": "Suggested",
+               "BAS": "Base", "CST": "Cost", "DST": "Distributor", "RES": "Reseller", "MSRP": "MSRP"}
+
+
+@router.post("/pricing/{brand_id}")
+def brand_pricing(request: Request, brand_id: str, price_from: str = Form("retail"), markup: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from importer.catalog import RETAIL_TYPES, choose_price
+    st = web._state(request)
+    try:
+        pct = float(markup) if markup.strip() else None
+    except ValueError:
+        return _back(error="The markup has to be a number, like 35.")
+    if price_from != "retail" and (pct is None or not 0 <= pct <= 300):
+        return _back(error="Enter a markup between 0 and 300 percent for a dealer/jobber price.")
+    pref = list(RETAIL_TYPES) + ([price_from.strip().upper()[:6]] if price_from != "retail" else [])
+    with st.pool.connection() as conn:
+        name = conn.execute("SELECT name FROM brands WHERE id = %s", (brand_id,)).fetchone()
+        if not name:
+            return _back(error="Unknown brand.")
+        rows = conn.execute("SELECT id, prices, status FROM products WHERE brand_id = %s AND status <> 'discontinued' AND prices IS NOT NULL",
+                            (brand_id,)).fetchall()
+        changed, shown = [], 0
+        for pid, prices, status in rows:
+            price, ptype = choose_price(prices or {}, pref, pct if price_from != "retail" else None)
+            new_status = "active" if price else "hidden"
+            shown += new_status == "active"
+            changed.append((price, ptype, new_status, pid))
+        with conn.transaction():
+            conn.execute("UPDATE brands SET display_price = %s, price_markup = %s WHERE id = %s",
+                         (pref, pct if price_from != "retail" else None, brand_id))
+            with conn.cursor() as cur:
+                cur.executemany("UPDATE products SET price = %s, price_type = %s, status = %s, updated_at = now() WHERE id = %s", changed)
+    st.reset()
+    rule = "retail prices only" if price_from == "retail" else f"retail price when given, otherwise {PRICE_NAMES.get(pref[-1], pref[-1])} + {pct:g}%"
+    return _back(saved=f"{name[0]} pricing saved ({rule}): {shown:,} of {len(rows):,} parts now have a price and show on the site.")
 
 
 # ------------------------------------------------------------------ uploads

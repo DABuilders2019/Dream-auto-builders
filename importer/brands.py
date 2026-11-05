@@ -25,9 +25,10 @@ def slugify(name):
 
 def _from_db(conn, where, value):
     with conn.cursor() as cur:
-        cur.execute(f"SELECT id, name, aaia_id, display_price FROM brands WHERE {where} = %s", (value,))
+        cur.execute(f"SELECT id, name, aaia_id, display_price, price_markup FROM brands WHERE {where} = %s", (value,))
         r = cur.fetchone()
-    return {"id": r[0], "name": r[1], "aaia_id": r[2], "display_price": list(r[3] or DEFAULT_PRICES)} if r else None
+    return {"id": r[0], "name": r[1], "aaia_id": r[2], "display_price": list(r[3] or DEFAULT_PRICES),
+            "price_markup": float(r[4]) if r[4] is not None else None} if r else None
 
 
 def resolve(conn, aaia, label="", name=None, brand_id=None):

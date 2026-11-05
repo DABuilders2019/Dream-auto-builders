@@ -111,11 +111,22 @@ def short_name(item, brand):
     return name.strip(" -")
 
 
-def choose_price(prices, preference):
-    by_type = {p["type"]: p["amount"] for p in prices}
+RETAIL_TYPES = ("RET", "RMP", "LST")
+
+
+def choose_price(prices, preference, markup=None):
+    """(price, type) from the first price type in `preference` the item has. A markup (percent) is added to
+    non-retail types (jobber, dealer...), and the result never goes below the brand's MAP (RMP)."""
+    by_type = {p["type"]: p["amount"] for p in prices} if isinstance(prices, list) else dict(prices or {})
     for t in preference:
-        if by_type.get(t):
-            return by_type[t], t
+        amount = by_type.get(t)
+        if amount:
+            amount = float(amount)
+            if t not in RETAIL_TYPES and markup:
+                amount = round(amount * (1 + float(markup) / 100), 2)
+                if by_type.get("RMP") and amount < float(by_type["RMP"]):
+                    amount = float(by_type["RMP"])
+            return amount, t
     return None, None
 
 
@@ -125,7 +136,7 @@ def build_product(item, brand, categorizer, file_date=None):
     name = short_name(item, brand)
     part_type = (d.get("DEF") or [None])[0]
     category = categorizer.place(part_type, " ".join([name] + d.get("SHO", []) + d.get("DES", []) + d.get("EXT", [])), name)
-    price, price_type = choose_price(item["prices"], brand.get("display_price", ["RET", "RMP", "LST"]))
+    price, price_type = choose_price(item["prices"], brand.get("display_price", ["RET", "RMP", "LST"]), brand.get("price_markup"))
     map_price = next((p["amount"] for p in item["prices"] if p["type"] == "RMP"), None)
 
     features = [f for f in dict.fromkeys(d.get("FAB", [])) if f != name][:12]
@@ -178,6 +189,7 @@ def build_product(item, brand, categorizer, file_date=None):
         "category_id": category,
         "price": price,
         "price_type": price_type,
+        "prices": {p["type"]: p["amount"] for p in item["prices"] if p.get("type") and p.get("amount")},
         "map_price": map_price,
         "upc": upc,
         "weight_lb": pkg.get("weight_lb"),

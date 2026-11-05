@@ -14,8 +14,8 @@ from . import aces, catalog, config, pies, vehicles
 PRODUCT_COLS = ["brand_id", "part_number", "slug", "status", "title", "short_name", "part_type", "part_terminology_id",
                 "category_id", "price", "price_type", "map_price", "upc", "weight_lb", "package_dims", "country_of_origin",
                 "marketing_copy", "features", "specs", "attributes", "descriptions", "prop65_warning", "carb_eo",
-                "emissions", "source_file_date", "size_norm"]
-JSON_COLS = {"features", "specs", "attributes", "descriptions"}
+                "emissions", "source_file_date", "size_norm", "prices"]
+JSON_COLS = {"features", "specs", "attributes", "descriptions", "prices"}
 
 
 LOGO_RASTER = ("PNG", "JPG", "JPEG", "GIF", "WEBP", "BMP", "TIF", "TIFF")

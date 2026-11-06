@@ -56,6 +56,67 @@
     d.addEventListener('change', function () { go.disabled = !d.value; if (d.value) go.focus(); });
   });
 
+  /* ---------- Model menu with group headings (computers only) ----------
+     A browser's own dropdown can't style group headings (on a Mac they come out small and gray), so on
+     computers the Model menu opens a list drawn by the page. Phones keep their built-in picker, which
+     already shows groups as section titles. The real <select> stays in place for the form and keyboard. */
+  var finePointer = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
+  function groupedMenu(sel) {
+    var wrap = document.createElement('span'); wrap.className = 'ddwrap';
+    sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel);
+    var panel = document.createElement('div'); panel.className = 'ddpanel'; panel.setAttribute('role', 'listbox'); panel.hidden = true;
+    panel.id = (sel.id || 'dd') + 'List'; wrap.appendChild(panel);
+    var opts = [], at = -1;
+    var grouped = function () { return !!sel.querySelector('optgroup'); };
+    function mark(i) {
+      opts.forEach(function (o, j) { o.classList.toggle('on', j === i); });
+      at = i; if (opts[i]) opts[i].scrollIntoView({ block: 'nearest' });
+    }
+    function build() {
+      panel.innerHTML = ''; opts = [];
+      var add = function (o) {
+        if (!o.value) return;
+        var d = document.createElement('div'); d.className = 'ddopt'; d.setAttribute('role', 'option');
+        d.textContent = o.text; d.dataset.value = o.value; d.setAttribute('aria-selected', String(o.selected));
+        d.addEventListener('mousedown', function (e) { e.preventDefault(); choose(o.value); });
+        d.addEventListener('mousemove', function () { mark(opts.indexOf(d)); });
+        panel.appendChild(d); opts.push(d);
+      };
+      Array.prototype.forEach.call(sel.children, function (ch) {
+        if (ch.tagName === 'OPTGROUP') {
+          var h = document.createElement('div'); h.className = 'ddhead'; h.textContent = ch.label; h.setAttribute('role', 'presentation');
+          panel.appendChild(h); Array.prototype.forEach.call(ch.children, add);
+        } else add(ch);
+      });
+    }
+    function open() {
+      if (sel.disabled || !grouped()) return false;
+      build(); panel.hidden = false; wrap.classList.add('open'); sel.setAttribute('aria-expanded', 'true');
+      var cur = opts.findIndex(function (o) { return o.dataset.value === sel.value; });
+      mark(cur < 0 ? 0 : cur); return true;
+    }
+    function close() { panel.hidden = true; wrap.classList.remove('open'); sel.setAttribute('aria-expanded', 'false'); }
+    function choose(v) { sel.value = v; close(); sel.dispatchEvent(new Event('change', { bubbles: true })); }
+    sel.setAttribute('aria-controls', panel.id);
+    sel.addEventListener('mousedown', function (e) {
+      if (!grouped()) return;
+      e.preventDefault(); sel.focus();
+      if (panel.hidden) open(); else close();
+    });
+    sel.addEventListener('keydown', function (e) {
+      if (panel.hidden) {
+        if ((e.key === ' ' || e.key === 'Enter' || (e.altKey && e.key === 'ArrowDown')) && open()) e.preventDefault();
+        return;
+      }
+      if (e.key === 'ArrowDown') { mark(Math.min(at + 1, opts.length - 1)); e.preventDefault(); }
+      else if (e.key === 'ArrowUp') { mark(Math.max(at - 1, 0)); e.preventDefault(); }
+      else if (e.key === 'Enter' || e.key === ' ') { if (opts[at]) choose(opts[at].dataset.value); e.preventDefault(); }
+      else if (e.key === 'Escape' || e.key === 'Tab') close();
+    });
+    sel.addEventListener('blur', function () { setTimeout(close, 120); });
+  }
+  if (finePointer) $$('select[data-d]').forEach(groupedMenu);
+
   /* ---------- search suggestions ---------- */
   var q = $('#q'), ac = $('#ac'), box = $('#searchBox');
   if (q && ac) {

@@ -355,3 +355,13 @@ def test_new_category_rules_apply_to_loaded_products(conn, sema):
     assert loader.recategorize(conn, log=lambda *a: None) == 1
     assert conn.execute("SELECT category_id FROM products WHERE part_number = 'TC-1'").fetchone()[0] == "tonneau"
     assert loader.recategorize(conn, log=lambda *a: None) == 0          # same rules: nothing to do
+
+
+def test_new_config_brands_join_the_saved_list_once(conn, monkeypatch):
+    from psycopg.types.json import Jsonb
+    conn.autocommit = True
+    monkeypatch.setattr(ss, "_config_names", lambda: ["Air Lift", "Borla", "Edelbrock"])
+    conn.execute("INSERT INTO sema_state (key, value) VALUES ('wishlist', %s)", (Jsonb(["Air Lift", "My Own Brand"]),))
+    conn.execute("INSERT INTO sema_state (key, value) VALUES ('config_names_seen', %s)", (Jsonb(["Air Lift", "Borla"]),))
+    assert ss.wishlist(conn) == ["Air Lift", "My Own Brand", "Edelbrock"]   # Borla was removed on the admin page: stays out
+    assert ss.wishlist(conn) == ["Air Lift", "My Own Brand", "Edelbrock"]   # added once

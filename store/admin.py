@@ -628,6 +628,9 @@ def sema_list(request: Request, names: str = Form("")):
     with st.pool.connection() as conn:
         conn.execute("""INSERT INTO sema_state (key, value, updated_at) VALUES ('wishlist', %s, now())
                         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""", (Jsonb(wish),))
+        conn.execute("""INSERT INTO sema_state (key, value, updated_at) VALUES ('config_names_seen', %s, now())
+                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""",
+                     (Jsonb(sorted(ss._config_names())),))     # names removed here stay removed
         ss.match_wishlist(conn, log=lambda m: None)
     return _sema_back(saved=f"Brand list saved ({len(wish)} brands).")
 

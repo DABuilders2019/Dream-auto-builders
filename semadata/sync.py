@@ -40,15 +40,35 @@ GENERIC = {"performance", "products", "product", "inc", "llc", "co", "company", 
 
 # ------------------------------------------------------------------ our brand list
 
-def wishlist(conn=None):
-    if conn is not None:
-        r = conn.execute("SELECT value FROM sema_state WHERE key = 'wishlist'").fetchone()
-        if r and r[0] is not None:
-            return list(r[0])
+def _config_names():
     try:
         return list(json.loads(CONFIG.read_text())["brands"])
     except (FileNotFoundError, ValueError, KeyError):
         return []
+
+
+def wishlist(conn=None):
+    """Our brand list: the one saved on the admin page, plus names newly added to config/sema_brands.json
+    (each config name is added once, so a brand removed on the admin page stays removed)."""
+    names = _config_names()
+    if conn is None:
+        return names
+    r = conn.execute("SELECT value FROM sema_state WHERE key = 'wishlist'").fetchone()
+    if not r or r[0] is None:
+        return names
+    saved = list(r[0])
+    seen = conn.execute("SELECT value FROM sema_state WHERE key = 'config_names_seen'").fetchone()
+    seen = set((seen[0] if seen else None) or [])
+    have = {norm(n) for n in saved}
+    new = [n for n in names if n not in seen and norm(n) not in have]
+    if new or not seen.issuperset(names):
+        saved += new
+        conn.execute("""INSERT INTO sema_state (key, value, updated_at) VALUES ('wishlist', %s, now())
+                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""", (Jsonb(saved),))
+        conn.execute("""INSERT INTO sema_state (key, value, updated_at) VALUES ('config_names_seen', %s, now())
+                        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""",
+                     (Jsonb(sorted(seen | set(names))),))
+    return saved
 
 
 def norm(s):

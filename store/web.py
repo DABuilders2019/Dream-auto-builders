@@ -149,7 +149,7 @@ def render(request, conn, searcher, name, status_code=200, **ctx):
     active = next((v for v in garage if v["id"] == aid), None)
     _, _, count, subtotal = cart_summary(conn, searcher, request)
     top = cached(request, "top_cats", lambda: _top_categories(conn, searcher))
-    years = cached(request, "years", lambda: veh.years(conn))
+    years = _state(request).get_picker().years()
     here = request.url.path + (("?" + request.url.query) if request.url.query else "")
     from .orders import store_config
     builder = bool((store_config().get("interactive_garage") or {}).get("url"))

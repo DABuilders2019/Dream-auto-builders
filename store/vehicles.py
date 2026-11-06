@@ -216,3 +216,33 @@ def find_id(conn, year, make, model):
         cur.execute("SELECT id FROM vehicles WHERE year = %s AND make = %s AND model = %s", (year, make, model))
         r = cur.fetchone()
     return r[0] if r else None
+
+
+class Picker:
+    """Year -> make -> model choices for the "Add a vehicle" bar, worked out once and kept in memory.
+
+    Only vehicles with at least one part for sale are offered. Asking the database that question on every
+    click got slow once the catalog had millions of fitment rows, so it's answered in one pass here."""
+
+    def __init__(self, conn):
+        with conn.cursor() as cur:
+            cur.execute("""SELECT v.id, v.year, v.make, v.model FROM vehicles v
+                           WHERE v.id IN (SELECT f.vehicle_id FROM fitment f JOIN products p ON p.id = f.product_id
+                                          WHERE p.status = 'active')""")
+            rows = cur.fetchall()
+        tree = {}
+        for vid, year, make, model in rows:
+            tree.setdefault(year, {}).setdefault(make, []).append({"id": vid, "model": model})
+        for makes in tree.values():
+            for lst in makes.values():
+                lst.sort(key=lambda m: m["model"])
+        self.tree = tree
+
+    def years(self):
+        return sorted(self.tree, reverse=True)
+
+    def makes(self, year):
+        return sorted(self.tree.get(year, {}))
+
+    def models(self, year, make):
+        return list(self.tree.get(year, {}).get(make, []))

@@ -62,6 +62,7 @@ class State:
                                    kwargs={"autocommit": True}, open=True)
         self.lock = threading.Lock()
         self.searcher, self.loaded_at, self.run_id = None, 0, None
+        self.picker, self.picker_at, self.picker_busy = None, 0, False
         self.data_dir = pathlib.Path(os.environ.get("DATA_DIR", "data"))
         self.uploads_dir = self.data_dir / "uploads"
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
@@ -73,7 +74,33 @@ class State:
         """Forget cached catalog data (after an import) so pages show it right away."""
         with self.lock:
             self.searcher, self.loaded_at = None, 0
+            self.picker_at = 0          # rebuilt on next use; the old choices are served meanwhile
             self.__dict__.pop("page_cache", None)
+
+    def get_picker(self):
+        """The vehicle bar's choices. Rebuilt in the background when old, so no shopper waits for it."""
+        now = time.time()
+        if self.picker is not None and now - self.picker_at < REFRESH_SECONDS:
+            return self.picker
+        if self.picker is None:
+            with self.pool.connection() as conn:
+                self.picker, self.picker_at = veh.Picker(conn), now
+            return self.picker
+        with self.lock:
+            if self.picker_busy:
+                return self.picker
+            self.picker_busy = True
+
+        def rebuild():
+            try:
+                with self.pool.connection() as conn:
+                    self.picker, self.picker_at = veh.Picker(conn), time.time()
+            except Exception:      # noqa: BLE001 - keep serving the old choices
+                logging.getLogger("store").exception("vehicle picker rebuild")
+            finally:
+                self.picker_busy = False
+        threading.Thread(target=rebuild, daemon=True).start()
+        return self.picker
 
     def prepare_database(self):
         with self.pool.connection() as conn:
@@ -152,18 +179,15 @@ def create_app(dsn=None):
 
     @app.get("/api/vehicles/years")
     def years():
-        with state.pool.connection() as conn:
-            return veh.years(conn)
+        return state.get_picker().years()
 
     @app.get("/api/vehicles/makes")
     def makes(year: int):
-        with state.pool.connection() as conn:
-            return veh.makes(conn, year)
+        return state.get_picker().makes(year)
 
     @app.get("/api/vehicles/models")
     def models(year: int, make: str):
-        with state.pool.connection() as conn:
-            return veh.models(conn, year, make)
+        return state.get_picker().models(year, make)
 
     @app.get("/api/vehicles/{vehicle_id}")
     def vehicle(vehicle_id: int):

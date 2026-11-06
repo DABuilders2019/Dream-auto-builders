@@ -45,7 +45,11 @@
       if (!m.value) return;
       d.innerHTML = '<option value="">Loading…</option>';
       getJSON('/api/vehicles/models?year=' + encodeURIComponent(y.value) + '&make=' + encodeURIComponent(m.value)).then(function (list) {
-        d.innerHTML = '<option value="">Model</option>' + list.map(function (x) { return '<option value="' + x.id + '">' + esc(x.model) + '</option>'; }).join('');
+        var opt = function (x) { return '<option value="' + x.id + '">' + esc(x.model) + '</option>'; };
+        var groups = [];
+        list.forEach(function (x) { var g = groups[groups.length - 1]; if (!g || g.key !== x.group) groups.push(g = { key: x.group, label: x.group_label, items: [] }); g.items.push(x); });
+        d.innerHTML = '<option value="">Model</option>' + (groups.length < 2 ? list.map(opt).join('') :
+          groups.map(function (g) { return '<optgroup label="' + esc(g.label) + '">' + g.items.map(opt).join('') + '</optgroup>'; }).join(''));
         d.disabled = false; d.focus();
       }).catch(function () { reset(d, 'Model'); toast('Could not load models. Please try again.'); });
     });

@@ -208,7 +208,10 @@ def get(conn, vehicle_id):
     with conn.cursor() as cur:
         cur.execute("SELECT id, year, make, model FROM vehicles WHERE id = %s", (vehicle_id,))
         r = cur.fetchone()
-    return {"id": r[0], "year": r[1], "make": r[2], "model": r[3], "label": f"{r[1]} {r[2]} {r[3]}"} if r else None
+    if not r:
+        return None
+    kind, name = classify(r[2], r[3])
+    return {"id": r[0], "year": r[1], "make": r[2], "model": r[3], "label": f"{r[1]} {r[2]} {name}", "kind": kind}
 
 
 def find_id(conn, year, make, model):
@@ -216,6 +219,86 @@ def find_id(conn, year, make, model):
         cur.execute("SELECT id FROM vehicles WHERE year = %s AND make = %s AND model = %s", (year, make, model))
         r = cur.fetchone()
     return r[0] if r else None
+
+
+# ---------------------------------------------------------------- vehicle kinds
+# SEMA's vehicle list mixes cars and trucks with side-by-sides, ATVs, motorcycles, motorhomes and big trucks.
+# The vehicle bar shows cars and trucks first and the rest in labeled groups below them.
+
+KINDS = [("car", "Cars and trucks"), ("powersports", "Powersports (UTV / ATV)"), ("motorcycle", "Motorcycles"),
+         ("rv", "RVs and motorhomes"), ("commercial", "Medium and heavy trucks"), ("other", "Other vehicles")]
+KIND_ORDER = {k: i for i, (k, _) in enumerate(KINDS)}
+KIND_LABEL = dict(KINDS)
+
+_POWERSPORTS_MAKES = {"polaris", "can-am", "canam", "arctic cat", "arcticcat", "cfmoto", "cf moto", "textron", "textron off road",
+                      "kubota", "john deere", "bobcat", "hisun", "massimo", "tracker off road", "ski-doo", "skidoo", "sea-doo",
+                      "seadoo", "segway powersports", "segway", "kymco", "tao motor", "coleman powersports", "intimidator",
+                      "linhai", "odes", "american landmaster", "mahindra roxor", "roxor", "club car", "ez-go", "e-z-go", "gem"}
+_MOTORCYCLE_MAKES = {"harley-davidson", "harley davidson", "indian", "ducati", "triumph", "ktm", "husqvarna", "aprilia",
+                     "mv agusta", "moto guzzi", "royal enfield", "zero", "zero motorcycles", "victory", "buell", "gas gas", "gasgas",
+                     "beta", "sherco", "benelli", "bimota", "ural", "vespa", "piaggio", "energica", "lightning", "cleveland cyclewerks"}
+_RV_MAKES = {"winnebago", "fleetwood", "thor", "thor motor coach", "jayco", "forest river", "tiffin", "newmar", "coachmen",
+             "holiday rambler", "monaco", "airstream", "entegra", "entegra coach", "gulf stream", "itasca", "keystone rv",
+             "grand design", "heartland", "roadtrek", "leisure travel vans", "spartan", "spartan motors", "workhorse",
+             "national rv", "american coach", "country coach", "beaver", "safari", "foretravel", "newell", "prevost",
+             "pleasure-way", "dynamax", "renegade", "rexhall", "four winds"}
+_COMMERCIAL_MAKES = {"freightliner", "international", "navistar", "peterbilt", "kenworth", "mack", "western star", "sterling",
+                     "hino", "autocar", "ud", "ud trucks", "mitsubishi fuso", "fuso", "blue bird", "thomas built", "volvo trucks",
+                     "capacity", "crane carrier", "oshkosh", "isuzu commercial"}
+_POWERSPORTS_WORDS = ("fourtrax", "rancher", "foreman", "pioneer", "talon", "rincon", "recon", "sportrax", "grizzly", "kodiak",
+                      "wolverine", "viking", "yxz", "rhino", "raptor", "yfz", "teryx", "mule", "brute force", "kfx", "kingquad",
+                      "quadsport", "quadrunner", "ozark", "eiger", "vinson", "sportsman", "rzr", "ranger", "general", "scrambler",
+                      "outlaw", "maverick", "defender", "commander", "outlander", "renegade", "prowler", "wildcat", "havoc",
+                      "zforce", "uforce", "cforce", "gator", "atv", "utv", "side by side", "side-by-side", "sxs")
+_MOTORCYCLE_WORDS = ("cbr", "crf", "gold wing", "goldwing", "rebel", "shadow", "fury", "africa twin", "grom", "nc750", "cb500",
+                     "cb650", "cb1000", "cb300", "cmx", "vtx", "st1300", "nt1100", "yzf", "yz", "wr250", "wr450", "mt-0", "mt-1",
+                     "tenere", "bolt", "v star", "vmax", "fz", "xsr", "tracer", "tw200", "ninja", "kx", "klx", "klr", "vulcan",
+                     "versys", "z900", "z650", "z400", "z125", "zx-", "concours", "gsx", "hayabusa", "v-strom", "vstrom", "dr-z",
+                     "drz", "rm-z", "rmz", "boulevard", "sv650", "katana", "burgman", "motorcycle", "scooter", "dirt bike")
+_RV_WORDS = ("motorhome", "motor home", "rv chassis", "stripped chassis", "class a", "f-53", "f53", "p30 chassis", "w22", "w24")
+_COMMERCIAL_WORDS = ("f-650", "f650", "f-750", "f750", "f-59", "lcf", "kodiak c", "topkick", "w3500", "w4500", "w5500",
+                     "npr", "nqr", "nrr", "frr", "ftr", "low cab forward")
+_CODE = re.compile(r"^(?=[A-Z0-9-]*\d)(?=[A-Z0-9-]*[A-Z])[A-Z0-9-]{4,}$")
+
+
+_CAR_MAKES = {"ford", "lincoln", "mercury", "chevrolet", "chevy", "gmc", "cadillac", "buick", "pontiac", "oldsmobile", "saturn",
+              "hummer", "ram", "dodge", "chrysler", "jeep", "plymouth", "eagle", "amc", "toyota", "lexus", "scion", "nissan",
+              "infiniti", "datsun", "mitsubishi", "subaru", "mazda", "kia", "hyundai", "genesis", "volkswagen", "audi",
+              "porsche", "mercedes-benz", "mercedes", "smart", "land rover", "range rover", "jaguar", "mini", "volvo", "saab",
+              "fiat", "alfa romeo", "maserati", "ferrari", "lamborghini", "tesla", "rivian", "lucid", "acura", "isuzu",
+              "geo", "shelby", "aston martin", "bentley", "rolls-royce", "mclaren", "lotus", "polestar", "studebaker",
+              "willys", "kaiser", "nash", "hudson", "packard", "desoto", "edsel", "checker", "suzuki-car"}
+_DUAL_MAKES = {"honda", "yamaha", "kawasaki", "suzuki", "bmw", "kymco"}
+_CAR_MODEL_WORDS = ("accord", "civic", "cr-v", "pilot", "odyssey", "ridgeline", "passport", "hr-v", "insight", "fit", "element",
+                    "s2000", "prelude", "crx", "del sol", "clarity", "prologue", "cr-z", "crosstour", "sx4", "xl-7", "xl7",
+                    "grand vitara", "vitara", "kizashi", "samurai", "sidekick", "equator", "aerio", "forenza", "reno", "verona",
+                    "esteem", "swift", "x-90", "series", "x1", "x2", "x3", "x4", "x5", "x6", "x7", "xm", "z3", "z4", "z8",
+                    "i3", "i4", "i5", "i7", "i8", "ix", "m2", "m3", "m4", "m5", "m6", "m8")
+
+
+def classify(make, model):
+    """(kind, name to show) for a vehicle. The name drops a leading factory code ("SXS10S2R Talon 1000R" -> "Talon 1000R")."""
+    mk, md = (make or "").strip().lower(), (model or "").strip()
+    low = md.lower()
+    first, _, rest = md.partition(" ")
+    has_code = bool(rest) and bool(_CODE.match(first))
+    car_model = any(re.search(r"\b" + re.escape(w) + r"\b", low) for w in _CAR_MODEL_WORDS)
+    if mk in _RV_MAKES or any(w in low for w in _RV_WORDS) or (mk == "freightliner" and low.startswith(("xc", "xcl", "xcm", "xcr", "xcs"))):
+        kind = "rv"
+    elif mk == "international" and "scout" in low:
+        kind = "car"
+    elif mk in _COMMERCIAL_MAKES or any(w in low for w in _COMMERCIAL_WORDS):
+        kind = "commercial"
+    elif mk in _CAR_MAKES:
+        kind = "car"
+    elif mk in _POWERSPORTS_MAKES or (not car_model and any(w in low for w in _POWERSPORTS_WORDS)):
+        kind = "powersports"
+    elif mk in _MOTORCYCLE_MAKES or (mk in _DUAL_MAKES and not car_model and (has_code or any(w in low for w in _MOTORCYCLE_WORDS))):
+        kind = "motorcycle"
+    else:
+        kind = "car"
+    name = rest.strip() if has_code and kind == "powersports" else md      # motorcycle codes ARE the model (R1250GS)
+    return kind, name or md
 
 
 class Picker:
@@ -232,10 +315,20 @@ class Picker:
             rows = cur.fetchall()
         tree = {}
         for vid, year, make, model in rows:
-            tree.setdefault(year, {}).setdefault(make, []).append({"id": vid, "model": model})
+            kind, name = classify(make, model)
+            tree.setdefault(year, {}).setdefault(make, []).append(
+                {"id": vid, "model": name, "group": kind, "group_label": KIND_LABEL[kind]})
+        full = {vid: model for vid, _, _, model in rows}
         for makes in tree.values():
             for lst in makes.values():
-                lst.sort(key=lambda m: m["model"])
+                seen = {}
+                for m in lst:
+                    seen.setdefault(m["model"].lower(), []).append(m)
+                for same in seen.values():        # two vehicles would read the same: show their full names
+                    if len(same) > 1:
+                        for m in same:
+                            m["model"] = full[m["id"]]
+                lst.sort(key=lambda m: (KIND_ORDER[m["group"]], m["model"].lower()))
         self.tree = tree
 
     def years(self):

@@ -365,3 +365,24 @@ def test_new_config_brands_join_the_saved_list_once(conn, monkeypatch):
     conn.execute("INSERT INTO sema_state (key, value) VALUES ('config_names_seen', %s)", (Jsonb(["Air Lift", "Borla"]),))
     assert ss.wishlist(conn) == ["Air Lift", "My Own Brand", "Edelbrock"]   # Borla was removed on the admin page: stays out
     assert ss.wishlist(conn) == ["Air Lift", "My Own Brand", "Edelbrock"]   # added once
+
+
+def test_vehicle_groups_in_model_menu(conn):
+    from store import vehicles as veh
+    conn.autocommit = True
+    from importer import load as loader
+    loader.seed_reference(conn)
+    conn.execute("INSERT INTO brands (id, name) VALUES ('vb', 'VB') ON CONFLICT DO NOTHING")
+    pid = conn.execute("""INSERT INTO products (brand_id, part_number, slug, title, short_name, status, price, category_id)
+                          VALUES ('vb', 'X1', 'vb-x1', 'VB X1', 'X1', 'active', 10, 'uncategorized') RETURNING id""").fetchone()[0]
+    names = ["Ridgeline", "Accord", "SXS10S2R Talon 1000R", "TRX420FA5 FourTrax Rancher 4x4", "CBR1000RR"]
+    for n in names:
+        vid = conn.execute("INSERT INTO vehicles (year, make, model) VALUES (2022, 'Honda', %s) RETURNING id", (n,)).fetchone()[0]
+        conn.execute("INSERT INTO fitment (product_id, vehicle_id) VALUES (%s, %s)", (pid, vid))
+    models = veh.Picker(conn).models(2022, "Honda")
+    assert [(m["group"], m["model"]) for m in models] == [
+        ("car", "Accord"), ("car", "Ridgeline"),
+        ("powersports", "FourTrax Rancher 4x4"), ("powersports", "Talon 1000R"),
+        ("motorcycle", "CBR1000RR")]
+    assert models[2]["group_label"] == "Powersports (UTV / ATV)"
+    assert veh.get(conn, models[3]["id"])["label"] == "2022 Honda Talon 1000R"

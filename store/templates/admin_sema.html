@@ -49,7 +49,7 @@
     <h2>Our brands</h2>
     {% if not tested %}<p class="muted">Run <b>Test connection</b> to match this list to the brands SEMA has approved for you.</p>
     {% elif to_load %}<p class="muted">Loading the brands not on the site yet takes about <b>{{ to_load|num }}</b> API calls{% if receiver and receiver.APIMaxCount %} of the <b>{{ ((receiver.APIMaxCount or 0) - (receiver.APICount or 0))|num }}</b> left on your plan{% endif %}. Most of it is the vehicle fitment (one call per part that fits specific vehicles); later updates only ask about new parts. Use <b>Load now</b> on single brands to load the most important ones first.</p>{% endif %}
-    <div class="tblwrap"><table class="tbl num">
+    <div class="tblwrap stickyhead"><table class="tbl num">
       <thead><tr><th>On our list</th><th>SEMA brand</th><th>Status</th><th>Parts</th><th>Fit vehicles</th><th>Photos</th><th>Calls to load</th><th></th></tr></thead>
       <tbody>{% for l in listed %}{% set b = l.brand %}
         <tr><td><b>{{ l.wish }}</b></td>

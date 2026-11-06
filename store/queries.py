@@ -227,10 +227,16 @@ def brand_logos(conn, searcher):
     """{brand id: logo URL}: a file chosen in config/home.json, else the logo from the brand's SEMA data."""
     chosen = home_config().get("brand_logos", {})
     with conn.cursor() as cur:
-        cur.execute("SELECT id, logo_key FROM brands")
+        cur.execute("SELECT id, name, logo_key FROM brands")
         rows = cur.fetchall()
-    out = {i: searcher.storage.url(k) for i, k in rows if k}
-    out.update({i: f"/static/img/brands/{f}" for i, f in chosen.items()})
+    out = {i: searcher.storage.url(k) for i, n, k in rows if k}
+    # a chosen file is matched by brand id, or by the brand's name without spaces/punctuation
+    # ("oraclelighting" matches "ORACLE Lighting" whatever id the brand got when it was loaded)
+    import re
+    for i, n, k in rows:
+        f = chosen.get(i) or chosen.get(re.sub(r"[^a-z0-9]+", "", (n or "").lower()))
+        if f:
+            out[i] = f"/static/img/brands/{f}"
     return out
 
 

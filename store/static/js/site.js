@@ -56,10 +56,10 @@
     d.addEventListener('change', function () { go.disabled = !d.value; if (d.value) go.focus(); });
   });
 
-  /* ---------- Model menu with group headings (computers only) ----------
-     A browser's own dropdown can't style group headings (on a Mac they come out small and gray), so on
-     computers the Model menu opens a list drawn by the page. Phones keep their built-in picker, which
-     already shows groups as section titles. The real <select> stays in place for the form and keyboard. */
+  /* ---------- Year / Make / Model menus drawn by the page (computers only) ----------
+     A browser's own dropdown follows the computer's theme (dark gray on a Mac in dark mode) and can't style
+     group headings, so on computers these menus open a white list drawn by the page, with red group headings
+     in the Model menu. Phones keep their built-in picker. The real <select> stays in place for the form. */
   var finePointer = window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches;
   function groupedMenu(sel) {
     var wrap = document.createElement('span'); wrap.className = 'ddwrap';
@@ -67,7 +67,7 @@
     var panel = document.createElement('div'); panel.className = 'ddpanel'; panel.setAttribute('role', 'listbox'); panel.hidden = true;
     panel.id = (sel.id || 'dd') + 'List'; wrap.appendChild(panel);
     var opts = [], at = -1;
-    var grouped = function () { return !!sel.querySelector('optgroup'); };
+    var typed = '', typedAt = 0;
     function mark(i) {
       opts.forEach(function (o, j) { o.classList.toggle('on', j === i); });
       at = i; if (opts[i]) opts[i].scrollIntoView({ block: 'nearest' });
@@ -90,7 +90,7 @@
       });
     }
     function open() {
-      if (sel.disabled || !grouped()) return false;
+      if (sel.disabled || !Array.prototype.some.call(sel.options, function (o) { return o.value; })) return false;
       build(); panel.hidden = false; wrap.classList.add('open'); sel.setAttribute('aria-expanded', 'true');
       var cur = opts.findIndex(function (o) { return o.dataset.value === sel.value; });
       mark(cur < 0 ? 0 : cur); return true;
@@ -99,7 +99,7 @@
     function choose(v) { sel.value = v; close(); sel.dispatchEvent(new Event('change', { bubbles: true })); }
     sel.setAttribute('aria-controls', panel.id);
     sel.addEventListener('mousedown', function (e) {
-      if (!grouped()) return;
+      if (sel.disabled) return;
       e.preventDefault(); sel.focus();
       if (panel.hidden) open(); else close();
     });
@@ -112,10 +112,16 @@
       else if (e.key === 'ArrowUp') { mark(Math.max(at - 1, 0)); e.preventDefault(); }
       else if (e.key === 'Enter' || e.key === ' ') { if (opts[at]) choose(opts[at].dataset.value); e.preventDefault(); }
       else if (e.key === 'Escape' || e.key === 'Tab') close();
+      else if (e.key.length === 1 && /\S/.test(e.key)) {          /* type to jump: "20" -> 2026..., "fo" -> Ford */
+        var now = Date.now(); typed = (now - typedAt < 800 ? typed : '') + e.key.toLowerCase(); typedAt = now;
+        var i = opts.findIndex(function (o) { return o.textContent.toLowerCase().indexOf(typed) === 0; });
+        if (i >= 0) mark(i);
+        e.preventDefault();
+      }
     });
     sel.addEventListener('blur', function () { setTimeout(close, 120); });
   }
-  if (finePointer) $$('select[data-d]').forEach(groupedMenu);
+  if (finePointer) $$('form[data-ymm] select[data-y], form[data-ymm] select[data-m], form[data-ymm] select[data-d]').forEach(groupedMenu);
 
   /* ---------- search suggestions ---------- */
   var q = $('#q'), ac = $('#ac'), box = $('#searchBox');

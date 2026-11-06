@@ -266,3 +266,32 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
         missing = [r[0] for r in cur.fetchall()]
         if missing:
             stats["parts_missing_fitment"] = missing
+
+
+def recategorize(conn, log=print):
+    """Sort every product into categories again with the current rules in config/catalog.json.
+    Runs at startup when the rules changed, so new rules apply to brands already loaded. Returns how many moved."""
+    import hashlib
+    import json as _json
+    from .catalog import Categorizer
+    rules = config.catalog()
+    digest = hashlib.sha256(_json.dumps([rules["rules"], rules["categories"]], sort_keys=True).encode()).hexdigest()[:16]
+    with conn.cursor() as cur:
+        cur.execute("SELECT value FROM app_state WHERE key = 'category_rules'")
+        r = cur.fetchone()
+        if r and r[0] == digest:
+            return 0
+        cz = Categorizer(rules)
+        cur.execute("SELECT id, part_type, short_name, descriptions, category_id FROM products WHERE status <> 'discontinued'")
+        moves = []
+        for pid, part_type, name, d, old in cur.fetchall():
+            d = d or {}
+            new = cz.place(part_type, " ".join([name or ""] + d.get("SHO", []) + d.get("DES", []) + d.get("EXT", [])), name or "")
+            if new != old:
+                moves.append((new, pid))
+        cur.executemany("UPDATE products SET category_id = %s, updated_at = now() WHERE id = %s", moves)
+        cur.execute("""INSERT INTO app_state (key, value, updated_at) VALUES ('category_rules', %s, now())
+                       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""", (digest,))
+    if moves:
+        log(f"category rules changed: {len(moves):,} products moved to a new category")
+    return len(moves)

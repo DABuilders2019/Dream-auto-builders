@@ -56,7 +56,7 @@ PIES_XML = """<?xml version="1.0" encoding="utf-8"?>
     </Item>
     <Item MaintenanceType="A">
       <PartNumber>NOPRICE</PartNumber><BrandAAIAID>TEST</BrandAAIAID>
-      <Descriptions><Description DescriptionCode="DES">Mystery Bracket</Description><Description DescriptionCode="DEF">Widget Bracket</Description></Descriptions>
+      <Descriptions><Description DescriptionCode="DES">Mystery Gizmo</Description><Description DescriptionCode="DEF">Widget Gizmo</Description></Descriptions>
     </Item>
   </Items>
 </PIES>"""

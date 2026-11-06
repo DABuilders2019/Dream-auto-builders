@@ -80,6 +80,7 @@ class State:
             conn.autocommit = False
             importer_db.migrate(conn)
             importer_load.seed_reference(conn)
+            importer_load.recategorize(conn, log=lambda m: logging.getLogger("store").info(m))
             conn.commit()
             conn.autocommit = True
 

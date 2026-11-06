@@ -339,3 +339,19 @@ def test_jobber_only_brand_priced_with_markup(conn, sema, tmp_path, monkeypatch)
     conn.execute("UPDATE sema_brands SET loaded_updated = 'old'")
     ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
     assert float(conn.execute("SELECT price FROM products WHERE part_number = '985-24-002'").fetchone()[0]) == 14.0
+
+
+def test_new_category_rules_apply_to_loaded_products(conn, sema):
+    from importer import load as loader
+    fake, c, tmp = sema
+    fake.parts = {"TC-1": product("TC-1", "American Roll Cover", 699.0)}
+    fake.parts["TC-1"]["Descriptions"][1]["Values"] = ["Tonneau Cover"]
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    ss.run(conn, "load", log=lambda *a: None, client=c, data_dir=tmp, photos=False)
+    assert conn.execute("SELECT category_id FROM products WHERE part_number = 'TC-1'").fetchone()[0] == "tonneau"
+    # pretend it was loaded under old rules; a rules change re-sorts it at startup
+    conn.execute("UPDATE products SET category_id = 'uncategorized'")
+    conn.execute("DELETE FROM app_state")
+    assert loader.recategorize(conn, log=lambda *a: None) == 1
+    assert conn.execute("SELECT category_id FROM products WHERE part_number = 'TC-1'").fetchone()[0] == "tonneau"
+    assert loader.recategorize(conn, log=lambda *a: None) == 0          # same rules: nothing to do

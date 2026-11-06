@@ -32,6 +32,10 @@
     [
      "suspension-components",
      "Suspension Components"
+    ],
+    [
+     "air-suspension",
+     "Air Suspension & Helper Springs"
     ]
    ]
   },
@@ -84,6 +88,10 @@
     [
      "air-filters",
      "Air Filters"
+    ],
+    [
+     "throttle-bodies",
+     "Throttle Bodies & Intake Manifolds"
     ]
    ]
   },
@@ -102,6 +110,22 @@
     [
      "tail-lights",
      "Tail Lights"
+    ],
+    [
+     "fog-lights",
+     "Fog & Driving Lights"
+    ],
+    [
+     "off-road-lights",
+     "Off-Road & LED Pod Lights"
+    ],
+    [
+     "bulbs",
+     "Bulbs"
+    ],
+    [
+     "lighting-accessories",
+     "Lighting Accessories"
     ]
    ]
   },
@@ -176,6 +200,18 @@
     [
      "recovery",
      "Recovery Gear"
+    ],
+    [
+     "bed-racks",
+     "Bed Racks & Bed Accessories"
+    ],
+    [
+     "towing",
+     "Towing & Hitches"
+    ],
+    [
+     "body-accessories",
+     "Body & Exterior Accessories"
     ]
    ]
   },
@@ -190,6 +226,10 @@
     [
      "seat-covers",
      "Seat Covers"
+    ],
+    [
+     "interior-accessories",
+     "Interior Accessories"
     ]
    ]
   },
@@ -208,6 +248,22 @@
     [
      "ignition",
      "Spark Plugs & Ignition"
+    ],
+    [
+     "nitrous",
+     "Nitrous & Water-Methanol"
+    ],
+    [
+     "fuel-system",
+     "Fuel System"
+    ],
+    [
+     "forced-induction",
+     "Turbo & Supercharger"
+    ],
+    [
+     "hardware",
+     "Fittings, Hose & Hardware"
     ]
    ]
   },
@@ -222,6 +278,80 @@
     [
      "pads-rotors",
      "Pads & Rotors"
+    ],
+    [
+     "brake-components",
+     "Calipers, Lines & Hardware"
+    ]
+   ]
+  },
+  {
+   "id": "engine",
+   "name": "Engine",
+   "subs": [
+    [
+     "engine-internals",
+     "Pistons, Bearings & Internals"
+    ],
+    [
+     "camshafts-valvetrain",
+     "Camshafts & Valvetrain"
+    ],
+    [
+     "carburetors",
+     "Carburetors & EFI"
+    ],
+    [
+     "cooling",
+     "Cooling"
+    ],
+    [
+     "gaskets-covers",
+     "Gaskets, Covers & Oil Pans"
+    ]
+   ]
+  },
+  {
+   "id": "drivetrain",
+   "name": "Drivetrain",
+   "subs": [
+    [
+     "clutches",
+     "Clutches & Flywheels"
+    ],
+    [
+     "transmission",
+     "Transmission & Torque Converters"
+    ],
+    [
+     "shifters",
+     "Shifters"
+    ],
+    [
+     "driveline",
+     "Driveshafts & Gears"
+    ]
+   ]
+  },
+  {
+   "id": "fluids",
+   "name": "Oils & Fluids",
+   "subs": [
+    [
+     "motor-oil",
+     "Motor Oil"
+    ],
+    [
+     "gear-transmission-fluid",
+     "Gear & Transmission Fluid"
+    ],
+    [
+     "additives",
+     "Additives & Cleaners"
+    ],
+    [
+     "coolant-brake-fluid",
+     "Coolant, Brake Fluid & Grease"
     ]
    ]
   },
@@ -421,6 +551,37 @@
   },
   {
    "part_type_contains": [
+    "Air Spring",
+    "Air Helper",
+    "Air Bag",
+    "Air Suspension",
+    "Air Compressor",
+    "Suspension Air",
+    "Helper Spring",
+    "Load Leveler",
+    "Air Line",
+    "Air Ride"
+   ],
+   "category": "air-suspension"
+  },
+  {
+   "part_type_contains": [
+    "Steering Wheel",
+    "Quick Release Hub",
+    "Steering Wheel Hub"
+   ],
+   "category": "interior-accessories"
+  },
+  {
+   "part_type_contains": [
+    "Brake Hydraulic Hose",
+    "Brake Line",
+    "Brake Hose"
+   ],
+   "category": "brake-components"
+  },
+  {
+   "part_type_contains": [
     "Suspension",
     "Coil Spring",
     "Leaf Spring",
@@ -448,6 +609,729 @@
     "Fender Bracket"
    ],
    "category": "suspension-components"
+  },
+  {
+   "part_type_contains": [
+    "Oil Filter"
+   ],
+   "category": "gaskets-covers"
+  },
+  {
+   "part_type_contains": [
+    "Shock Absorber",
+    "Shock",
+    "Strut"
+   ],
+   "category": "shocks"
+  },
+  {
+   "part_type_contains": [
+    "Engine Oil",
+    "Motor Oil"
+   ],
+   "category": "motor-oil"
+  },
+  {
+   "part_type_contains": [
+    "Gear Oil",
+    "Transmission Fluid",
+    "Differential Fluid",
+    "Gear Lubricant",
+    "Transfer Case Fluid",
+    "Power Steering Fluid"
+   ],
+   "category": "gear-transmission-fluid"
+  },
+  {
+   "part_type_contains": [
+    "Engine Coolant",
+    "Antifreeze",
+    "Coolant / Antifreeze",
+    "Coolant Concentrate",
+    "Brake Fluid",
+    "Grease",
+    "Assembly Lube"
+   ],
+   "category": "coolant-brake-fluid"
+  },
+  {
+   "part_type_contains": [
+    "Additive",
+    "Cleaner",
+    "Treatment",
+    "Fuel System Cleaner",
+    "Flush",
+    "Stabilizer - Fuel",
+    "Protectant",
+    "Degreaser"
+   ],
+   "category": "additives"
+  },
+  {
+   "part_type_contains": [
+    "Tonneau",
+    "Truck Bed Cover",
+    "Bed Cover"
+   ],
+   "category": "tonneau"
+  },
+  {
+   "part_type_contains": [
+    "Bed Rack",
+    "Headache Rack",
+    "Truck Bed",
+    "Cargo Rack",
+    "Bed Rail",
+    "Bed Mat",
+    "Bed Liner",
+    "Tailgate",
+    "Cargo Management",
+    "Ladder Rack"
+   ],
+   "category": "bed-racks"
+  },
+  {
+   "part_type_contains": [
+    "Hitch",
+    "Trailer",
+    "Tow ",
+    "Towing",
+    "Sway Control",
+    "Weight Distribution",
+    "Gooseneck",
+    "Fifth Wheel",
+    "Ball Mount",
+    "Safety Chain"
+   ],
+   "category": "towing"
+  },
+  {
+   "part_type_contains": [
+    "Running Board",
+    "Nerf Bar",
+    "Side Step",
+    "Step Bar",
+    "Rock Slider",
+    "Bed Step",
+    "Hoop Step"
+   ],
+   "category": "running-boards"
+  },
+  {
+   "part_type_contains": [
+    "Bumper"
+   ],
+   "category": "bumpers"
+  },
+  {
+   "part_type_contains": [
+    "Fender Flare",
+    "Fender Liner",
+    "Fender Trim"
+   ],
+   "category": "fender-flares"
+  },
+  {
+   "part_type_contains": [
+    "Winch",
+    "Recovery",
+    "Tow Strap",
+    "Shackle",
+    "Traction Board",
+    "Jack"
+   ],
+   "category": "recovery"
+  },
+  {
+   "part_type_contains": [
+    "Grille",
+    "Hood",
+    "Mud Flap",
+    "Splash Guard",
+    "Mirror",
+    "Spoiler",
+    "Wing",
+    "Body Kit",
+    "Emblem",
+    "Door Handle",
+    "Roof Rack",
+    "Antenna",
+    "License Plate",
+    "Window Visor",
+    "Rain Guard",
+    "Bug Deflector",
+    "Tow Hook",
+    "Bracket - Light"
+   ],
+   "category": "body-accessories"
+  },
+  {
+   "part_type_contains": [
+    "Floor Mat",
+    "Floor Liner",
+    "Cargo Liner",
+    "Cargo Mat",
+    "Trunk Mat"
+   ],
+   "category": "floor-liners"
+  },
+  {
+   "part_type_contains": [
+    "Seat Cover"
+   ],
+   "category": "seat-covers"
+  },
+  {
+   "part_type_contains": [
+    "Bulb"
+   ],
+   "category": "bulbs"
+  },
+  {
+   "part_type_contains": [
+    "Headlight",
+    "Headlamp",
+    "Head Lamp",
+    "Projector"
+   ],
+   "category": "headlights"
+  },
+  {
+   "part_type_contains": [
+    "Tail Light",
+    "Tail Lamp",
+    "Third Brake Light",
+    "Brake Light",
+    "Reverse Light",
+    "Backup Light"
+   ],
+   "category": "tail-lights"
+  },
+  {
+   "part_type_contains": [
+    "Fog Light",
+    "Fog Lamp",
+    "Driving Light",
+    "Driving Lamp"
+   ],
+   "category": "fog-lights"
+  },
+  {
+   "part_type_contains": [
+    "Light Bar"
+   ],
+   "category": "light-bars"
+  },
+  {
+   "part_type_contains": [
+    "Light Mount",
+    "Light Bracket",
+    "Light Cover",
+    "Lens",
+    "Wiring Harness - Light",
+    "Light Switch",
+    "Lighting"
+   ],
+   "category": "lighting-accessories"
+  },
+  {
+   "part_type_contains": [
+    "Off Road Light",
+    "Auxiliary Light",
+    "Work Light",
+    "Spot Light",
+    "Spotlight",
+    "Flood Light",
+    "Light Pod",
+    "Pod Light",
+    "Rock Light",
+    "Ditch Light",
+    "Scene Light",
+    "Chase Light",
+    "Marker Light",
+    "Side Marker",
+    "Turn Signal",
+    "Parking Light",
+    "Daytime Running",
+    "Accent Light",
+    "Light Kit",
+    "Lamp",
+    "Light"
+   ],
+   "category": "off-road-lights"
+  },
+  {
+   "part_type_contains": [
+    "Brake Upgrade",
+    "Big Brake",
+    "Brake Kit",
+    "Disc Brake Kit",
+    "Disc Brake Conversion"
+   ],
+   "category": "big-brake-kits"
+  },
+  {
+   "part_type_contains": [
+    "Brake Pad",
+    "Brake Rotor",
+    "Disc Brake Rotor",
+    "Rotor",
+    "Brake Shoe",
+    "Pad and Rotor"
+   ],
+   "category": "pads-rotors"
+  },
+  {
+   "part_type_contains": [
+    "Brake",
+    "Caliper",
+    "Master Cylinder"
+   ],
+   "category": "brake-components"
+  },
+  {
+   "part_type_contains": [
+    "Gauge",
+    "Speedometer",
+    "Tachometer",
+    "Speedo",
+    "Voltmeter",
+    "Volt Meter",
+    "Ammeter",
+    "Sending Unit",
+    "Gauge Pod",
+    "Pillar Pod",
+    "Data Logger",
+    "Display Monitor",
+    "Shift Light"
+   ],
+   "category": "gauges"
+  },
+  {
+   "part_type_contains": [
+    "Programmer",
+    "Tuner",
+    "Engine Control Module",
+    "Performance Module",
+    "Power Module",
+    "Performance Chip",
+    "Diesel Module",
+    "Calibration"
+   ],
+   "category": "tuners"
+  },
+  {
+   "part_type_contains": [
+    "Spark Plug",
+    "Ignition",
+    "Distributor",
+    "Spark Plug Wire",
+    "Coil",
+    "Magneto",
+    "Rev Limiter",
+    "Spark Box"
+   ],
+   "category": "ignition"
+  },
+  {
+   "part_type_contains": [
+    "Nitrous",
+    "Water Methanol",
+    "Water-Methanol",
+    "Water Injection",
+    "Methanol",
+    "Purge",
+    "Bottle"
+   ],
+   "category": "nitrous"
+  },
+  {
+   "part_type_contains": [
+    "Fuel Pump",
+    "Fuel Injector",
+    "Fuel Pressure",
+    "Fuel Rail",
+    "Fuel Line",
+    "Fuel Filter",
+    "Fuel Regulator",
+    "Fuel Cell",
+    "Fuel Tank",
+    "Fuel",
+    "Injector"
+   ],
+   "category": "fuel-system"
+  },
+  {
+   "part_type_contains": [
+    "Turbo",
+    "Supercharger",
+    "Wastegate",
+    "Blow Off",
+    "Blowoff",
+    "Intercooler Pipe",
+    "Charge Pipe",
+    "Boost Tube"
+   ],
+   "category": "forced-induction"
+  },
+  {
+   "part_type_contains": [
+    "Cold Air Intake",
+    "Air Intake",
+    "Intake Kit",
+    "Intake System",
+    "Intake Tube"
+   ],
+   "category": "cold-air-intakes"
+  },
+  {
+   "part_type_contains": [
+    "Air Filter",
+    "Air Cleaner Element",
+    "Filter Wrap",
+    "Pre-Filter",
+    "Pre Filter"
+   ],
+   "category": "air-filters"
+  },
+  {
+   "part_type_contains": [
+    "Throttle Body",
+    "Intake Manifold",
+    "Plenum",
+    "Throttle Spacer",
+    "Mass Air",
+    "Throttle"
+   ],
+   "category": "throttle-bodies"
+  },
+  {
+   "part_type_contains": [
+    "Valve Body",
+    "Torque Converter",
+    "Transbrake"
+   ],
+   "category": "transmission"
+  },
+  {
+   "part_type_contains": [
+    "Carburetor",
+    "Carb",
+    "EFI",
+    "Electronic Fuel Injection",
+    "Throttle Body Injection"
+   ],
+   "category": "carburetors"
+  },
+  {
+   "part_type_contains": [
+    "Radiator",
+    "Intercooler",
+    "Cooling Fan",
+    "Fan Shroud",
+    "Fan Clutch",
+    "Thermostat",
+    "Oil Cooler",
+    "Coolant Tank",
+    "Expansion Tank",
+    "Overflow",
+    "Water Pump",
+    "Coolant Hose",
+    "Radiator Hose",
+    "Silicone Hose",
+    "Heat Exchanger",
+    "Cooler"
+   ],
+   "category": "cooling"
+  },
+  {
+   "part_type_contains": [
+    "Piston",
+    "Bearing",
+    "Connecting Rod",
+    "Crankshaft",
+    "Piston Ring",
+    "Wrist Pin",
+    "Cylinder Head",
+    "Engine Block",
+    "Short Block",
+    "Long Block",
+    "Crate Engine",
+    "Harmonic Balancer",
+    "Oil Pump",
+    "Timing"
+   ],
+   "category": "engine-internals"
+  },
+  {
+   "part_type_contains": [
+    "Camshaft",
+    "Cam ",
+    "Lifter",
+    "Rocker",
+    "Valve Spring",
+    "Pushrod",
+    "Push Rod",
+    "Intake Valve",
+    "Exhaust Valve",
+    "Valve Seal",
+    "Valve Lock",
+    "Valve Retainer",
+    "Retainer",
+    "Lash",
+    "Valvetrain"
+   ],
+   "category": "camshafts-valvetrain"
+  },
+  {
+   "part_type_contains": [
+    "Gasket",
+    "Valve Cover",
+    "Oil Pan",
+    "Timing Cover",
+    "Seal",
+    "Breather",
+    "Catch Can",
+    "Oil Separator",
+    "Dipstick",
+    "Pulley",
+    "Belt",
+    "Engine Mount",
+    "Air Cleaner",
+    "Oil Filter",
+    "Filter"
+   ],
+   "category": "gaskets-covers"
+  },
+  {
+   "part_type_contains": [
+    "Clutch",
+    "Flywheel",
+    "Pressure Plate",
+    "Throwout",
+    "Release Bearing",
+    "Slave Cylinder"
+   ],
+   "category": "clutches"
+  },
+  {
+   "part_type_contains": [
+    "Transmission",
+    "Torque Converter",
+    "Transbrake",
+    "Valve Body",
+    "Transmission Cooler"
+   ],
+   "category": "transmission"
+  },
+  {
+   "part_type_contains": [
+    "Shifter",
+    "Shift Knob",
+    "Shift Boot",
+    "Shift Lever",
+    "Shift"
+   ],
+   "category": "shifters"
+  },
+  {
+   "part_type_contains": [
+    "Drive Shaft",
+    "Driveshaft",
+    "Ring and Pinion",
+    "Ring & Pinion",
+    "Gear Set",
+    "U-Joint",
+    "Universal Joint",
+    "Yoke",
+    "CV ",
+    "Axle Shaft",
+    "Locker",
+    "Locking Differential",
+    "Limited Slip",
+    "Differential Cover"
+   ],
+   "category": "driveline"
+  },
+  {
+   "part_type_contains": [
+    "Wheel"
+   ],
+   "category": "rims"
+  },
+  {
+   "part_type_contains": [
+    "Fitting",
+    "Adapter",
+    "Hose Clamp",
+    "Clamp",
+    "Hose",
+    "Flange",
+    "Coupler",
+    "Tubing",
+    "Tube",
+    "Bung",
+    "Union",
+    "Plug",
+    "Bolt",
+    "Stud",
+    "Nut",
+    "Washer",
+    "Wire",
+    "Wiring",
+    "Harness",
+    "Relay",
+    "Switch",
+    "Connector",
+    "Heat Wrap",
+    "Heat Shield",
+    "Insulation",
+    "Tape",
+    "Tool",
+    "Bracket",
+    "Mount"
+   ],
+   "category": "hardware"
+  },
+  {
+   "part_type_contains": [
+    "Interior",
+    "Dash",
+    "Console",
+    "Steering Wheel",
+    "Pedal",
+    "Sun Shade",
+    "Organizer",
+    "Phone Mount",
+    "Cup Holder",
+    "Grab Handle",
+    "Seat",
+    "Knob"
+   ],
+   "category": "interior-accessories"
+  },
+  {
+   "text_contains": [
+    "tonneau"
+   ],
+   "category": "tonneau"
+  },
+  {
+   "text_contains": [
+    "bed rack",
+    "headache rack"
+   ],
+   "category": "bed-racks"
+  },
+  {
+   "text_contains": [
+    "hitch",
+    "trailer"
+   ],
+   "category": "towing"
+  },
+  {
+   "text_contains": [
+    "motor oil",
+    "engine oil"
+   ],
+   "category": "motor-oil"
+  },
+  {
+   "text_contains": [
+    "additive",
+    "cleaner"
+   ],
+   "category": "additives"
+  },
+  {
+   "text_contains": [
+    "nitrous",
+    "water-methanol",
+    "methanol injection"
+   ],
+   "category": "nitrous"
+  },
+  {
+   "text_contains": [
+    "brake pad",
+    "rotor"
+   ],
+   "category": "pads-rotors"
+  },
+  {
+   "text_contains": [
+    "light bar"
+   ],
+   "category": "light-bars"
+  },
+  {
+   "text_contains": [
+    "bulb"
+   ],
+   "category": "bulbs"
+  },
+  {
+   "text_contains": [
+    "led light",
+    " pod",
+    "fog light"
+   ],
+   "category": "off-road-lights"
+  },
+  {
+   "text_contains": [
+    "gauge"
+   ],
+   "category": "gauges"
+  },
+  {
+   "text_contains": [
+    "tuner",
+    "programmer"
+   ],
+   "category": "tuners"
+  },
+  {
+   "text_contains": [
+    "spark plug"
+   ],
+   "category": "ignition"
+  },
+  {
+   "text_contains": [
+    "floor mat",
+    "floor liner"
+   ],
+   "category": "floor-liners"
+  },
+  {
+   "text_contains": [
+    "radiator",
+    "intercooler"
+   ],
+   "category": "cooling"
+  },
+  {
+   "text_contains": [
+    "clutch"
+   ],
+   "category": "clutches"
+  },
+  {
+   "text_contains": [
+    "piston",
+    "bearing"
+   ],
+   "category": "engine-internals"
+  },
+  {
+   "text_contains": [
+    "fitting",
+    "hose",
+    "clamp"
+   ],
+   "category": "hardware"
   }
  ],
  "_universal_comment": "Part types in these categories fit any vehicle by nature (weld-in mufflers, tips, pipes and clamps), so they count as universal even without vehicle data.",

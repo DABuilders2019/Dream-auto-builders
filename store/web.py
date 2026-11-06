@@ -202,14 +202,14 @@ def home(request: Request):
         for cid in cfg["categories"]:
             if cid not in s.categories:
                 continue
+            hide = set(cfg.get("card_hide_subs", []))
             all_subs = [(c, v["name"]) for c, v in sorted(s.categories.items(), key=lambda kv: kv[1].get("sort", 0))
-                        if v["parent"] == cid]
-            with_parts = [x for x in all_subs if subs.get(x[0])]
+                        if v["parent"] == cid and c not in hide]
             img = cfg.get("category_images", {}).get(cid)
             img_url = Q.image_of(conn, s, img.split(":", 1)[1]) if img and img.startswith("product:") else \
                 (f"/static/img/cat/{img}" if img else None)
             cards.append({"id": cid, "name": s.categories[cid]["name"], "count": counts.get(cid, 0),
-                          "subs": (with_parts or all_subs)[:4], "image": img_url})
+                          "subs": all_subs[:4], "image": img_url})   # the card always lists the same main sections
         if vid:
             popular = Q.top_for_vehicle(conn, s, vid, 8)
         else:

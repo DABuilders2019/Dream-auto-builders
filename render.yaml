@@ -76,6 +76,8 @@ services:
         value: test
       - key: TURN14_AUTO             # 1 = run the Turn 14 sync on schedule (after the first full load)
         value: "0"
+      - key: GOOGLE_MAPS_API_KEY     # nearby repair shops on order pages (docs/INSTALLERS.md)
+        sync: false
       - key: SEMA_USERNAME           # SEMA Data website login, used by the SEMA Data API connection
         sync: false
       - key: SEMA_PASSWORD

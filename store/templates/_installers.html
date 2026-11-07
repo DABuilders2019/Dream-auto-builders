@@ -1,0 +1,16 @@
+{# Nearby repair shops from Google Maps (store/installers.py). Used on the order page. #}
+<section class="installers" id="install">
+  <h2>Need it installed? Shops near you</h2>
+  <p class="inst-disc">{{ icon('info', 16) }} <span>{{ install.disclaimer }}</span></p>
+  {% if picked %}<p class="notice">{{ icon('checkc', 18) }} <span>Saved. Thanks for letting us know where you're taking it.</span></p>{% endif %}
+  <ul class="inst-list">
+    {% for x in install.shops %}
+    <li class="{{ 'on' if install.picked == x.id }}"><div><b>{{ x.name }}</b><span>{{ x.address }}</span></div>
+      <div class="inst-acts"><a class="btn btn-ghost btn-sm" href="{{ x.url }}" target="_blank" rel="noopener">Directions and phone</a>
+        {% if install.picked == x.id %}<span class="inst-pick">{{ icon('check', 16) }} Your shop</span>
+        {% else %}<form method="post" action="/order/{{ o.number }}/installer"><input type="hidden" name="place_id" value="{{ x.id }}">
+          <button class="btn btn-ghost btn-sm" type="submit">I'll use this shop</button></form>{% endif %}</div></li>
+    {% endfor %}
+  </ul>
+  <p class="gmaps-attr">Google Maps</p>
+</section>

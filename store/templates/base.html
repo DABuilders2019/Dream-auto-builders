@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% if title %}{{ title }} | {% endif %}Dream Auto Builders</title>
 <meta name="description" content="{% block description %}Auto parts and accessories matched to your exact vehicle. Lift kits, exhaust, tires, wheels and more from the brands you trust.{% endblock %}">
-{% if preview() %}<meta name="robots" content="noindex, nofollow">{% endif %}
+{% if preview() or noindex %}<meta name="robots" content="noindex, nofollow">{% endif %}
 <link rel="icon" type="image/png" href="/static/img/favicon.png">
 <link rel="preload" href="/static/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/css/site.css?v=15">
+<link rel="stylesheet" href="/static/css/site.css?v=16">
 </head>
 <body data-vehicle="{{ active.id if active else '' }}">
 <a class="sr skip" href="#main">Skip to content</a>

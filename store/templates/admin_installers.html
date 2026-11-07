@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  <section class="acard">
+    <h2>Installer leads</h2>
+    <p class="muted">Repair shops your customers picked from the Google Maps list, and how their installs went. Shops with several happy
+      customers are good ones to call about a partnership.</p>
+    <div class="t14status">
+      <div><span class="muted">Google Maps key</span><b>{% if configured %}<span class="ost shipped">Set in Render</span>{% else %}<span class="ost on_hold">Not set</span>{% endif %}</b></div>
+      <div><span class="muted">Surveys sent</span><b class="num">{{ stats[0]|num }}</b></div>
+      <div><span class="muted">Answered</span><b class="num">{{ stats[1]|num }}</b></div>
+      <div><span class="muted">Installed it themselves</span><b class="num">{{ stats[2]|num }}</b></div>
+      <div><span class="muted">Orders with a shop picked</span><b class="num">{{ stats[3]|num }}</b></div>
+    </div>
+    <p class="muted" style="margin-top:10px">Shown for orders with parts in: {{ cfg.categories|join(', ') }}. The survey email goes out {{ cfg.survey_days }} days after an order is marked shipped.</p>
+  </section>
+
+  <section class="acard">
+    <h2>Shops</h2>
+    <div class="tblwrap stickyhead"><table class="tbl num">
+      <thead><tr><th>Shop</th><th>Customers who picked it</th><th>Installed there</th><th>Rating</th><th>Would recommend</th><th>Comments</th></tr></thead>
+      <tbody>{% for r in rows %}
+        <tr><td>{% if r.shop %}<b>{{ r.shop.name }}</b><br><span class="muted">{{ r.shop.address }}</span><br><a href="{{ r.shop.url }}" target="_blank" rel="noopener">Open in Google Maps</a>
+                {% else %}<span class="muted">Shop details unavailable</span>{% endif %}</td>
+          <td>{{ r.picks }}</td><td>{{ r.installs }}</td>
+          <td>{% if r.rating %}{{ r.rating }} ★ <span class="muted">({{ r.ratings }})</span>{% endif %}</td>
+          <td>{% if r.recommend_answers %}{{ r.recommend_yes }} of {{ r.recommend_answers }}{% endif %}</td>
+          <td>{% for c in r.comments[:3] %}<p style="margin:0 0 6px">“{{ c }}”</p>{% endfor %}</td></tr>
+      {% else %}<tr><td colspan="6">No shops picked yet. They appear here as customers choose a shop on their order page or in the survey.</td></tr>{% endfor %}
+      </tbody></table></div>
+    {% if rows %}<p class="gmaps-attr">Google Maps</p>{% endif %}
+  </section>
+
+  {% if others %}
+  <section class="acard">
+    <h2>Other shops customers named</h2>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>Shop (customer's words)</th><th>Customer's city</th><th>Rating</th><th>Recommend</th><th>Comment</th></tr></thead><tbody>
+      {% for name, rating, rec, comment, at, city, state in others %}<tr><td>{{ name }}</td><td>{{ city or '' }}{% if state %}, {{ state }}{% endif %}</td>
+        <td>{% if rating %}{{ rating }} ★{% endif %}</td><td>{{ {True: 'Yes', False: 'No'}.get(rec, '') }}</td><td>{{ comment or '' }}</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  {% endif %}
+</main>
+</body></html>

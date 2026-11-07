@@ -13,7 +13,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import mailer, web
+from . import installers, mailer, web
 from . import orders as O
 
 router = APIRouter()
@@ -140,7 +140,9 @@ def order_page(request: Request, number: str, session_id: str = ""):
                 web.save_cart(request, {})
         for it in o["items"]:
             it["image_url"] = s.storage.url(it["main_image"]) if it.get("main_image") else None
-        return web.render(request, conn, s, "order.html", o=o, title=f"Order {o['number']}", states=O.US_STATES)
+        install = installers.for_order(conn, s, o)
+        return web.render(request, conn, s, "order.html", o=o, title=f"Order {o['number']}", states=O.US_STATES,
+                          install=install, picked=request.query_params.get("picked"))
 
 
 @router.post("/track")
@@ -193,9 +195,9 @@ def handle_event(request, event):
 
 # ------------------------------------------------------------------ emails
 
-def _email(request, o, kind):
+def _email(request, o, kind, install=None):
     return web.templates.get_template("email.html").render(o=o, kind=kind, site=site_url(request), money=web.money,
-                                                            states=O.US_STATES)
+                                                            states=O.US_STATES, install=install)
 
 
 def _text(request, o, kind):
@@ -225,8 +227,17 @@ def send_order_emails(request, o):
         if not mailer.configured():
             O.add_event(conn, o["id"], "Emails not sent: email isn't set up yet (SMTP settings)")
             return
-        if mailer.send(o["email"], f"Your Dream Auto Builders order {o['number']}", _text(request, o, "confirm"),
-                       _email(request, o, "confirm")):
+        try:
+            install = installers.for_order(conn, st.get_searcher(conn), o)
+        except Exception:      # noqa: BLE001 - the shop list is extra: never hold up the confirmation
+            install = None
+        text = _text(request, o, "confirm")
+        if install:
+            text += "\n\nNeed it installed? Shops near you (from Google Maps):\n" + "\n".join(
+                f"- {x['name']}, {x['address']}" for x in install["shops"]) + "\n" + install["disclaimer"] + \
+                f"\nPick the shop you'll use: {site_url(request)}/install/{install['token']}"
+        if mailer.send(o["email"], f"Your Dream Auto Builders order {o['number']}", text,
+                       _email(request, o, "confirm", install)):
             O.add_event(conn, o["id"], f"Order confirmation emailed to {o['email']}")
         if mailer.notify_address():
             mailer.send(mailer.notify_address(), f"New order {o['number']}" + (" (ON HOLD)" if o["status"] == "on_hold" else "")

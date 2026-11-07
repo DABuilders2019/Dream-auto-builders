@@ -50,3 +50,9 @@ before launch day.
 - [ ] Sending orders to Turn 14 automatically (quote, then order from quote), and Keystone.
 - [ ] Photos to Cloudflare R2 once the catalog grows; database size check.
 - [ ] Customer accounts (order history, garage and builds on every device).
+
+## Nearby installers (Google Maps)
+- [ ] Terms of Use and Privacy Policy pages mention Google's Terms of Service (https://policies.google.com/terms) and
+      Privacy Policy (https://policies.google.com/privacy), as Google requires for the shop lists (docs/INSTALLERS.md)
+- [ ] Attorney review of the installer disclaimer wording (config/store.json → installers.disclaimer)
+- [ ] Set a monthly budget alert on the Google Cloud billing account

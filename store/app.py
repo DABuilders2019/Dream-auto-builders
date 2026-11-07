@@ -22,6 +22,7 @@ Settings (environment variables):
   SMTP_HOST, SMTP_PORT, SMTP_USERNAME, SMTP_PASSWORD, MAIL_FROM, ORDER_NOTIFY_EMAIL   order emails (store/mailer.py)
   TURN14_CLIENT_ID, TURN14_CLIENT_SECRET, TURN14_ENV (test|production), TURN14_AUTO (1 = run on schedule)
                   Turn 14 stock and pricing feed (docs/TURN14.md)
+  GOOGLE_MAPS_API_KEY nearby repair shops on order pages and emails (docs/INSTALLERS.md)
   SEMA_USERNAME, SEMA_PASSWORD, SEMA_AUTO (1 = check for brand updates nightly)
                   SEMA Data API catalog feed (docs/SEMA.md)
   PHOTO_STORAGE / PHOTO_DIR / S3_*   where product photos are (see importer/storage.py)
@@ -45,7 +46,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import admin, builds, checkout, sema_schedule, turn14_schedule
+from . import admin, builds, checkout, installers, sema_schedule, turn14_schedule
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -132,9 +133,11 @@ def create_app(dsn=None):
     async def lifespan(app):
         stop_t14 = turn14_schedule.launch(state)
         stop_sema = sema_schedule.launch(state)
+        stop_surveys = installers.launch(state)
         yield
         stop_t14.set()
         stop_sema.set()
+        stop_surveys.set()
         state.pool.close()
 
     app = FastAPI(title="Dream Auto Builders", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)
@@ -199,6 +202,7 @@ def create_app(dsn=None):
 
     app.include_router(admin.router)
     app.include_router(checkout.router)
+    app.include_router(installers.router)
     app.include_router(builds.router)
     web.install(app)
     return app

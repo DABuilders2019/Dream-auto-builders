@@ -533,3 +533,24 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .ddopt{padding:6px 16px 6px 28px;font-size:15px;color:var(--text);cursor:pointer;white-space:nowrap}
 .ddopt.on{background:var(--panel)}
 .ddopt[aria-selected=true]{font-weight:600}
+/* Nearby installers (order page, install survey) */
+.installers{margin:34px 0 10px;border-top:1px solid var(--line);padding-top:24px}
+.installers h2{font-family:var(--display);text-transform:uppercase;font-size:26px;margin:0 0 8px}
+.inst-disc{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;color:var(--muted);background:var(--panel);border-radius:var(--radius);padding:10px 12px;margin:0 0 12px}
+.inst-disc svg{flex:none;margin-top:2px}
+.inst-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.inst-list li{display:flex;justify-content:space-between;gap:14px;align-items:center;border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;flex-wrap:wrap}
+.inst-list li.on{border-color:var(--red);background:var(--red-glow)}
+.inst-list li>div:first-child{display:grid;gap:2px}.inst-list li span{color:var(--muted);font-size:14px}
+.inst-acts{display:flex;gap:8px;align-items:center}.inst-pick{display:inline-flex;gap:4px;align-items:center;color:var(--red);font-weight:600;font-size:14px}
+.gmaps-attr{font-family:Roboto,Arial,sans-serif;font-size:12px;color:#5e5e5e;margin:8px 0 0;white-space:nowrap}
+.wrap.narrow{max-width:760px}
+.install-form fieldset{border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin:0 0 14px}
+.install-form legend{font-weight:700;padding:0 6px}
+.install-form .radio{display:flex;gap:8px;align-items:flex-start;padding:5px 0;font-size:15px}
+.install-form .radio.shop{border-bottom:1px solid var(--line);padding:9px 0}
+.install-form input[type=text],.install-form textarea{width:100%;font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:var(--radius);margin-top:4px}
+.stars{display:inline-flex;flex-direction:row-reverse;gap:2px}.stars input{position:absolute;opacity:0;width:1px;height:1px}
+.stars label{font-size:30px;color:#d4d4d8;cursor:pointer;line-height:1}
+.stars input:checked~label,.stars label:hover,.stars label:hover~label{color:#e8a200}
+.stars input:focus-visible+label{outline:2px solid var(--red);outline-offset:2px}

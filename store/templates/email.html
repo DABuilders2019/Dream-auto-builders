@@ -26,6 +26,17 @@
       <tr><td style="padding-top:6px"><b>Total</b></td><td align="right" style="padding-top:6px"><b>{{ money(o.total) }}</b></td></tr>
     </table>
   </td></tr>
+  {% if install and kind == 'confirm' %}
+  <tr><td style="padding:16px 28px 4px">
+    <h2 style="font-size:17px;margin:0 0 6px">Need it installed? Shops near you</h2>
+    <p style="font-size:12.5px;color:#5e5e66;line-height:1.45;margin:0 0 8px">{{ install.disclaimer }}</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse">
+      {% for x in install.shops %}<tr><td style="padding:8px 0;border-bottom:1px solid #e1e1e5"><b>{{ x.name }}</b><br><span style="color:#5e5e66">{{ x.address }}</span><br>
+        <a href="{{ x.url }}" style="color:#a8131a">Directions and phone</a> &nbsp;·&nbsp; <a href="{{ site }}/install/{{ install.token }}?pick={{ x.id|urlencode }}" style="color:#a8131a">I'll use this shop</a></td></tr>{% endfor %}
+    </table>
+    <p style="font-family:Roboto,Arial,sans-serif;font-size:12px;color:#5e5e5e;margin:6px 0 0">Google Maps</p>
+  </td></tr>
+  {% endif %}
   {% set a = o.ship_address or {} %}
   <tr><td style="padding:14px 28px;font-size:14px;line-height:1.5"><b>Shipping to</b><br>{{ a.name or o.name or '' }}<br>{{ a.line1 or '' }}{% if a.line2 %}<br>{{ a.line2 }}{% endif %}<br>{{ a.city or '' }}, {{ a.state or '' }} {{ a.postal_code or '' }}</td></tr>
   <tr><td style="padding:6px 28px 26px">{% if kind == 'notify' %}<a href="{{ site }}/admin/orders/{{ o.number }}" style="background:#a8131a;color:#fff;text-decoration:none;padding:11px 18px;font-weight:bold;display:inline-block">Open the order</a>

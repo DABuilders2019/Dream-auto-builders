@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="wrap narrow">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>Installation</span></nav>
+  <div class="shop-h"><div><h1>Getting your parts installed</h1><p class="muted">Order {{ o.number }}</p></div></div>
+  {% if thanks %}<div class="notice">{{ icon('checkc', 18) }} <span>Thanks! Your answers help us find great local installers for other customers.</span></div>{% endif %}
+
+  <form method="post" action="/install/{{ token }}" class="install-form">
+    <fieldset><legend>Did you get it installed?</legend>
+      {% for v, t in [('yes', 'Yes, at a shop'), ('myself', 'Yes, I did it myself'), ('not_yet', 'Not yet'), ('no', "No, I'm not installing it")] %}
+      <label class="radio"><input type="radio" name="installed" value="{{ v }}"{% if fb.installed == v %} checked{% endif %}> {{ t }}</label>{% endfor %}
+    </fieldset>
+
+    <fieldset><legend>Which shop?</legend>
+      <p class="inst-disc">{{ icon('info', 16) }} <span>{{ disclaimer }}</span></p>
+      {% for x in shops %}
+      <label class="radio shop"><input type="radio" name="place_id" value="{{ x.id }}"{% if fb.place_id == x.id %} checked{% endif %}>
+        <span><b>{{ x.name }}</b><br><span class="muted">{{ x.address }}</span> · <a href="{{ x.url }}" target="_blank" rel="noopener">map</a></span></label>{% endfor %}
+      <label class="radio shop"><input type="radio" name="place_id" value="other"{% if fb.other_shop %} checked{% endif %}>
+        <span>Another shop: <input type="text" name="other_shop" value="{{ fb.other_shop or '' }}" placeholder="Shop name and city" maxlength="200"></span></label>
+      {% if shops %}<p class="gmaps-attr">Google Maps</p>{% endif %}
+    </fieldset>
+
+    <fieldset><legend>How was the shop?</legend>
+      <div class="stars">{% for n in range(5, 0, -1) %}<input type="radio" id="r{{ n }}" name="rating" value="{{ n }}"{% if fb.rating == n %} checked{% endif %}><label for="r{{ n }}" title="{{ n }} star{{ 's' if n > 1 }}">★</label>{% endfor %}</div>
+      <p class="muted" style="margin:10px 0 4px">Would you recommend them to other Dream Auto Builders customers?</p>
+      <label class="radio"><input type="radio" name="recommend" value="yes"{% if fb.recommend == true %} checked{% endif %}> Yes</label>
+      <label class="radio"><input type="radio" name="recommend" value="no"{% if fb.recommend == false %} checked{% endif %}> No</label>
+      <label class="radio" style="display:block;margin-top:10px">Anything else? <textarea name="comment" rows="3" maxlength="2000">{{ fb.comment or '' }}</textarea></label>
+    </fieldset>
+    <button class="btn btn-red" type="submit">Send</button>
+  </form>
+</div>
+{% endblock %}

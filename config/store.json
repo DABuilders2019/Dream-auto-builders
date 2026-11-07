@@ -16,5 +16,24 @@
   "interactive_garage": {
     "url": "https://www.interactivegarage.com/dreamauto/",
     "resizer_script": "https://www.interactivegarage.com/scripts/iframeResizer.min.js"
+  },
+  "installers": {
+    "_comment": "Nearby repair shops from Google Maps (needs GOOGLE_MAPS_API_KEY). categories: top-level categories whose parts usually need a shop. survey_days: days after shipping to email the install survey.",
+    "categories": [
+      "suspension",
+      "exhaust",
+      "brakes",
+      "tires",
+      "wheels",
+      "intake",
+      "engine",
+      "drivetrain",
+      "exterior",
+      "lighting",
+      "performance"
+    ],
+    "count": 5,
+    "survey_days": 10,
+    "disclaimer": "These shops are independent businesses found on Google Maps. They are not affiliated with, endorsed by, or partners of Dream Auto Builders. Please confirm pricing, availability and that they install this type of part before booking."
   }
 }

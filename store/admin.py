@@ -666,3 +666,18 @@ def sema_log(request: Request):
     if not job or not pathlib.Path(job["log"]).exists():
         return web.not_found(request)
     return PlainTextResponse(pathlib.Path(job["log"]).read_text(errors="replace"), headers={"Cache-Control": "no-store"})
+
+
+# ------------------------------------------------------------------ installer leads
+
+@router.get("/installers", response_class=HTMLResponse)
+def installer_leads(request: Request):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import installers
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        rows, others, stats = installers.leads(conn)
+    return _page(request, "admin_installers.html", title="Installer leads", section="installers", rows=rows, others=others,
+                 stats=stats, configured=installers.configured(), cfg=installers.cfg())

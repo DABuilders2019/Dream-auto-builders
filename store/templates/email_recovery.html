@@ -1,0 +1,22 @@
+<!doctype html>
+<html><body style="margin:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#111113">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0"><tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-top:4px solid #a8131a">
+  <tr><td style="padding:22px 28px 6px"><img src="{{ site }}/static/img/logo-word.png" alt="Dream Auto Builders" width="171" height="44"></td></tr>
+  <tr><td style="padding:10px 28px">
+    <h1 style="font-size:22px;margin:8px 0">You left something in your cart{% if first %}, {{ first }}{% endif %}</h1>
+    <p style="font-size:15px;line-height:1.5;margin:0 0 8px">Your parts are still waiting. Pick up right where you left off: the link works for 30 days.</p>
+  </td></tr>
+  <tr><td style="padding:6px 28px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;border-collapse:collapse">
+      {% for it in o['items'] %}<tr><td style="padding:8px 0;border-bottom:1px solid #e1e1e5">{{ it.qty }} × <b>{{ it.brand_name }}</b> {{ it.title }}<br><span style="color:#5e5e66">Part # {{ it.part_number }}</span></td>
+        <td align="right" style="padding:8px 0;border-bottom:1px solid #e1e1e5;white-space:nowrap">{{ money(it.line_total) }}</td></tr>{% endfor %}
+    </table>
+  </td></tr>
+  <tr><td style="padding:18px 28px 8px"><a href="{{ url }}" style="background:#a8131a;color:#fff;text-decoration:none;padding:12px 20px;font-weight:bold;display:inline-block">Finish my order</a></td></tr>
+  <tr><td style="padding:8px 28px 24px;font-size:13px;color:#5e5e66;line-height:1.5">Questions about fitment? Just reply to this email.<br>
+    You're getting this because you asked for updates from Dream Auto Builders at checkout. Don't want these reminders? Reply "unsubscribe" and we'll stop.</td></tr>
+</table>
+<p style="font-size:12px;color:#5e5e66">Dream Auto Builders</p>
+</td></tr></table>
+</body></html>

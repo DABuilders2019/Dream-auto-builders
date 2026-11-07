@@ -8,7 +8,7 @@
 <section class="promo" aria-roledescription="carousel" aria-label="Featured products and deals"><div class="wrap">
   <div class="pviewport" id="pView">
     {% for sl in slides %}
-    <a class="slide light{% if loop.first %} on{% endif %}" href="{{ sl.href }}" aria-roledescription="slide" aria-label="{{ loop.index }} of {{ slides|length }}: {{ sl.title }} {{ sl.title_red }}"{% if not loop.first %} aria-hidden="true" tabindex="-1"{% endif %}>
+    <a class="slide light{% if loop.first %} on{% endif %}" data-track="home slide: {{ sl.kicker }}" href="{{ sl.href }}" aria-roledescription="slide" aria-label="{{ loop.index }} of {{ slides|length }}: {{ sl.title }} {{ sl.title_red }}"{% if not loop.first %} aria-hidden="true" tabindex="-1"{% endif %}>
       <div class="sl-copy"><span class="sl-kicker">{{ sl.kicker }}</span><h2>{{ sl.title }}<br><em>{{ sl.title_red }}</em></h2><p>{{ sl.text }}</p><span class="sl-cta">{{ sl.cta }} {{ icon('chevR', 18, 2.6) }}</span></div>
       <div class="sl-art">{% if sl.image %}<div class="sl-img"><img src="{{ sl.image }}" alt="" {% if not loop.first %}loading="lazy"{% endif %}></div>{% endif %}</div>
     </a>
@@ -28,7 +28,7 @@
 <section class="band"><div class="wrap">{{ shopby('Featured Categories') }}
   <div class="catcards">
     {% for c in cat_cards %}
-    <article class="ccard"><a class="cimg" href="/c/{{ c.id }}" aria-hidden="true" tabindex="-1">{% if c.image %}<img src="{{ c.image }}" alt="" loading="lazy">{% else %}{{ icon('box', 120, 1.1) }}{% endif %}</a>
+    <article class="ccard" data-track="home category: {{ c.name }}"><a class="cimg" href="/c/{{ c.id }}" aria-hidden="true" tabindex="-1">{% if c.image %}<img src="{{ c.image }}" alt="" loading="lazy">{% else %}{{ icon('box', 120, 1.1) }}{% endif %}</a>
       <div><h3><a href="/c/{{ c.id }}">{{ c.name }}</a></h3>
         {% if not c.count %}<small>{% if active %}No parts listed for your {{ active|vname }} yet{% else %}Brands coming soon{% endif %}</small>
         {% elif active %}<small class="num">{{ c.count|num }} part{{ 's' if c.count != 1 }} for your {{ active|vname }}</small>{% endif %}
@@ -45,10 +45,13 @@
 {% if brands %}
 <section class="band" aria-roledescription="carousel" aria-label="Shop by brand"><div class="wrap">{{ shopby('Featured Brands') }}
   {% set rotate = brands|length > 6 %}
-  {% if rotate %}<div class="barrows"><button type="button" id="bPrev" aria-label="Previous brands">{{ icon('chevL', 22, 2.4) }}</button><button type="button" id="bNext" aria-label="Next brands">{{ icon('chevR', 22, 2.4) }}</button></div>{% endif %}
+  <div class="bwrap">
+  {% if rotate %}<button type="button" class="bside prev" data-track="home brands: previous" id="bPrev" aria-label="Previous brands">{{ icon('chevL', 30, 2.4) }}</button>{% endif %}
   <div class="bviewport" id="bView"><div class="btrack{% if not rotate %} static{% endif %}" id="bTrack">
-    {% for b in brands %}<a class="btile" href="/brand/{{ b.id }}" aria-label="Shop {{ b.name }}">{% if b.logo %}<img src="{{ b.logo }}" alt="{{ b.name }}" loading="lazy">{% else %}<span class="wm">{{ b.name }}</span>{% endif %}</a>{% endfor %}
-  </div></div></div></section>
+    {% for b in brands %}<a class="btile" data-track="home brand: {{ b.name }}" href="/brand/{{ b.id }}" aria-label="Shop {{ b.name }}">{% if b.logo %}<img src="{{ b.logo }}" alt="{{ b.name }}" loading="lazy">{% else %}<span class="wm">{{ b.name }}</span>{% endif %}</a>{% endfor %}
+  </div></div>
+  {% if rotate %}<button type="button" class="bside next" data-track="home brands: next" id="bNext" aria-label="Next brands">{{ icon('chevR', 30, 2.4) }}</button>{% endif %}
+  </div></div></section>
 {% endif %}
 
 <section class="blk" style="padding:36px 0 40px"><div class="wrap"><div class="props">

@@ -95,7 +95,8 @@
     "readylift": "readylift.png",
     "bbkperformanceparts": "bbk-2.png",
     "oraclelighting": "oracle.png",
-    "rubiconexpress": "rubiconexpress.png"
+    "rubiconexpress": "rubiconexpress.png",
+    "coker": "coker.png"
   },
   "free_shipping_over": 149,
   "props": [
@@ -105,9 +106,9 @@
       "text": "Your satisfaction is our priority. If you're not completely happy, we'll make it right."
     },
     {
-      "icon": "globe",
-      "title": "Worldwide delivery",
-      "text": "We proudly offer fast and reliable worldwide delivery to get your order wherever you are."
+      "icon": "truck",
+      "title": "Domestic shipping",
+      "text": "We proudly offer fast and reliable shipping to addresses across the United States."
     },
     {
       "icon": "thumb",

@@ -56,3 +56,14 @@ before launch day.
       Privacy Policy (https://policies.google.com/privacy), as Google requires for the shop lists (docs/INSTALLERS.md)
 - [ ] Attorney review of the installer disclaimer wording (config/store.json → installers.disclaimer)
 - [ ] Set a monthly budget alert on the Google Cloud billing account
+- [ ] Contact Google Maps Platform support (console.cloud.google.com → Support, or the Maps Platform sales/contact form)
+      to confirm the shop list meets their terms: Places API (New) Text Search with name/address/map link only,
+      shown without a map with the "Google Maps" text attribution, only place IDs stored, shown in order emails
+
+## Analytics and cart reminders
+- [ ] Privacy Policy: say the site uses a session cookie to count visits and clicks anonymously (kept 180 days,
+      Do Not Track / Global Privacy Control respected) and that shoppers who opt in at checkout may get a cart reminder email
+- [ ] Stripe dashboard → Developers → Webhooks: the endpoint must send checkout.session.expired (as well as
+      checkout.session.completed, async_payment_succeeded and async_payment_failed) for cart reminders to work
+- [ ] Add the business's postal address to the cart reminder email footer (CAN-SPAM requires it in marketing emails)
+- [ ] Decide on a promo code for cart reminders (config/store.json → cart_recovery.allow_promotion_codes, codes made in Stripe)

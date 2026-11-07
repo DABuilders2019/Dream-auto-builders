@@ -150,11 +150,13 @@ def render(request, conn, searcher, name, status_code=200, **ctx):
     _, _, count, subtotal = cart_summary(conn, searcher, request)
     top = cached(request, "top_cats", lambda: _top_categories(conn, searcher))
     years = _state(request).get_picker().years()
+    nav_brands = cached(request, "nav_brands", lambda: sorted(
+        sorted(Q.brands_with_counts(conn), key=lambda b: -b["count"])[:16], key=lambda b: b["name"].lower()))
     here = request.url.path + (("?" + request.url.query) if request.url.query else "")
     from .orders import store_config
     builder = bool((store_config().get("interactive_garage") or {}).get("url"))
     base = dict(request=request, garage=garage, active=active, cart_count=count, cart_subtotal=subtotal, garage_builder=builder,
-                years=years, footer_cats=top[:6], here=here, q=ctx.pop("q", ""), money=money)
+                years=years, footer_cats=top[:6], nav_brands=nav_brands, here=here, q=ctx.pop("q", ""), money=money)
     resp = templates.TemplateResponse(request, name, {**base, **ctx}, status_code=status_code)
     if is_preview():
         resp.headers["X-Robots-Tag"] = "noindex, nofollow"
@@ -478,6 +480,8 @@ def cart_add(request: Request, product_id: int = Form(...), qty: int = Form(1)):
         cart[product_id] = min(MAX_QTY, cart.get(product_id, 0) + max(1, min(qty, MAX_QTY)))
         if len(cart) <= 60:
             save_cart(request, cart)
+        from . import tracking
+        tracking.record(request, "cart_add", product_id)
     if _wants_json(request):
         return _cart_json(request) if ok else JSONResponse({"error": "That part isn't available."}, status_code=404)
     return RedirectResponse("/cart", status_code=303)

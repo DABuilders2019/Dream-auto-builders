@@ -35,5 +35,12 @@
     "count": 5,
     "survey_days": 10,
     "disclaimer": "These shops are independent businesses found on Google Maps. They are not affiliated with, endorsed by, or partners of Dream Auto Builders. Please confirm pricing, availability and that they install this type of part before booking."
+  },
+  "cart_recovery": {
+    "_comment": "Abandoned checkout recovery through Stripe. hours: how long the Stripe payment page stays open (1-23) before it counts as abandoned. email: send the 'You left something in your cart' email to shoppers who ticked Stripe's marketing-email box. allow_promotion_codes: let the reopened checkout accept promotion codes created in Stripe.",
+    "enabled": true,
+    "hours": 3,
+    "email": true,
+    "allow_promotion_codes": false
   }
 }

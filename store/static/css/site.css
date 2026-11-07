@@ -152,9 +152,18 @@ section.blk{padding:40px 0}
 .ccard .vm:hover{color:var(--red)}
 .ccard small{display:block;color:var(--muted);font-size:12.5px;margin-bottom:8px}
 .bhead{position:relative}
-.barrows{display:flex;justify-content:flex-end;gap:12px;margin:-12px 0 14px}
-.barrows button{width:46px;height:46px;border-radius:50%;background:#fff;border:1px solid #cfcfd5;display:grid;place-items:center;color:#111}
-.barrows button:hover{border-color:#111}
+.bwrap{position:relative}
+/* arrows over the left and right edges of the brand rail: invisible until the pointer is over that side */
+.bside{position:absolute;top:0;bottom:0;width:90px;z-index:3;border:0;display:grid;place-items:center;color:#111;cursor:pointer;
+  opacity:0;transition:opacity .18s ease;background:transparent;padding:0}
+.bside svg{width:52px;height:52px;padding:11px;border-radius:50%;background:rgba(255,255,255,.72);border:1px solid rgba(17,17,19,.18);
+  box-shadow:0 4px 14px rgba(0,0,0,.12);backdrop-filter:blur(2px)}
+.bside:hover svg{background:rgba(255,255,255,.9)}
+.bside.prev{left:0}
+.bside.next{right:0}
+.bside:hover,.bside:focus-visible{opacity:1}
+.bside:focus-visible{outline:2px solid var(--red);outline-offset:-2px}
+@media (hover:none),(max-width:720px){ .bside{display:none} }
 .bviewport{overflow:hidden}
 .btrack{display:flex;gap:10px;will-change:transform}
 .btile{flex:0 0 calc((100% - 50px)/6);min-width:0;overflow:hidden;background:#fff;height:190px;display:grid;place-items:center;padding:20px;text-align:center}
@@ -554,3 +563,24 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .stars label{font-size:30px;color:#d4d4d8;cursor:pointer;line-height:1}
 .stars input:checked~label,.stars label:hover,.stars label:hover~label{color:#e8a200}
 .stars input:focus-visible+label{outline:2px solid var(--red);outline-offset:2px}
+
+/* header Brands menu */
+.hmenu{position:relative}
+.hbtn .lbl small svg{vertical-align:-1px}
+.hdrop{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);width:440px;background:#fff;border:1px solid var(--line);
+  border-radius:var(--radius);box-shadow:0 14px 34px rgba(0,0,0,.16);padding:14px 16px 12px;z-index:90;display:none}
+.hdrop::before{content:"";position:absolute;left:0;right:0;top:-8px;height:8px}
+.hmenu.open .hdrop{display:block}
+.hdrop-h{font-family:var(--display);text-transform:uppercase;font-weight:800;font-size:15px;letter-spacing:.04em;color:var(--red);margin:0 0 8px}
+.hdrop-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px}
+.hdrop-grid a{padding:6px 8px;border-radius:4px;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdrop-grid a:hover,.hdrop-grid a:focus-visible{background:var(--panel);color:var(--red)}
+.hdrop-all{display:block;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-weight:700;color:var(--red)}
+/* admin analytics */
+.rangepick{display:flex;gap:4px}.rangepick a{padding:6px 10px;border:1px solid var(--line);border-radius:var(--radius);font-size:13.5px}
+.rangepick a.on{background:#111;color:#fff;border-color:#111}
+.funnel{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+.funnel>div{background:var(--panel);border-radius:var(--radius);padding:12px 14px;display:grid;gap:2px}
+.funnel b{font-size:26px}.funnel small{font-size:12px}
+.agrid2{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+@media (max-width:900px){ .funnel{grid-template-columns:repeat(2,1fr)} .agrid2{grid-template-columns:1fr} }

@@ -6,6 +6,7 @@ webhook endpoint added in the Stripe dashboard for <site>/stripe/webhook), SITE_
 the address used in Stripe and email links, e.g. https://dreamautobuilders.com).
 """
 import os
+import time
 from urllib.parse import urlencode
 
 import stripe
@@ -13,7 +14,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import installers, mailer, web
+from . import installers, mailer, tracking, web
 from . import orders as O
 
 router = APIRouter()
@@ -23,6 +24,14 @@ WEBHOOK_EVENTS = ("checkout.session.completed", "checkout.session.async_payment_
 
 def stripe_key():
     return os.environ.get("STRIPE_SECRET_KEY", "")
+
+
+def recovery_cfg(cfg=None):
+    """Abandoned checkout recovery (config/store.json "cart_recovery")."""
+    r = (cfg or O.store_config()).get("cart_recovery") or {}
+    hours = max(1, min(23, int(r.get("hours") or 3)))      # Stripe: a checkout page lasts 30 minutes to 24 hours
+    return {"enabled": r.get("enabled", True), "hours": hours, "email": r.get("email", True),
+            "allow_promotion_codes": bool(r.get("allow_promotion_codes", False))}
 
 
 def checkout_ready():
@@ -73,6 +82,11 @@ def checkout(request: Request, ship_state: str = Form("")):
         aid = web.active_id(request)
         vehicle = next((v["label"] for v in web.garage_vehicles(conn, request) if v["id"] == aid), None)
         order_id, number = O.create(conn, lines, vehicle, note=f"shipping to {state}" if state else None)
+        vid = request.session.get("v") if tracking._ok_to_track(request) else None
+        if vid:
+            conn.execute("UPDATE orders SET visitor = %s WHERE id = %s", (vid, order_id))
+        tracking.record(request, "checkout", number, conn=conn)
+        rec = recovery_cfg(cfg)
 
         base = site_url(request)
         ship = O.shipping_for(subtotal, cfg)
@@ -97,7 +111,10 @@ def checkout(request: Request, ship_state: str = Form("")):
             "phone_number_collection": {"enabled": True},
             "automatic_tax": {"enabled": bool(cfg.get("automatic_tax"))},
             "client_reference_id": number,
-            "metadata": {"order_id": str(order_id), "order_number": number},
+            "metadata": {"order_id": str(order_id), "order_number": number, **({"visitor": vid} if vid else {})},
+            **({"consent_collection": {"promotions": "auto"},
+                "after_expiration": {"recovery": {"enabled": True, "allow_promotion_codes": rec["allow_promotion_codes"]}},
+                "expires_at": int(time.time()) + rec["hours"] * 3600} if rec["enabled"] else {}),
             "payment_intent_data": {"metadata": {"order_id": str(order_id), "order_number": number},
                                     "description": f"Dream Auto Builders order {number}"},
             "success_url": f"{base}/order/{number}?session_id={{CHECKOUT_SESSION_ID}}",
@@ -128,9 +145,10 @@ def order_page(request: Request, number: str, session_id: str = ""):
             # The webhook may not have arrived yet: ask Stripe directly.
             try:
                 sess = stripe.checkout.Session.retrieve(o["stripe_session_id"], api_key=stripe_key())
-                o2, new = O.complete(conn, sess.to_dict() if hasattr(sess, "to_dict") else dict(sess))
+                sd = sess.to_dict() if hasattr(sess, "to_dict") else dict(sess)
+                o2, new = O.complete(conn, sd)
                 if new:
-                    send_order_emails(request, o2)
+                    on_paid(request, conn, o2, sd)
                 o = o2 or o
             except stripe.StripeError:
                 pass
@@ -183,14 +201,63 @@ def handle_event(request, event):
         if kind in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
             o, new = O.complete(conn, s)
             if new:
-                send_order_emails(request, o)
+                on_paid(request, conn, o, s)
+            elif o is None and s.get("payment_status") == "paid":
+                unmatched_payment(request, s)
         else:
             o = O.get(conn, session_id=s.get("id"))
             if o and o["status"] == "pending":
                 if kind == "checkout.session.expired":
                     O.set_status(conn, o["id"], "cancelled", "Checkout abandoned (the Stripe page expired)")
+                    conn.execute("UPDATE orders SET abandoned_at = now() WHERE id = %s", (o["id"],))
+                    abandoned(request, conn, o, s)
                 else:
                     O.set_status(conn, o["id"], "payment_failed", "Payment failed")
+
+
+def on_paid(request, conn, o, s):
+    send_order_emails(request, o)
+    v = (s.get("metadata") or {}).get("visitor") or o.get("visitor")
+    if v:
+        tracking.record(None, "purchase", o["number"], path="/checkout", conn=conn, visitor_id=v)
+    conn.execute("UPDATE checkout_recovery SET recovered_at = now() WHERE order_id = %s AND recovered_at IS NULL", (o["id"],))
+
+
+def unmatched_payment(request, s):
+    """A paid checkout we can't tie to an order: tell the owner rather than lose it."""
+    to = mailer.notify_address()
+    cd = s.get("customer_details") or {}
+    if to:
+        mailer.send(to, "Payment received that needs checking", f"Stripe checkout {s.get('id')} was paid "
+                    f"({(s.get('amount_total') or 0) / 100:.2f} {(s.get('currency') or 'usd').upper()}) by {cd.get('email')}, "
+                    "but no matching order was found. Look it up in the Stripe dashboard.")
+
+
+def abandoned(request, conn, o, s):
+    """Save the abandoned checkout and, if the shopper agreed to marketing emails, email the link back to it."""
+    cd = s.get("customer_details") or {}
+    rec = ((s.get("after_expiration") or {}).get("recovery") or {})
+    consent = (s.get("consent") or {}).get("promotions")
+    import datetime as _dt
+    exp = _dt.datetime.fromtimestamp(rec["expires_at"], _dt.timezone.utc) if rec.get("expires_at") else None
+    conn.execute("""INSERT INTO checkout_recovery (order_id, email, name, consent, recovery_url, recovery_expires)
+                    VALUES (%s, %s, %s, %s, %s, %s) ON CONFLICT (order_id) DO UPDATE SET email = EXCLUDED.email,
+                    consent = EXCLUDED.consent, recovery_url = EXCLUDED.recovery_url, recovery_expires = EXCLUDED.recovery_expires""",
+                 (o["id"], cd.get("email"), cd.get("name"), consent, rec.get("url"), exp))
+    if not (cd.get("email") and rec.get("url") and consent == "opt_in" and recovery_cfg()["email"] and mailer.configured()):
+        return
+    first = (cd.get("name") or "").split(" ")[0]
+    items = "\n".join(f"- {it['qty']} x {it['brand_name']} {it['title']} ({web.money(it['line_total'])})" for it in o["items"])
+    text = (f"Hi {first},\n\n" if first else "Hi,\n\n") + \
+        "You left some parts in your cart at Dream Auto Builders:\n\n" + items + \
+        f"\n\nPick up where you left off (the link works for 30 days):\n{rec['url']}\n\n" \
+        "Questions about fitment? Just reply to this email.\n\n" \
+        "Don't want these reminders? Reply \"unsubscribe\" and we'll stop.\nDream Auto Builders"
+    html = web.templates.get_template("email_recovery.html").render(o=o, first=first, url=rec["url"],
+                                                                     site=site_url(request), money=web.money)
+    if mailer.send(cd["email"], "You left something in your cart", text, html):
+        conn.execute("UPDATE checkout_recovery SET emailed_at = now() WHERE order_id = %s", (o["id"],))
+        O.add_event(conn, o["id"], f"Cart reminder emailed to {cd['email']}")
 
 
 # ------------------------------------------------------------------ emails

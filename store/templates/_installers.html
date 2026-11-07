@@ -6,7 +6,7 @@
   <ul class="inst-list">
     {% for x in install.shops %}
     <li class="{{ 'on' if install.picked == x.id }}"><div><b>{{ x.name }}</b><span>{{ x.address }}</span></div>
-      <div class="inst-acts"><a class="btn btn-ghost btn-sm" href="{{ x.url }}" target="_blank" rel="noopener">Directions and phone</a>
+      <div class="inst-acts"><a class="btn btn-ghost btn-sm" data-track="installer: directions" href="{{ x.url }}" target="_blank" rel="noopener">Directions and phone</a>
         {% if install.picked == x.id %}<span class="inst-pick">{{ icon('check', 16) }} Your shop</span>
         {% else %}<form method="post" action="/order/{{ o.number }}/installer"><input type="hidden" name="place_id" value="{{ x.id }}">
           <button class="btn btn-ghost btn-sm" type="submit">I'll use this shop</button></form>{% endif %}</div></li>

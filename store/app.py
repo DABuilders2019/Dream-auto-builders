@@ -46,7 +46,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import admin, builds, checkout, installers, sema_schedule, turn14_schedule
+from . import admin, builds, checkout, installers, sema_schedule, tracking, turn14_schedule
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -134,10 +134,12 @@ def create_app(dsn=None):
         stop_t14 = turn14_schedule.launch(state)
         stop_sema = sema_schedule.launch(state)
         stop_surveys = installers.launch(state)
+        stop_tracking = tracking.cleanup_loop(state)
         yield
         stop_t14.set()
         stop_sema.set()
         stop_surveys.set()
+        stop_tracking.set()
         state.pool.close()
 
     app = FastAPI(title="Dream Auto Builders", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)
@@ -147,6 +149,7 @@ def create_app(dsn=None):
     if not secret:
         logging.getLogger("store").warning("SECRET_KEY is not set: using a temporary key, so carts reset when the server restarts")
         secret = secrets.token_urlsafe(32)
+    tracking.install(app)            # page views (inside the session middleware, for the visitor id)
     web.install_site_gate(app)       # (inside the session middleware below, so it can read the cookie)
     app.add_middleware(SessionMiddleware, secret_key=secret, session_cookie="dab", max_age=90 * 24 * 3600,
                        same_site="lax", https_only=os.environ.get("COOKIE_SECURE") == "1")
@@ -203,6 +206,7 @@ def create_app(dsn=None):
     app.include_router(admin.router)
     app.include_router(checkout.router)
     app.include_router(installers.router)
+    app.include_router(tracking.router)
     app.include_router(builds.router)
     web.install(app)
     return app

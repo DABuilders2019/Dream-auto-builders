@@ -132,9 +132,12 @@ def complete(conn, s, cfg=None):
     cfg = cfg or store_config()
     meta = s.get("metadata") or {}
     o = get(conn, order_id=int(meta["order_id"])) if meta.get("order_id") else get(conn, session_id=s.get("id"))
+    if not o and s.get("client_reference_id"):      # a reopened (recovered) checkout may carry only the order number
+        o = get(conn, number=s["client_reference_id"])
     if not o:
         return None, False
-    if o["status"] != "pending":
+    revivable = o["status"] == "cancelled" and o.get("abandoned_at") is not None
+    if o["status"] != "pending" and not revivable:
         return o, False
     paid = s.get("payment_status") in ("paid", "no_payment_required")
     if not paid:
@@ -156,12 +159,16 @@ def complete(conn, s, cfg=None):
         cur = conn.execute("""UPDATE orders SET status = %s, hold_reason = %s, payment_intent = %s, email = %s, name = %s,
                                   phone = %s, ship_address = %s, shipping = %s, tax = %s, total = %s, currency = %s,
                                   paid_at = now(), updated_at = now()
-                              WHERE id = %s AND status = 'pending'""",
+                              WHERE id = %s AND (status = 'pending' OR (status = 'cancelled' AND abandoned_at IS NOT NULL))""",
                            (status, reason, s.get("payment_intent"), cd.get("email"), name or cd.get("name"), cd.get("phone"),
                             Jsonb({**addr, "name": name}), _cents(ship) if ship is not None else None,
                             _cents(totals.get("amount_tax")), _cents(s.get("amount_total")), s.get("currency") or "usd", o["id"]))
         if cur.rowcount == 0:      # another request recorded it first
             return get(conn, order_id=o["id"]), False
+        if revivable:
+            conn.execute("UPDATE orders SET stripe_session_id = %s WHERE id = %s AND stripe_session_id IS DISTINCT FROM %s",
+                         (s.get("id"), o["id"], s.get("id")))
+            add_event(conn, o["id"], "Shopper came back from the cart reminder and paid")
         add_event(conn, o["id"], f"Paid {_cents(s.get('amount_total')):.2f} {(s.get('currency') or 'usd').upper()}"
                   + (f". ON HOLD: {reason}" if reason else ""))
     return get(conn, order_id=o["id"]), True

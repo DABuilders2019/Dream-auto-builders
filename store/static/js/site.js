@@ -121,6 +121,30 @@
     });
     sel.addEventListener('blur', function () { setTimeout(close, 120); });
   }
+  /* ---------- click tracking: anything marked data-track="..." (see store/tracking.py) ---------- */
+  var noTrack = navigator.doNotTrack === '1' || navigator.globalPrivacyControl === true;
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest && e.target.closest('[data-track]');
+    if (!el || noTrack) return;
+    var body = JSON.stringify({ t: el.getAttribute('data-track').slice(0, 120), p: location.pathname });
+    try {
+      if (navigator.sendBeacon) navigator.sendBeacon('/api/t', new Blob([body], { type: 'application/json' }));
+      else fetch('/api/t', { method: 'POST', body: body, headers: { 'Content-Type': 'application/json' }, keepalive: true });
+    } catch (err) { /* never block the click */ }
+  }, true);
+
+  /* ---------- header Brands menu: opens on hover (computers); a tap goes to the brands page ---------- */
+  var bm = $('#brandMenu');
+  if (bm && finePointer) {
+    var bl = bm.querySelector('.hbtn'), bt = null;
+    var show = function (on) { clearTimeout(bt); bm.classList.toggle('open', on); bl.setAttribute('aria-expanded', String(on)); };
+    bm.addEventListener('mouseenter', function () { show(true); });
+    bm.addEventListener('mouseleave', function () { bt = setTimeout(function () { show(false); }, 150); });
+    bm.addEventListener('focusin', function () { show(true); });
+    bm.addEventListener('focusout', function (e) { if (!bm.contains(e.relatedTarget)) show(false); });
+    bm.addEventListener('keydown', function (e) { if (e.key === 'Escape') { show(false); bl.focus(); } });
+  }
+
   if (finePointer) $$('form[data-ymm] select[data-y], form[data-ymm] select[data-m], form[data-ymm] select[data-d]').forEach(groupedMenu);
 
   /* ---------- search suggestions ---------- */
@@ -288,6 +312,15 @@
     bView.addEventListener('mouseleave', restart);
     bView.addEventListener('focusin', function () { clearInterval(bTimer); });
     bView.addEventListener('focusout', restart);
+    /* phones: swipe left or right (there are no arrows on small screens) */
+    var tx = null, ty = null;
+    bView.addEventListener('touchstart', function (e) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; clearInterval(bTimer); }, { passive: true });
+    bView.addEventListener('touchend', function (e) {
+      if (tx === null) return;
+      var dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty; tx = null;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) { if (dx < 0) next(); else prev(); }
+      restart();
+    });
     restart();
   }
 })();

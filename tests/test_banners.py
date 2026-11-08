@@ -119,15 +119,15 @@ def _logo(draw):
     return buf.getvalue()
 
 
-def test_logo_made_for_the_red_banner():
-    # black lettering next to a coloured shape: the white goes, the lettering turns white, the colour stays
+def test_logo_keeps_its_own_colours():
+    # black lettering next to a yellow shape: the white around it goes, every colour stays as it is
     raw = _logo(lambda d: (d.rectangle((20, 40, 200, 70), fill=(0, 0, 0)), d.rectangle((20, 90, 380, 130), fill=(230, 200, 0))))
-    im = Image.open(io.BytesIO(bn.banner_logo(raw))).convert("RGBA")
-    px = list(im.getdata())
+    png, dark = bn.banner_logo(raw)
+    px = list(Image.open(io.BytesIO(png)).convert("RGBA").getdata())
     assert any(p[3] < 10 for p in px)                                         # background see-through
-    assert not any(p[3] > 200 and max(p[:3]) < 60 for p in px)                 # no black left
-    assert any(p[3] > 200 and p[0] > 200 and p[2] < 60 for p in px)            # yellow kept
-    # black inside a coloured panel (like MagnaFlow's) stays black
-    raw = _logo(lambda d: (d.rectangle((20, 20, 380, 140), fill=(250, 220, 0)), d.rectangle((60, 50, 200, 110), fill=(0, 0, 0))))
-    im = Image.open(io.BytesIO(bn.banner_logo(raw))).convert("RGBA")
-    assert any(p[3] > 200 and max(p[:3]) < 60 for p in im.getdata())
+    assert any(p[3] > 200 and max(p[:3]) < 30 for p in px)                     # black still black
+    assert any(p[3] > 200 and p[0] > 200 and p[2] < 60 for p in px)            # yellow still yellow
+    assert dark                                                                # gets the light outline on the page
+    # a coloured logo isn't marked dark
+    _, dark = bn.banner_logo(_logo(lambda d: d.rectangle((20, 20, 380, 140), fill=(20, 60, 200))))
+    assert not dark

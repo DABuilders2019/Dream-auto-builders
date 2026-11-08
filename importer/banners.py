@@ -161,66 +161,29 @@ def cutout(raw):
 
 
 def banner_logo(raw):
-    """The brand logo made to sit straight on the dark red banner: its white background removed, and black or grey
-    lettering that sits on the background turned white (black inside a coloured shape, like MagnaFlow's, stays).
-    Returns PNG bytes."""
+    """The brand logo for the banner, in its own colours: only the plain white around it is removed (white inside
+    the logo stays). Returns (PNG bytes, dark): dark=True when a lot of black/dark lettering sits on the open
+    background, so the page gives it a soft light outline to stay readable on the red."""
     import numpy as np
     im = Image.open(io.BytesIO(raw))
     im.load()
     im = im.convert("RGBA")
     im.thumbnail((900, 360))
-    rgb, alpha = im.convert("RGB"), np.asarray(im.split()[-1])
-    px = np.asarray(rgb).astype(np.int16)
-    colourful = ((px.max(axis=2) - px.min(axis=2)) > 60) & (alpha > 40)
-    if colourful.sum() < 0.04 * max(1, (alpha > 40).sum()):
-        # a black-and-white logo: print it in white, its darkness becoming the ink (white parts turn see-through)
-        lum = (px * [0.299, 0.587, 0.114]).sum(axis=2)
-        ink = np.clip((235 - lum) / 175, 0, 1) * (alpha / 255)
-        out = np.dstack([np.full(lum.shape + (3,), 255), ink[..., None] * 255]).round().astype(np.uint8)
-        res = Image.fromarray(out, "RGBA")
-        box = res.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
-        res = res.crop(box) if box else res
-        buf = io.BytesIO()
-        res.save(buf, "PNG", optimize=True)
-        return buf.getvalue()
-    if alpha.min() > 250:                                       # no transparency: take the white around it out
-        im, _ = _soft_cut(rgb, (255, 255, 255), tol=26, band=2)
+    if np.asarray(im.split()[-1]).min() > 250:                  # no transparency: take the white around it out
+        im, _ = _soft_cut(im.convert("RGB"), (255, 255, 255), tol=26, band=2)
     a = np.asarray(im).astype(np.int16)
-    rgbv, al = a[..., :3], a[..., 3]
-    lum = (rgbv * [0.299, 0.587, 0.114]).sum(axis=2)
-    sat = rgbv.max(axis=2) - rgbv.min(axis=2)
-    ink = (al > 40) & (lum < 110) & (sat < 45)                  # black / dark grey lettering
-    outside = al < 30
-    near_out = np.asarray(Image.fromarray((outside * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
-    m = Image.fromarray((ink * 255).astype(np.uint8)).copy()    # (copy: a fromarray image can't be flood-filled)
-    h, w = ink.shape
-    recolor = np.zeros_like(ink)
-    ys, xs = np.nonzero(ink & near_out)
-    for y, x in zip(ys[::3], xs[::3]):
-        if m.getpixel((int(x), int(y))) != 255:
-            continue
-        ImageDraw.floodfill(m, (int(x), int(y)), 128)
-        comp = np.asarray(m) == 128
-        if not comp.any():
-            continue
-        cy, cx = np.nonzero(comp)
-        solidity = comp.sum() / max(1, (np.ptp(cy) + 1) * (np.ptp(cx) + 1))
-        big = comp.sum() > 0.45 * (al > 40).sum()
-        if solidity < 0.55 or not big:                          # strokes and letters, not a big black panel
-            recolor |= comp
-        m = Image.fromarray(np.where(comp, 60, np.asarray(m)).astype(np.uint8)).copy()
-    # the soft grey edge pixels around recoloured letters go white too
-    grow = np.asarray(Image.fromarray((recolor * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))) > 0
-    recolor |= grow & (sat < 45) & (lum < 200) & (al > 0)
-    out = a.copy()
-    out[recolor, :3] = 255
-    res = Image.fromarray(out.astype(np.uint8), "RGBA")
-    box = res.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
+    al = a[..., 3]
+    lum = (a[..., :3] * [0.299, 0.587, 0.114]).sum(axis=2)
+    opaque = al > 40
+    near_out = np.asarray(Image.fromarray(((al < 30) * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(7))) > 0
+    sat = a[..., :3].max(axis=2) - a[..., :3].min(axis=2)
+    dark_edge = (opaque & near_out & (lum < 90) & (sat < 60)).sum() / max(1, (opaque & near_out).sum())
+    box = im.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
     if box:
-        res = res.crop(box)
+        im = im.crop(box)
     buf = io.BytesIO()
-    res.save(buf, "PNG", optimize=True)
-    return buf.getvalue()
+    im.save(buf, "PNG", optimize=True)
+    return buf.getvalue(), bool(dark_edge > 0.25)
 
 
 # ------------------------------------------------------------------ choosing
@@ -360,7 +323,7 @@ def default_blurb(conn, brand_id, name):
 
 
 STATIC = pathlib.Path(__file__).resolve().parent.parent / "store" / "static"
-LOGO_VERSION = 1
+LOGO_VERSION = 3
 
 
 def logo_for(conn, brand_id, logo_url, storage=None):
@@ -382,11 +345,11 @@ def logo_for(conn, brand_id, logo_url, storage=None):
             raw = read(storage, r[2])
         else:
             return None
-        png = banner_logo(raw)
+        png, dark = banner_logo(raw)
     except Exception:       # noqa: BLE001 - fall back to the plain logo
         log.warning("banner logo for %s not made", brand_id, exc_info=True)
         return logo_url
-    key = f"banners/{brand_id}-logo-{hashlib.md5(png).hexdigest()[:10]}.png"
+    key = f"banners/{brand_id}-logo{'-d' if dark else ''}-{hashlib.md5(png).hexdigest()[:10]}.png"
     storage.put(key, png, "image/png")
     if r[0] and r[0] != key and hasattr(storage, "root"):
         (storage.root / r[0]).unlink(missing_ok=True)
@@ -404,5 +367,5 @@ def for_page(conn, brand_id, storage=None, logo_url=None):
     name, key, boxed, blurb, parts = r
     storage = storage or get_storage()
     return {"name": name, "image": storage.url(key) if key else None, "boxed": bool(boxed),
-            "logo": logo_for(conn, brand_id, logo_url, storage),
+            "logo": (lg := logo_for(conn, brand_id, logo_url, storage)), "logo_dark": bool(lg and "-logo-d-" in lg),
             "blurb": (blurb or "").strip() or default_blurb(conn, brand_id, name), "parts": parts}

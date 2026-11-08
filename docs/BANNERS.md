@@ -19,8 +19,8 @@ a clean white background, size, detail, contrast and how well the part fills the
 - **Photo:** pick from the brand's best 12, upload a picture (kept until changed), or let the site pick again.
 
 ## Logo and blending (v3)
-- The logo sits straight on the red: its white background is removed and black/grey lettering on the background is
-  turned white (black inside a coloured panel, like MagnaFlow's, stays). Black-and-white logos are printed in white.
+- The logo sits straight on the red in its own colours: only the plain white around it is removed. Logos with a lot
+  of black lettering on the open background get a thin, soft light outline on the page (CSS) so they stay readable.
   Made once per logo (`brands.banner_logo_key`) and again when the logo changes.
 - Photo backgrounds are removed by the photo's own edge colour (white or light grey), with soft de-haloed edges;
   soft grey floor shadows become see-through shadows. On the page the part is blended (multiply) onto the light

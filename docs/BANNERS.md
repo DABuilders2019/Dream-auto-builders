@@ -28,3 +28,6 @@ a clean white background, size, detail, contrast and how well the part fills the
 - Photo backgrounds are removed by the photo's own edge colour (white or light grey), with soft de-haloed edges;
   soft grey floor shadows become see-through shadows. On the page the part is blended (multiply) onto the light
   grey end of the gradient, with a soft floor shadow under it.
+- The white inside dark letters (the holes in O, B, D, A...) is made see-through too, so the banner shows through
+  like it does around the logo. Only small, compact white areas ringed by a letter-sized dark shape are cleared:
+  white lettering on a black or coloured panel and big white parts of a badge (Lucas, Coker's whitewall) stay.

@@ -141,3 +141,21 @@ def test_grey_lettering_darkened_when_asked():
     px = list(Image.open(io.BytesIO(png)).convert("RGBA").getdata())
     assert not any(p[3] > 200 and 100 < p[0] < 200 and abs(p[0] - p[2]) < 10 for p in px)   # no mid grey left
     assert any(p[3] > 200 and p[0] > 200 and p[2] < 60 for p in px)                         # yellow untouched
+
+
+def test_letter_holes_are_cleared_but_white_lettering_kept():
+    # a dark "O" (ring) next to a white word on a black panel
+    def draw(d):
+        d.ellipse((20, 20, 140, 140), fill=(15, 15, 15))
+        d.ellipse((55, 55, 105, 105), fill=(255, 255, 255))          # the O's hole
+        d.rectangle((170, 30, 390, 130), fill=(15, 15, 15))
+        d.rectangle((200, 60, 215, 100), fill=(255, 255, 255))       # white "I" lettering on the panel
+        d.rectangle((240, 60, 300, 75), fill=(255, 255, 255))
+        d.rectangle((240, 60, 255, 100), fill=(255, 255, 255))       # white "F"
+        d.rectangle((240, 78, 285, 90), fill=(255, 255, 255))
+    png, _ = bn.banner_logo(_logo(draw))
+    im = Image.open(io.BytesIO(png)).convert("RGBA")
+    ox, oy = 80 - 20, 80 - 20                                         # the crop starts at the logo's corner
+    assert im.getpixel((ox, oy))[3] < 20                              # hole is see-through
+    assert im.getpixel((247 - 20, 95 - 20))[3] > 200                  # the white F stays white
+    assert im.getpixel((247 - 20, 95 - 20))[0] > 230

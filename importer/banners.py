@@ -171,6 +171,73 @@ def _rel_lum(rgb):
     return c @ np.array([0.2126, 0.7152, 0.0722], np.float32)
 
 
+def _clear_counters(im):
+    """Make the white inside dark letters see-through (the holes in O, B, D, A, P, R...), so the banner shows
+    through them like it does around the logo. A white area inside the logo is cleared only when it looks like a
+    letter's hole: small next to the logo, a compact shape with no hole of its own, and ringed by black or dark grey.
+    White lettering on a coloured or black panel, and big white parts of a badge, are left alone."""
+    import numpy as np
+    a = np.asarray(im).astype(np.float32)
+    al = a[..., 3]
+    rgb = a[..., :3]
+    h, w = al.shape
+    box = Image.fromarray(((al > 40) * 255).astype(np.uint8)).getbbox()
+    total = float((box[2] - box[0]) * (box[3] - box[1])) if box else 1.0      # the logo's size
+    whiteish = (al > 200) & (rgb.min(axis=2) > 225) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 22)
+    work = Image.fromarray((whiteish * 255).astype(np.uint8)).copy()
+    lum = rgb @ np.array([0.299, 0.587, 0.114], np.float32)
+    sat = rgb.max(axis=2) - rgb.min(axis=2)
+    dark = (al > 120) & (lum < 135) & (sat < 60)
+    dark_img = Image.fromarray((dark * 255).astype(np.uint8)).copy()
+    clear = np.zeros(al.shape, bool)
+    ys, xs = np.nonzero(whiteish)
+    for y, x in zip(ys[::7], xs[::7]):
+        if work.getpixel((int(x), int(y))) != 255:
+            continue
+        ImageDraw.floodfill(work, (int(x), int(y)), 128)
+        arr = np.asarray(work)
+        region = arr == 128
+        work = Image.fromarray(np.where(region, 0, arr).astype(np.uint8)).copy()
+        n = int(region.sum())
+        if n < 12 or n > 0.10 * total:
+            continue
+        ry, rx = np.nonzero(region)
+        y0, y1, x0, x1 = ry.min(), ry.max(), rx.min(), rx.max()
+        if y0 == 0 or x0 == 0 or y1 == h - 1 or x1 == w - 1:
+            continue
+        if n / ((y1 - y0 + 1) * (x1 - x0 + 1)) < 0.45:          # thin, branching shapes are letters, not holes
+            continue
+        # a hole of its own (an O or D written in white) means it's lettering
+        sub = region[y0:y1 + 1, x0:x1 + 1]
+        outside = Image.fromarray(np.pad(~sub, 1, constant_values=True).astype(np.uint8) * 255).copy()
+        ImageDraw.floodfill(outside, (0, 0), 128)
+        if (np.asarray(outside) == 255).any():
+            continue
+        ring = np.asarray(Image.fromarray((region * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
+        ring &= ~region
+        if not ring.any() or dark[ring].mean() <= 0.6:
+            continue
+        # the dark shape around it must be letter-sized: white lettering sits on a big black panel instead
+        ry2, rx2 = np.nonzero(ring & dark)
+        dm = dark_img.copy()
+        ImageDraw.floodfill(dm, (int(rx2[0]), int(ry2[0])), 128)
+        if (np.asarray(dm) == 128).sum() > 10 * n:
+            continue
+        clear |= region
+    if not clear.any():
+        return im
+    # soften the edge: the letter's anti-aliased edge pixels next to a cleared hole lose their white
+    grow = np.asarray(Image.fromarray((clear * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))) > 0
+    edge = grow & ~clear & (al > 0)
+    out = a.copy()
+    out[clear, 3] = 0
+    t = np.clip((lum[edge] - 60) / 170, 0, 0.9)                 # how much of the pixel was the white hole
+    out[edge, 3] = al[edge] * (1 - t)
+    keep = edge & (out[..., 3] > 1)
+    out[keep, :3] = np.clip((rgb[keep] - t[keep[edge]][:, None] * 255) / (1 - t[keep[edge]][:, None]), 0, 255)
+    return Image.fromarray(out.round().astype(np.uint8), "RGBA")
+
+
 def banner_logo(raw, darken_grey=False):
     """The brand logo for the banner, in its own colours: only the plain white around it is removed (white inside
     the logo stays). Returns (PNG bytes, outline): outline=True when much of the logo's outer edge has too little
@@ -183,6 +250,7 @@ def banner_logo(raw, darken_grey=False):
     im.thumbnail((900, 360))
     if np.asarray(im.split()[-1]).min() > 250:                  # no transparency: take the white around it out
         im, _ = _soft_cut(im.convert("RGB"), (255, 255, 255), tol=26, band=2)
+    im = _clear_counters(im)                                    # and the white inside letters (O, B, D, A...)
     a = np.asarray(im).astype(np.int16)
     al = a[..., 3]
     sat = a[..., :3].max(axis=2) - a[..., :3].min(axis=2)
@@ -347,7 +415,7 @@ def default_blurb(conn, brand_id, name):
 
 
 STATIC = pathlib.Path(__file__).resolve().parent.parent / "store" / "static"
-LOGO_VERSION = 4
+LOGO_VERSION = 5
 
 
 def _tweak(brand_id, name):

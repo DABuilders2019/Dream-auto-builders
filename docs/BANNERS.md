@@ -31,3 +31,5 @@ a clean white background, size, detail, contrast and how well the part fills the
 - The white inside dark letters (the holes in O, B, D, A...) is made see-through too, so the banner shows through
   like it does around the logo. Only small, compact white areas ringed by a letter-sized dark shape are cleared:
   white lettering on a black or coloured panel and big white parts of a badge (Lucas, Coker's whitewall) stay.
+- **Admin > Logos** shows every brand's banner logo on the red, with **Keep white** / **See-through** for the white
+  inside its letters (saved per brand in `brands.banner_keep_holes`; it wins over `banner_logo_tweaks`).

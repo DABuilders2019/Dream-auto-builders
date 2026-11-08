@@ -436,10 +436,13 @@ def logo_for(conn, brand_id, logo_url, storage=None):
     if not logo_url:
         return None
     storage = storage or get_storage()
-    r = conn.execute("SELECT banner_logo_key, banner_logo_from, logo_key, name FROM brands WHERE id = %s", (brand_id,)).fetchone()
+    r = conn.execute("SELECT banner_logo_key, banner_logo_from, logo_key, name, banner_keep_holes FROM brands WHERE id = %s",
+                     (brand_id,)).fetchone()
     if not r:
         return None
     tw = _tweaks(brand_id, r[3])
+    if r[4] is not None:                    # chosen on Admin > Logos
+        tw = (tw | {"keep_holes"}) if r[4] else (tw - {"keep_holes"})
     src = f"{logo_url}#v{LOGO_VERSION}" + "".join(f"+{x}" for x in sorted(tw))
     if r[0] and r[1] == src:
         return storage.url(r[0])

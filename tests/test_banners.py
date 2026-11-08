@@ -109,6 +109,13 @@ def test_brand_page_and_admin(shop, monkeypatch):
         assert bn.needs_banner(conn) == []
         tc.post("/admin/banner/testbrand/pick", data={"product_id": "auto"})
         assert conn.execute("SELECT banner_src FROM brands WHERE id = 'testbrand'").fetchone()[0] == "auto"
+        # Admin > Logos: every brand listed, white-inside choice saved
+        page = tc.get("/admin/logos").text
+        assert "Banner logos" in page and 'id="b-testbrand"' in page
+        tc.post("/admin/logos/testbrand", data={"keep": "keep"})
+        assert conn.execute("SELECT banner_keep_holes FROM brands WHERE id = 'testbrand'").fetchone()[0] is True
+        tc.post("/admin/logos/testbrand", data={"keep": "clear"})
+        assert conn.execute("SELECT banner_keep_holes FROM brands WHERE id = 'testbrand'").fetchone()[0] is False
 
 
 def _logo(draw):

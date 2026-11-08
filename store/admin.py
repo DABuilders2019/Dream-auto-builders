@@ -774,3 +774,58 @@ def banner_upload(request: Request, brand_id: str, file: UploadFile = File(None)
         except Exception:       # noqa: BLE001
             return _banner_back(brand_id, error="That isn't a picture the site can read (use PNG, JPG or WebP).")
     return _banner_back(brand_id, saved="Your picture is on the banner. It's kept until you choose another.")
+
+
+# ------------------------------------------------------------------ banner logos: check them all on the red
+
+@router.get("/logos", response_class=HTMLResponse)
+def logos_page(request: Request, saved: str = ""):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from importer import banners as bn
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        s = st.get_searcher(conn)
+        logos = Q.brand_logos(conn, s)
+        rows = conn.execute("""SELECT b.id, b.name, b.banner_keep_holes, b.banner_logo_key,
+                                      (SELECT count(*) FROM products p WHERE p.brand_id = b.id AND p.status = 'active' AND p.price IS NOT NULL)
+                               FROM brands b WHERE b.active ORDER BY lower(b.name)""").fetchall()
+    brands = []
+    for bid, name, keep, lkey, parts in rows:
+        if not parts:
+            continue
+        std = "keep_holes" in bn._tweaks(bid, name)
+        brands.append({"id": bid, "name": name, "logo": logos.get(bid), "parts": parts,
+                       "keep": std if keep is None else keep, "chosen": keep is not None,
+                       "outline": bool(lkey and "-logo-d-" in lkey)})
+    return _page(request, "admin_logos.html", title="Banner logos", section="logos", brands=brands, saved=saved)
+
+
+@router.get("/logos/{brand_id}/img")
+def logo_image(request: Request, brand_id: str):
+    """The brand's banner logo (made now if it's missing or out of date)."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    from importer import banners as bn
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        s = st.get_searcher(conn)
+        url = bn.logo_for(conn, brand_id, Q.brand_logos(conn, s).get(brand_id), s.storage)
+    if not url:
+        return web.not_found(request)
+    return RedirectResponse(url, status_code=303, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/logos/{brand_id}")
+def logo_choice(request: Request, brand_id: str, keep: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    value = {"keep": True, "clear": False}.get(keep)
+    with web._state(request).pool.connection() as conn:
+        name = conn.execute("UPDATE brands SET banner_keep_holes = %s WHERE id = %s RETURNING name", (value, brand_id)).fetchone()
+    msg = f"{name[0] if name else brand_id}: " + ("white inside the letters kept." if value else "white inside the letters cleared." if value is False else "back to the standard.")
+    from urllib.parse import quote
+    return RedirectResponse(f"/admin/logos?saved={quote(msg)}#b-{brand_id}", status_code=303)

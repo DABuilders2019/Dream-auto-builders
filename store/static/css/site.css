@@ -726,3 +726,10 @@ form.inline{display:inline}
  .accthero h1{font-size:30px}
  .accthero-ic{display:none}
 }
+.lgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:4px}
+.lcard{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lshow{height:150px;display:flex;align-items:center;justify-content:center;padding:18px;
+ background:linear-gradient(102deg,#3d0609 0%,#7a0d12 40%,#A8131A 100%)}
+.lshow .bb-logo{align-self:center}
+.lmeta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;font-size:14px}
+.lchoice{display:flex;gap:6px;flex:none}

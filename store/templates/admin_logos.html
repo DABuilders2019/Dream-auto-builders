@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  {% if saved %}<div class="notice">{{ icon('checkc', 18) }} <span>{{ saved }}</span></div>{% endif %}
+  <section class="acard">
+    <h2>Banner logos</h2>
+    <p class="muted">Every brand's logo as it shows on its page banner. Check the white inside the letters (the holes in O, B, D, A...):
+      choose <b>Keep white</b> where the logo should keep it, or <b>See-through</b> to show the red through. Logos change within a few seconds of choosing.</p>
+  </section>
+  <div class="lgrid">
+    {% for b in brands %}
+    <div class="lcard" id="b-{{ b.id }}">
+      <div class="lshow">{% if b.logo %}<div class="bb-logo{{ ' dark' if b.outline }}"><img src="/admin/logos/{{ b.id }}/img" alt="{{ b.name }} logo" loading="lazy"></div>{% else %}<span class="muted" style="color:#fff">No logo yet</span>{% endif %}</div>
+      <div class="lmeta">
+        <div><b>{{ b.name }}</b><br><span class="muted">{{ b.parts|num }} parts · <a href="/brand/{{ b.id }}" target="_blank" rel="noopener">brand page</a></span></div>
+        {% if b.logo %}
+        <form method="post" action="/admin/logos/{{ b.id }}" class="lchoice">
+          <button name="keep" value="keep" class="btn btn-sm {{ 'btn-red' if b.keep else 'btn-ghost' }}" type="submit">Keep white</button>
+          <button name="keep" value="clear" class="btn btn-sm {{ 'btn-red' if not b.keep else 'btn-ghost' }}" type="submit">See-through</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</main>
+</body></html>

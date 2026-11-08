@@ -467,7 +467,18 @@ def _tweaks(brand_id, brand_name=None):
     except (OSError, ValueError):
         return set()
     t = {norm(k): set(x for x in v if isinstance(x, str)) for k, v in (cfg.get("banner_logo_tweaks") or {}).items()}
-    return t.get(norm(brand_id), set()) | t.get(norm(brand_name), set())
+    return _match(t, brand_id, brand_name) or set()
+
+
+def _match(table, brand_id, brand_name):
+    """A per-brand setting: by brand id or name, or the longest listed name the brand's name starts with
+    ("carr" for "CARR Running Boards")."""
+    keys = [norm(brand_id), norm(brand_name)]
+    for k in keys:
+        if k and k in table:
+            return table[k]
+    best = max((k2 for k2 in table for k in keys if k and len(k2) >= 4 and k.startswith(k2)), key=len, default=None)
+    return table[best] if best else None
 
 
 def _points(brand_id, brand_name=None):
@@ -477,7 +488,7 @@ def _points(brand_id, brand_name=None):
     except (OSError, ValueError):
         return []
     p = {norm(k): v for k, v in (cfg.get("banner_logo_clear") or {}).items()}
-    return [tuple(x) for x in (p.get(norm(brand_id)) or p.get(norm(brand_name)) or []) if len(x) == 2]
+    return [tuple(x) for x in (_match(p, brand_id, brand_name) or []) if len(x) == 2]
 
 
 def logo_for(conn, brand_id, logo_url, storage=None):

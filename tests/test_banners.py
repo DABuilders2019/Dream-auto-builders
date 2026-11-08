@@ -131,3 +131,11 @@ def test_logo_keeps_its_own_colours():
     # a coloured logo isn't marked dark
     _, dark = bn.banner_logo(_logo(lambda d: d.rectangle((20, 20, 380, 140), fill=(20, 60, 200))))
     assert not dark
+
+
+def test_grey_lettering_darkened_when_asked():
+    raw = _logo(lambda d: (d.rectangle((20, 40, 380, 70), fill=(150, 150, 150)), d.rectangle((20, 90, 380, 130), fill=(230, 200, 0))))
+    png, _ = bn.banner_logo(raw, darken_grey=True)
+    px = list(Image.open(io.BytesIO(png)).convert("RGBA").getdata())
+    assert not any(p[3] > 200 and 100 < p[0] < 200 and abs(p[0] - p[2]) < 10 for p in px)   # no mid grey left
+    assert any(p[3] > 200 and p[0] > 200 and p[2] < 60 for p in px)                         # yellow untouched

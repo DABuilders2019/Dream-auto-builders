@@ -160,10 +160,22 @@ def cutout(raw):
     return buf.getvalue(), boxed
 
 
-def banner_logo(raw):
+BANNER_RED = (138, 15, 21)       # the red behind the logo
+
+
+def _rel_lum(rgb):
+    """WCAG relative luminance of an array of RGB values (0-255)."""
+    import numpy as np
+    c = rgb.astype(np.float32) / 255
+    c = np.where(c <= 0.03928, c / 12.92, ((c + 0.055) / 1.055) ** 2.4)
+    return c @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+
+
+def banner_logo(raw, darken_grey=False):
     """The brand logo for the banner, in its own colours: only the plain white around it is removed (white inside
-    the logo stays). Returns (PNG bytes, dark): dark=True when a lot of black/dark lettering sits on the open
-    background, so the page gives it a soft light outline to stay readable on the red."""
+    the logo stays). Returns (PNG bytes, outline): outline=True when much of the logo's outer edge has too little
+    contrast with the red (black, dark or red lettering), so the page gives it a soft light outline.
+    darken_grey: turn light/mid grey lettering on the open background near-black (set per brand in config)."""
     import numpy as np
     im = Image.open(io.BytesIO(raw))
     im.load()
@@ -173,17 +185,27 @@ def banner_logo(raw):
         im, _ = _soft_cut(im.convert("RGB"), (255, 255, 255), tol=26, band=2)
     a = np.asarray(im).astype(np.int16)
     al = a[..., 3]
+    sat = a[..., :3].max(axis=2) - a[..., :3].min(axis=2)
     lum = (a[..., :3] * [0.299, 0.587, 0.114]).sum(axis=2)
     opaque = al > 40
     near_out = np.asarray(Image.fromarray(((al < 30) * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(7))) > 0
-    sat = a[..., :3].max(axis=2) - a[..., :3].min(axis=2)
-    dark_edge = (opaque & near_out & (lum < 90) & (sat < 60)).sum() / max(1, (opaque & near_out).sum())
+    if darken_grey:
+        grey = opaque & (sat < 40) & (lum > 70) & (lum < 215)
+        a = a.copy()
+        a[grey, :3] = (a[grey, :3] * 0.22).astype(np.int16)    # keeps the shading, just much darker
+        im = Image.fromarray(a.astype(np.uint8), "RGBA")
+    # contrast of the logo's outer edge against the banner red (WCAG ratio; under ~2.2 is hard to read)
+    edge = opaque & near_out
+    red_l = float(_rel_lum(np.array(BANNER_RED)))
+    pl = _rel_lum(a[..., :3][edge])
+    ratio = (np.maximum(pl, red_l) + 0.05) / (np.minimum(pl, red_l) + 0.05)
+    low = float((ratio < 2.2).mean()) if ratio.size else 0.0
     box = im.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
     if box:
         im = im.crop(box)
     buf = io.BytesIO()
     im.save(buf, "PNG", optimize=True)
-    return buf.getvalue(), bool(dark_edge > 0.25)
+    return buf.getvalue(), bool(low > 0.2)
 
 
 # ------------------------------------------------------------------ choosing
@@ -323,7 +345,16 @@ def default_blurb(conn, brand_id, name):
 
 
 STATIC = pathlib.Path(__file__).resolve().parent.parent / "store" / "static"
-LOGO_VERSION = 3
+LOGO_VERSION = 4
+
+
+def _tweak(brand_id, name):
+    """Per-brand banner logo adjustments from config/home.json "banner_logo_tweaks": {"<brand id>": ["darken_grey"]}."""
+    try:
+        cfg = json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "home.json").read_text())
+        return name in (cfg.get("banner_logo_tweaks") or {}).get(brand_id, [])
+    except (OSError, ValueError):
+        return False
 
 
 def logo_for(conn, brand_id, logo_url, storage=None):
@@ -345,7 +376,7 @@ def logo_for(conn, brand_id, logo_url, storage=None):
             raw = read(storage, r[2])
         else:
             return None
-        png, dark = banner_logo(raw)
+        png, dark = banner_logo(raw, darken_grey=_tweak(brand_id, "darken_grey"))
     except Exception:       # noqa: BLE001 - fall back to the plain logo
         log.warning("banner logo for %s not made", brand_id, exc_info=True)
         return logo_url

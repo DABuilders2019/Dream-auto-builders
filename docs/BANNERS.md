@@ -19,8 +19,11 @@ a clean white background, size, detail, contrast and how well the part fills the
 - **Photo:** pick from the brand's best 12, upload a picture (kept until changed), or let the site pick again.
 
 ## Logo and blending (v3)
-- The logo sits straight on the red in its own colours: only the plain white around it is removed. Logos with a lot
-  of black lettering on the open background get a thin, soft light outline on the page (CSS) so they stay readable.
+- The logo sits straight on the red in its own colours: only the plain white around it is removed. Each logo's outer
+  edge is checked for contrast against the red (WCAG ratio); when more than a fifth of it is too close (black, dark
+  or red lettering), it gets a thin, soft light outline on the page (CSS) so it stays readable.
+- Per-brand tweaks in `config/home.json` "banner_logo_tweaks", e.g. "darken_grey" (Mickey Thompson's grey
+  "TIRES & WHEELS" is printed dark on the banner).
   Made once per logo (`brands.banner_logo_key`) and again when the logo changes.
 - Photo backgrounds are removed by the photo's own edge colour (white or light grey), with soft de-haloed edges;
   soft grey floor shadows become see-through shadows. On the page the part is blended (multiply) onto the light

@@ -1,0 +1,60 @@
+"""UPS: sign-in and rate parsing (UPS's servers are faked)."""
+import json
+
+import httpx
+import pytest
+
+from store import ups
+from test_checkout import shop  # noqa: F401  (fixture)
+
+
+@pytest.fixture
+def keys(monkeypatch):
+    monkeypatch.setenv("UPS_CLIENT_ID", "id")
+    monkeypatch.setenv("UPS_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("UPS_ACCOUNT_NUMBER", "a1b2c3")
+    monkeypatch.setenv("UPS_ENV", "test")
+    ups._token.update(value=None, until=0, key=None)
+
+
+def fake(handler):
+    return httpx.Client(transport=httpx.MockTransport(handler))
+
+
+def test_rates(keys):
+    seen = []
+
+    def handler(req):
+        seen.append(req)
+        if req.url.path.endswith("/oauth/token"):
+            assert req.headers["x-merchant-id"] == "A1B2C3"
+            return httpx.Response(200, json={"access_token": "tok", "expires_in": "14399"})
+        body = json.loads(req.content)
+        assert body["RateRequest"]["Request"]["RequestOption"] == "Shop"
+        assert body["RateRequest"]["Shipment"]["Shipper"]["ShipperNumber"] == "A1B2C3"
+        return httpx.Response(200, json={"RateResponse": {"RatedShipment": [
+            {"Service": {"Code": "02"}, "TotalCharges": {"MonetaryValue": "60.10"},
+             "NegotiatedRateCharges": {"TotalCharge": {"MonetaryValue": "41.20"}}, "GuaranteedDelivery": {"BusinessDaysInTransit": "2"}},
+            {"Service": {"Code": "03"}, "TotalCharges": {"MonetaryValue": "21.50"}}]}})
+
+    out = ups.rates("10001", "90210", 12, client=fake(handler))
+    assert [r["service"] for r in out] == ["UPS Ground", "UPS 2nd Day Air"]
+    assert out[1]["price"] == 41.20 and out[1]["negotiated"] and out[1]["days"] == "2"
+    assert seen[0].url.host == "wwwcie.ups.com" and seen[1].url.path == f"/api/rating/{ups.RATING_VERSION}/Shop"
+
+
+def test_refused_keys(keys):
+    def handler(req):
+        return httpx.Response(401, json={"response": {"errors": [{"code": "250002", "message": "Invalid Authentication Information."}]}})
+    with pytest.raises(ups.UPSError, match="Invalid Authentication"):
+        ups.token(client=fake(handler))
+
+
+def test_admin_page(shop, keys, monkeypatch):
+    from test_checkout import shop as _  # noqa: F401
+    c = shop.c
+    c.post("/admin/login", data={"password": "pw"})
+    page = c.get("/admin/ups").text
+    assert "UPS connection" in page and "UPS_CLIENT_ID is set" in page
+    monkeypatch.setattr(ups, "token", lambda client=None: (_ for _ in ()).throw(ups.UPSError("UPS refused the sign-in (HTTP 401): bad")))
+    assert "UPS refused the sign-in" in c.post("/admin/ups/test", data={}).text

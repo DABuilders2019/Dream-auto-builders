@@ -737,3 +737,7 @@ form.inline{display:inline}
 .lmore summary{cursor:pointer;color:var(--muted)}
 .lmore .lup{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
 .lmore input[type=file]{font-size:12.5px;max-width:200px}
+.upsform{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px 14px;align-items:end;margin-top:12px}
+.upsform .btn,.upsform p{grid-column:1/-1;justify-self:start}
+.upsform .boxin{display:flex;gap:6px;align-items:center}.upsform .boxin input{width:60px}
+@media (max-width:720px){.upsform{grid-template-columns:1fr 1fr}}

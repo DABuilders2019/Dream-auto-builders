@@ -876,3 +876,41 @@ def logo_choice(request: Request, brand_id: str, keep: str = Form("")):
     msg = f"{name[0] if name else brand_id}: " + ("white inside the letters kept." if value else "white inside the letters cleared." if value is False else "back to the standard.")
     from urllib.parse import quote
     return RedirectResponse(f"/admin/logos?saved={quote(msg)}#b-{brand_id}", status_code=303)
+
+
+# ------------------------------------------------------------------ UPS: check the connection and see sample rates
+
+@router.get("/ups", response_class=HTMLResponse)
+def ups_page(request: Request):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import ups
+    cfg = ups.settings()
+    return _page(request, "admin_ups.html", title="UPS", section="ups", cfg=cfg, base=ups.base_url(cfg),
+                 has={"id": bool(cfg["client_id"]), "secret": bool(cfg["client_secret"]), "account": bool(cfg["account"])},
+                 form={"from_zip": "", "to_zip": "", "weight": "10", "l": "20", "w": "12", "h": "8"})
+
+
+@router.post("/ups/test", response_class=HTMLResponse)
+def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""), weight: str = Form("10"),
+             l: str = Form("20"), w: str = Form("12"), h: str = Form("8")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import ups
+    cfg = ups.settings()
+    form = {"from_zip": from_zip.strip(), "to_zip": to_zip.strip(), "weight": weight, "l": l, "w": w, "h": h}
+    ctx = dict(title="UPS", section="ups", cfg=cfg, base=ups.base_url(cfg), form=form,
+               has={"id": bool(cfg["client_id"]), "secret": bool(cfg["client_secret"]), "account": bool(cfg["account"])})
+    try:
+        ups.token()
+        ctx["signed_in"] = True
+        if form["from_zip"] and form["to_zip"]:
+            ctx["results"] = ups.rates(form["from_zip"], form["to_zip"], float(weight or 10),
+                                       (float(l or 20), float(w or 12), float(h or 8)))
+    except ups.UPSError as e:
+        ctx["error"] = str(e)
+    except ValueError:
+        ctx["error"] = "Weight and box size must be numbers."
+    return _page(request, "admin_ups.html", **ctx)

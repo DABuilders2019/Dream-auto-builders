@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  <section class="acard">
+    <h2>UPS connection</h2>
+    <p class="muted">Checks your UPS keys and shows sample prices. Nothing here charges anything or makes a shipment.
+      Using UPS's <b>{{ 'live' if cfg.env == 'production' else 'testing' }}</b> server ({{ base }}){% if cfg.env != 'production' %}: its prices are samples, not your real rates{% endif %}.</p>
+    <ul class="ticks" style="color:inherit">
+      <li>{{ icon('checkc' if has.id else 'info', 18) }} UPS_CLIENT_ID {{ 'is set' if has.id else 'is missing' }}</li>
+      <li>{{ icon('checkc' if has.secret else 'info', 18) }} UPS_CLIENT_SECRET {{ 'is set' if has.secret else 'is missing' }}</li>
+      <li>{{ icon('checkc' if has.account else 'info', 18) }} UPS_ACCOUNT_NUMBER {{ 'is set (negotiated rates)' if has.account else 'is missing (standard prices only)' }}</li>
+    </ul>
+    {% if error %}<div class="notice warn" role="alert">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+    {% if signed_in %}<div class="notice">{{ icon('checkc', 18) }} <span>Connected: UPS accepted your keys.</span></div>{% endif %}
+    <form method="post" action="/admin/ups/test" class="upsform">
+      <div class="formrow"><label><b>Ship from ZIP</b></label><input name="from_zip" value="{{ form.from_zip }}" inputmode="numeric" placeholder="your ZIP"></div>
+      <div class="formrow"><label><b>Ship to ZIP</b></label><input name="to_zip" value="{{ form.to_zip }}" inputmode="numeric" placeholder="e.g. 90210"></div>
+      <div class="formrow"><label><b>Weight (lb)</b></label><input name="weight" value="{{ form.weight }}" inputmode="decimal"></div>
+      <div class="formrow"><label><b>Box (in)</b></label><span class="boxin"><input name="l" value="{{ form.l }}" aria-label="Length"> × <input name="w" value="{{ form.w }}" aria-label="Width"> × <input name="h" value="{{ form.h }}" aria-label="Height"></span></div>
+      <button class="btn btn-red" type="submit">Test connection{{ ' and get prices' }}</button>
+      <p class="muted small">Leave the ZIP codes empty to only check that UPS accepts your keys.</p>
+    </form>
+  </section>
+  {% if results is defined %}
+  <section class="acard">
+    <h2>Prices from UPS</h2>
+    {% if results %}
+    <div class="tblwrap"><table class="tbl num">
+      <thead><tr><th>Service</th><th>Price</th><th>Standard price</th><th>Business days</th></tr></thead>
+      <tbody>{% for r in results %}<tr><td>{{ r.service }}</td><td><b>{{ '$%.2f'|format(r.price) }}</b>{% if r.negotiated %} <span class="muted small">your rate</span>{% endif %}</td>
+        <td>{{ '$%.2f'|format(r.list_price) }}</td><td>{{ r.days or '' }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="muted">UPS answered but listed no services for that route.</p>{% endif %}
+  </section>
+  {% endif %}
+</main>
+</body></html>

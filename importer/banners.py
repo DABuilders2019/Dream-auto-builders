@@ -238,7 +238,7 @@ def _clear_counters(im):
     return Image.fromarray(out.round().astype(np.uint8), "RGBA")
 
 
-def banner_logo(raw, darken_grey=False):
+def banner_logo(raw, darken_grey=False, keep_holes=False):
     """The brand logo for the banner, in its own colours: only the plain white around it is removed (white inside
     the logo stays). Returns (PNG bytes, outline): outline=True when much of the logo's outer edge has too little
     contrast with the red (black, dark or red lettering), so the page gives it a soft light outline.
@@ -250,7 +250,8 @@ def banner_logo(raw, darken_grey=False):
     im.thumbnail((900, 360))
     if np.asarray(im.split()[-1]).min() > 250:                  # no transparency: take the white around it out
         im, _ = _soft_cut(im.convert("RGB"), (255, 255, 255), tol=26, band=2)
-    im = _clear_counters(im)                                    # and the white inside letters (O, B, D, A...)
+    if not keep_holes:
+        im = _clear_counters(im)                                # and the white inside letters (O, B, D, A...)
     a = np.asarray(im).astype(np.int16)
     al = a[..., 3]
     sat = a[..., :3].max(axis=2) - a[..., :3].min(axis=2)
@@ -418,13 +419,15 @@ STATIC = pathlib.Path(__file__).resolve().parent.parent / "store" / "static"
 LOGO_VERSION = 5
 
 
-def _tweak(brand_id, name):
-    """Per-brand banner logo adjustments from config/home.json "banner_logo_tweaks": {"<brand id>": ["darken_grey"]}."""
+def _tweaks(brand_id, brand_name=None):
+    """Per-brand banner logo adjustments from config/home.json "banner_logo_tweaks": {"<brand id or name>": [...]}.
+    "darken_grey": grey lettering printed dark; "keep_holes": leave the white inside letters as it is."""
     try:
         cfg = json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "home.json").read_text())
-        return name in (cfg.get("banner_logo_tweaks") or {}).get(brand_id, [])
     except (OSError, ValueError):
-        return False
+        return set()
+    t = {norm(k): set(v) for k, v in (cfg.get("banner_logo_tweaks") or {}).items()}
+    return t.get(norm(brand_id), set()) | t.get(norm(brand_name), set())
 
 
 def logo_for(conn, brand_id, logo_url, storage=None):
@@ -433,10 +436,11 @@ def logo_for(conn, brand_id, logo_url, storage=None):
     if not logo_url:
         return None
     storage = storage or get_storage()
-    src = f"{logo_url}#v{LOGO_VERSION}"
-    r = conn.execute("SELECT banner_logo_key, banner_logo_from, logo_key FROM brands WHERE id = %s", (brand_id,)).fetchone()
+    r = conn.execute("SELECT banner_logo_key, banner_logo_from, logo_key, name FROM brands WHERE id = %s", (brand_id,)).fetchone()
     if not r:
         return None
+    tw = _tweaks(brand_id, r[3])
+    src = f"{logo_url}#v{LOGO_VERSION}" + "".join(f"+{x}" for x in sorted(tw))
     if r[0] and r[1] == src:
         return storage.url(r[0])
     try:
@@ -446,7 +450,7 @@ def logo_for(conn, brand_id, logo_url, storage=None):
             raw = read(storage, r[2])
         else:
             return None
-        png, dark = banner_logo(raw, darken_grey=_tweak(brand_id, "darken_grey"))
+        png, dark = banner_logo(raw, darken_grey="darken_grey" in tw, keep_holes="keep_holes" in tw)
     except Exception:       # noqa: BLE001 - fall back to the plain logo
         log.warning("banner logo for %s not made", brand_id, exc_info=True)
         return logo_url

@@ -107,7 +107,10 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
-    "mickeythompson": ["darken_grey"]
+    "mickeythompson": ["darken_grey"],
+    "coker": ["keep_holes"],
+    "cokertire": ["keep_holes"],
+    "rubiconexpress": ["keep_holes"]
   },
   "free_shipping_over": 149,
   "props": [

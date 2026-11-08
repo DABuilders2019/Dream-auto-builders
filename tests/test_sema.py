@@ -222,6 +222,16 @@ def test_admin_sema_page(conn, sema, tmp_path, monkeypatch):
         assert wanted == {"TSTB", "BKQW"}
         page = tc.get("/admin/sema").text
         assert "Skipped" in page and "picked" in page
+        # tick several brands and load just those
+        assert "Load selected" in page and 'name="pick" value="TSTB"' in page
+        from store import sema_schedule
+        got = []
+        monkeypatch.setattr(sema_schedule, "start", lambda st, codes, title="": got.append((list(codes), title)) or True)
+        r = tc.post("/admin/sema/run/load", data={"pick": ["tstb", "BKQW", "TSTB", "bad code!"]})
+        assert got == [(["TSTB", "BKQW"], "SEMA: load 2 selected brands")] and r.status_code == 200
+        got.clear()
+        tc.post("/admin/sema/run/load", data={"pick": ["!!"]})
+        assert got == []                                    # nothing usable ticked: no job
         # editing the list rematches
         monkeypatch.setattr(ss, "wishlist", lambda c=None: ["RealTruck"])
         tc.post("/admin/sema/list", data={"names": "RealTruck"})

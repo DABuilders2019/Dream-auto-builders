@@ -48,11 +48,18 @@
   <section class="acard">
     <h2>Our brands</h2>
     {% if not tested %}<p class="muted">Run <b>Test connection</b> to match this list to the brands SEMA has approved for you.</p>
-    {% elif to_load %}<p class="muted">Loading the brands not on the site yet takes about <b>{{ to_load|num }}</b> API calls{% if receiver and receiver.APIMaxCount %} of the <b>{{ ((receiver.APIMaxCount or 0) - (receiver.APICount or 0))|num }}</b> left on your plan{% endif %}. Most of it is the vehicle fitment (one call per part that fits specific vehicles); later updates only ask about new parts. Use <b>Load now</b> on single brands to load the most important ones first.</p>{% endif %}
+    {% elif to_load %}<p class="muted">Loading the brands not on the site yet takes about <b>{{ to_load|num }}</b> API calls{% if receiver and receiver.APIMaxCount %} of the <b>{{ ((receiver.APIMaxCount or 0) - (receiver.APICount or 0))|num }}</b> left on your plan{% endif %}. Most of it is the vehicle fitment (one call per part that fits specific vehicles); later updates only ask about new parts. Tick brands and use <b>Load selected</b>, or <b>Load now</b> on one brand, to load the most important ones first.</p>{% endif %}
+    {% if tested %}<form method="post" action="/admin/sema/run/load" id="pickload" class="pickbar">
+      <button class="btn btn-red btn-sm" type="submit" id="pickgo" disabled>Load selected</button>
+      <span class="muted" id="pickn">Tick the brands you want to load, then press <b>Load selected</b>. They load one after another in a single job.</span>
+      <button class="linkbtn" type="button" id="picknew">Tick the ones not on the site yet</button>
+      <button class="linkbtn" type="button" id="pickclear">Clear</button>
+    </form>{% endif %}
     <div class="tblwrap stickyhead"><table class="tbl num">
-      <thead><tr><th>On our list</th><th>SEMA brand</th><th>Status</th><th>Parts</th><th>Fit vehicles</th><th>Photos</th><th>Calls to load</th><th></th></tr></thead>
+      <thead><tr><th class="pickc">{% if tested %}<input type="checkbox" id="pickall" aria-label="Tick every brand" form="pickload">{% endif %}</th><th>On our list</th><th>SEMA brand</th><th>Status</th><th>Parts</th><th>Fit vehicles</th><th>Photos</th><th>Calls to load</th><th></th></tr></thead>
       <tbody>{% for l in listed %}{% set b = l.brand %}
-        <tr><td><b>{{ l.wish }}</b></td>
+        <tr><td class="pickc">{% if b %}<input type="checkbox" name="pick" value="{{ b.aaia }}" form="pickload" data-new="{{ '0' if b.status == 'loaded' and b.sema_updated == b.loaded_updated else '1' }}" data-calls="{{ b.est_calls or 0 }}" aria-label="Load {{ b.name }}"{% if busy %} disabled{% endif %}>{% endif %}</td>
+          <td><b>{{ l.wish }}</b></td>
           <td>{% if b %}{{ b.name }}<br><span class="muted">code {{ b.aaia }}{% if l.picked %} · picked{% endif %}</span>
               {% elif l.skipped %}<span class="muted">Skipped</span>
               {% elif tested %}<form method="post" action="/admin/sema/pick" class="pickf"><input type="hidden" name="wish" value="{{ l.wish }}">
@@ -76,6 +83,32 @@
               {% if l.skipped %}<form method="post" action="/admin/sema/pick"><input type="hidden" name="wish" value="{{ l.wish }}"><input type="hidden" name="aaia" value=""><button class="linkbtn" type="submit">undo</button></form>{% endif %}</td></tr>
       {% endfor %}</tbody></table></div>
   </section>
+
+  {% if tested %}<script>
+  (function(){
+    var boxes=[].slice.call(document.querySelectorAll('input[name=pick]')), go=document.getElementById('pickgo'),
+        n=document.getElementById('pickn'), all=document.getElementById('pickall'), busy={{ 'true' if busy else 'false' }};
+    var hint=n.innerHTML;
+    function upd(){
+      var on=boxes.filter(function(b){return b.checked}), calls=on.reduce(function(t,b){return t+(+b.dataset.calls||0)},0);
+      go.disabled=busy||!on.length;
+      n.innerHTML=busy?'A SEMA job is running. Wait for it to finish to load more.':on.length?('<b>'+on.length+'</b> brand'+(on.length>1?'s':'')+' ticked'+(calls?' · about <b>'+calls.toLocaleString()+'</b> API calls':'')):hint;
+      all.checked=on.length&&on.length===boxes.filter(function(b){return !b.disabled}).length;
+    }
+    function set(f){boxes.forEach(function(b){if(!b.disabled)b.checked=f(b)});upd()}
+    boxes.forEach(function(b){b.addEventListener('change',upd)});
+    all.addEventListener('change',function(){var v=all.checked;set(function(){return v})});
+    document.getElementById('picknew').addEventListener('click',function(){set(function(b){return b.dataset.new==='1'})});
+    document.getElementById('pickclear').addEventListener('click',function(){set(function(){return false})});
+    document.getElementById('pickload').addEventListener('submit',function(e){
+      var k=boxes.filter(function(b){return b.checked}).length;
+      if(!k){e.preventDefault();return}
+      go.disabled=true; go.textContent='Starting…';
+    });
+    if(busy){all.disabled=true}
+    upd();
+  })();
+  </script>{% endif %}
 
   <section class="acard">
     <h2>Edit the brand list</h2>

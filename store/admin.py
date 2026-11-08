@@ -589,7 +589,8 @@ def sema_page(request: Request, error: str = "", started: str = "", saved: str =
 
 
 @router.post("/sema/run/{task}")
-def sema_run(request: Request, task: str, aaia: str = Form(""), refresh: str = Form("")):
+def sema_run(request: Request, task: str, aaia: str = Form(""), refresh: str = Form(""),
+             pick: list[str] = Form([])):
     stop = _guard(request)
     if stop:
         return stop
@@ -604,10 +605,16 @@ def sema_run(request: Request, task: str, aaia: str = Form(""), refresh: str = F
         ok = st.sema.start("SEMA: connection test", [("Connection test", ["test"])])
         label = "Connection test"
     elif task == "load":
-        codes = [aaia.strip().upper()] if aaia.strip() else []
+        picked = list(dict.fromkeys(c.strip().upper() for c in pick if c.strip() and re.fullmatch(r"[A-Za-z0-9]+", c.strip())))
+        if pick and not picked:
+            return _sema_back(error="Tick at least one brand to load.")
+        codes = picked or ([aaia.strip().upper()] if aaia.strip() else [])
         if codes and refresh:
             codes.append("--refresh-fitment")
-        label = f"Load {aaia.strip().upper()}" if codes else "Load the brands on our list"
+        if picked:
+            label = f"Load {len(picked)} selected brand{'s' if len(picked) != 1 else ''}"
+        else:
+            label = f"Load {aaia.strip().upper()}" if codes else "Load the brands on our list"
         ok = sema_schedule.start(st, codes, title="SEMA: " + label.lower())
     else:
         return _sema_back(error="Unknown task.")

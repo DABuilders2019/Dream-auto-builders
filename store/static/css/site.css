@@ -525,6 +525,9 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .pickf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .pickf select{max-width:260px;padding:5px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;font-size:13.5px}
 .linkbtn{background:none;border:0;padding:0;color:var(--red);font:inherit;font-size:13px;text-decoration:underline;cursor:pointer;margin-top:4px}
+.pickbar{display:flex;gap:10px 14px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px 12px;background:#f7f7f7;border:1px solid var(--line);border-radius:var(--radius)}
+.pickbar .linkbtn{margin-top:0}
+.tbl .pickc{width:34px;text-align:center}.tbl .pickc input{width:17px;height:17px;accent-color:var(--red);cursor:pointer}
 .brandlist{width:100%;font:inherit;font-size:14px;padding:10px;border:1px solid var(--line);border-radius:var(--radius)}
 .logoset{margin-top:6px;font-size:13px}.logoset summary{cursor:pointer;color:var(--red)}
 .logoset form{display:grid;gap:6px;margin-top:6px;max-width:320px}.logoset label{display:grid;gap:2px;color:var(--muted)}

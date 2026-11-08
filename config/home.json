@@ -99,7 +99,12 @@
     "coker": "coker.png",
     "gibsonperformance": "gibson.png",
     "gibsonperformanceexhaust": "gibson.png",
-    "gibson": "gibson.png"
+    "gibson": "gibson.png",
+    "blackhorseoffroad": "blackhorse.png",
+    "blackhorse": "blackhorse.png",
+    "lucasoilproducts": "lucas.png",
+    "lucasoil": "lucas.png",
+    "lucas": "lucas.png"
   },
   "free_shipping_over": 149,
   "props": [

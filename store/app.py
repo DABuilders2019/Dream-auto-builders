@@ -46,7 +46,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import admin, builds, checkout, installers, sema_schedule, tracking, turn14_schedule
+from . import admin, banner_schedule, builds, checkout, installers, sema_schedule, tracking, turn14_schedule
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -135,11 +135,13 @@ def create_app(dsn=None):
         stop_sema = sema_schedule.launch(state)
         stop_surveys = installers.launch(state)
         stop_tracking = tracking.cleanup_loop(state)
+        stop_banners = banner_schedule.launch(state)
         yield
         stop_t14.set()
         stop_sema.set()
         stop_surveys.set()
         stop_tracking.set()
+        stop_banners.set()
         state.pool.close()
 
     app = FastAPI(title="Dream Auto Builders", docs_url="/api/docs", redoc_url=None, lifespan=lifespan)

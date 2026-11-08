@@ -65,6 +65,7 @@
                     {% for t in b.cost_types %}<option value="{{ t }}"{% if b.price_from == t %} selected{% endif %}>Retail when given, otherwise {{ price_names.get(t, t) }} + markup</option>{% endfor %}</select></label>
                 <label>Markup on that price (%) <input type="number" name="markup" min="0" max="300" step="0.5" value="{{ '%g'|format(b.markup) if b.markup is not none else '' }}" placeholder="e.g. 35"></label>
                 <button class="btn btn-ghost btn-sm" type="submit">Save pricing</button></form></details>{% endif %}
+            <a class="bthumb" href="/admin/banner/{{ b.id }}">{% if b.banner %}<img src="{{ b.banner }}" alt="">{% endif %}Page banner</a>
             <details class="logoset"><summary>{{ 'Change logo' if b.logo else 'Add logo' }}</summary>
               <form method="post" action="/admin/logo/{{ b.id }}" enctype="multipart/form-data">
                 <label>Logo file (PNG, JPG, WebP) <input type="file" name="file" accept="image/png,image/jpeg,image/webp,image/gif"></label>

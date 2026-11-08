@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  <p class="crumbs" style="padding-top:0"><a href="/admin">Catalog</a> <span>/</span> <span>{{ brand_name }} banner</span></p>
+  {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+  {% if saved %}<div class="notice">{{ icon('checkc', 18) }} <span>{{ saved }}</span></div>{% endif %}
+
+  <section class="acard">
+    <h2>{{ brand_name }} banner</h2>
+    <p class="muted">How the top of the <a href="/brand/{{ brand_id }}" target="_blank" rel="noopener">{{ brand_name }} page</a> looks.
+      {% if src == 'upload' %}The picture is one you uploaded.{% elif src == 'pick' %}The photo is one you picked.{% elif src == 'auto' %}The site picked this photo as the brand's best.{% endif %}</p>
+    {% if banner %}{% set title = brand_name %}{% include "_brand_banner.html" %}{% endif %}
+    {% if not banner or not banner.image %}<p class="muted">No picture yet: it's made as soon as this brand has photos.</p>{% endif %}
+  </section>
+
+  <section class="acard">
+    <h2>Summary</h2>
+    <form method="post" action="/admin/banner/{{ brand_id }}/text">
+      <textarea name="blurb" rows="4" class="brandlist" maxlength="600" placeholder="{{ default_blurb }}">{{ blurb }}</textarea>
+      <p class="muted">Two or three sentences about what the brand makes. Leave it empty to use the standard one (shown greyed out when empty).</p>
+      <button class="btn btn-red btn-sm" type="submit">Save summary</button>
+    </form>
+  </section>
+
+  <section class="acard">
+    <h2>Pick a different photo</h2>
+    <p class="muted">The brand's best catalog photos, best first. The white background is removed on the banner.</p>
+    <form method="post" action="/admin/banner/{{ brand_id }}/pick">
+      <div class="bpicks">{% for c in cands %}
+        <label class="bpick{{ ' on' if c.product_id == pid and src != 'upload' }}"><input type="radio" name="product_id" value="{{ c.product_id }}"{% if c.product_id == pid and src != 'upload' %} checked{% endif %} required>
+          <img src="{{ c.url }}" alt="" loading="lazy"><span>{{ c.title }}</span></label>
+      {% else %}<p class="muted">No photos for this brand yet.</p>{% endfor %}</div>
+      {% if cands %}<button class="btn btn-red btn-sm" type="submit">Use this photo</button>{% endif %}
+    </form>
+    <form method="post" action="/admin/banner/{{ brand_id }}/pick" style="margin-top:10px"><input type="hidden" name="product_id" value="auto">
+      <button class="linkbtn" type="submit">Let the site pick the best photo again</button></form>
+  </section>
+
+  <section class="acard">
+    <h2>Upload your own picture</h2>
+    <form method="post" action="/admin/banner/{{ brand_id }}/upload" enctype="multipart/form-data" class="logoset" style="max-width:420px">
+      <label>Picture (PNG, JPG or WebP). A part on a white or transparent background works best.
+        <input type="file" name="file" accept="image/png,image/jpeg,image/webp" required></label>
+      <button class="btn btn-ghost btn-sm" type="submit">Upload</button>
+    </form>
+  </section>
+</main>
+</body></html>

@@ -3,10 +3,12 @@
 {% block main %}
 <div class="wrap">
   <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a>{% for name, href in crumbs %} <span>/</span> {% if href %}<a href="{{ href }}">{{ name }}</a>{% else %}<span>{{ name }}</span>{% endif %}{% endfor %}</nav>
-  <div class="shop-h">
-    <div>{% if brand_logo %}<img class="brandlogo" src="{{ brand_logo }}" alt="">{% endif %}
-      <h1>{{ title }}{% if filtering_by_vehicle and res.vehicle %} <em>for your {{ res.vehicle.label }}</em>{% endif %}</h1>
-      <div class="count num">{{ res.total|num }} part{{ 's' if res.total != 1 }}{% if hidden %} · <a href="{{ show_all_url }}">{{ hidden|num }} hidden that don't fit your vehicle</a>{% endif %}</div></div>
+  {% if banner %}{% include "_brand_banner.html" %}{% endif %}
+  <div class="shop-h{{ ' withbanner' if banner }}">
+    <div>{% if banner %}{% if filtering_by_vehicle and res.vehicle %}<h2 class="bb-sub">Parts for your <em>{{ res.vehicle.label }}</em></h2>{% endif %}
+      {% else %}{% if brand_logo %}<img class="brandlogo" src="{{ brand_logo }}" alt="">{% endif %}
+      <h1>{{ title }}{% if filtering_by_vehicle and res.vehicle %} <em>for your {{ res.vehicle.label }}</em>{% endif %}</h1>{% endif %}
+      {% if not banner or filtering_by_vehicle or hidden or res.total != banner.parts %}<div class="count num">{{ res.total|num }} part{{ 's' if res.total != 1 }}{% if hidden %} · <a href="{{ show_all_url }}">{{ hidden|num }} hidden that don't fit your vehicle</a>{% endif %}</div>{% endif %}</div>
     <div class="sortbar"><button class="btn btn-ghost btn-sm filter-toggle" type="button" id="ftog" aria-controls="filters" aria-expanded="false">{{ icon('filter', 16) }} Filters</button>
       <label for="sort">Sort</label><select class="ymm" id="sort" name="sort" form="filters">{% for k, label in sort_labels %}<option value="{{ k }}"{% if k == sort %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
   </div>

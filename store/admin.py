@@ -18,6 +18,7 @@ from starlette.background import BackgroundTask
 
 from importer import brands as brand_lookup
 from importer import report
+from . import queries as Q
 from . import web
 
 router = APIRouter(prefix="/admin")
@@ -100,11 +101,12 @@ def admin_home(request: Request, error: str = "", started: str = "", saved: str 
                        b.display_price, b.price_markup,
                        (SELECT jsonb_object_agg(k, n) FROM (SELECT e.key AS k, count(*) AS n FROM products p3, jsonb_each(p3.prices) e
                          WHERE p3.brand_id = b.id AND p3.status <> 'discontinued' GROUP BY e.key) x),
-                       count(p.id) FILTER (WHERE p.status <> 'discontinued' AND p.prices IS NULL)
+                       count(p.id) FILTER (WHERE p.status <> 'discontinued' AND p.prices IS NULL),
+                       b.banner_key
                 FROM brands b LEFT JOIN products p ON p.brand_id = b.id
                 GROUP BY b.id ORDER BY b.name""")
             cols = ["id", "name", "aaia", "logo_key", "active", "hidden", "discontinued", "with_photo", "with_fitment",
-                    "last_import", "photos_pending", "display_price", "markup", "price_types", "no_price_data"]
+                    "last_import", "photos_pending", "display_price", "markup", "price_types", "no_price_data", "banner_key"]
             brands = [dict(zip(cols, r)) for r in cur.fetchall()]
             cur.execute("""SELECT r.id, r.brand_id, r.step, r.status, r.started_at, r.finished_at, r.error
                            FROM import_runs r ORDER BY r.id DESC LIMIT 12""")
@@ -112,6 +114,7 @@ def admin_home(request: Request, error: str = "", started: str = "", saved: str 
     from importer.catalog import RETAIL_TYPES
     for b in brands:
         b["logo"] = s.storage.url(b["logo_key"]) if b["logo_key"] else None
+        b["banner"] = s.storage.url(b["banner_key"]) if b["banner_key"] else None
         extra = [t for t in (b["display_price"] or []) if t not in RETAIL_TYPES]
         b["price_from"] = extra[0] if extra else "retail"
         b["cost_types"] = sorted(t for t in (b["price_types"] or {}) if t not in RETAIL_TYPES)
@@ -688,3 +691,86 @@ def installer_leads(request: Request):
         rows, others, stats = installers.leads(conn)
     return _page(request, "admin_installers.html", title="Installer leads", section="installers", rows=rows, others=others,
                  stats=stats, configured=installers.configured(), cfg=installers.cfg())
+
+
+# ------------------------------------------------------------------ brand page banners
+
+@router.get("/banner/{brand_id}", response_class=HTMLResponse)
+def banner_page(request: Request, brand_id: str, error: str = "", saved: str = ""):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from importer import banners as bn
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        s = st.get_searcher(conn)
+        r = conn.execute("SELECT name, banner_src, banner_product_id, banner_blurb FROM brands WHERE id = %s", (brand_id,)).fetchone()
+        if not r:
+            return _back(error="Unknown brand.")
+        name, src, pid, blurb = r
+        banner = bn.for_page(conn, brand_id, s.storage)
+        cands = bn.candidates(conn, brand_id, s.storage, limit=12)
+        default = bn.default_blurb(conn, brand_id, name)
+    for c in cands:
+        c["url"] = s.storage.url(c["key"])
+    with st.pool.connection() as conn:
+        logo = Q.brand_logos(conn, s).get(brand_id)
+    return _page(request, "admin_banner.html", title=f"{name} banner", section="catalog", brand_id=brand_id, brand_name=name,
+                 banner=banner, brand_logo=logo, src=src, pid=pid, blurb=blurb or "", default_blurb=default, cands=cands,
+                 error=error, saved=saved)
+
+
+def _banner_back(brand_id, **kw):
+    from urllib.parse import urlencode
+    return RedirectResponse(f"/admin/banner/{brand_id}?" + urlencode({k: v for k, v in kw.items() if v}), status_code=303)
+
+
+@router.post("/banner/{brand_id}/text")
+def banner_text(request: Request, brand_id: str, blurb: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    text = " ".join(blurb.split())[:600]
+    with web._state(request).pool.connection() as conn:
+        conn.execute("UPDATE brands SET banner_blurb = %s WHERE id = %s", (text or None, brand_id))
+    return _banner_back(brand_id, saved="Summary saved." if text else "Summary set back to the standard one.")
+
+
+@router.post("/banner/{brand_id}/pick")
+def banner_pick(request: Request, brand_id: str, product_id: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from importer import banners as bn
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        try:
+            if product_id == "auto":
+                key = bn.make(conn, brand_id, storage=st.get_searcher(conn).storage)
+                msg = "The site picked the best photo again." if key else "This brand has no photos to use yet."
+            else:
+                bn.make(conn, brand_id, product_id=int(product_id), source="pick", storage=st.get_searcher(conn).storage)
+                msg = "Banner photo changed."
+        except (ValueError, OSError) as e:
+            return _banner_back(brand_id, error=f"Not changed: {e}.")
+    return _banner_back(brand_id, saved=msg)
+
+
+@router.post("/banner/{brand_id}/upload")
+def banner_upload(request: Request, brand_id: str, file: UploadFile = File(None)):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from importer import banners as bn
+    st = web._state(request)
+    if file is None or not file.filename:
+        return _banner_back(brand_id, error="Choose a picture to upload.")
+    raw = file.file.read(15 * 1024 * 1024 + 1)
+    if len(raw) > 15 * 1024 * 1024:
+        return _banner_back(brand_id, error="That file is over 15 MB.")
+    with st.pool.connection() as conn:
+        try:
+            bn.make(conn, brand_id, raw=raw, source="upload", storage=st.get_searcher(conn).storage)
+        except Exception:       # noqa: BLE001
+            return _banner_back(brand_id, error="That isn't a picture the site can read (use PNG, JPG or WebP).")
+    return _banner_back(brand_id, saved="Your picture is on the banner. It's kept until you choose another.")

@@ -245,6 +245,13 @@ def run(conn, brand_id, zip_path=None, max_per_product=4, limit_products=None, w
             cur.execute("UPDATE import_runs SET finished_at = now(), status = 'ok', stats = %s WHERE id = %s",
                         (Jsonb({**stats, **summary["counts"]}), run_id))
         conn.commit()
+        try:                                    # the brand page banner (first one, or its part lost its photo)
+            from . import banners
+            banners.ensure(conn, brand_id, storage, log)
+            conn.commit()
+        except Exception as e:                  # noqa: BLE001 - never fail a photo run over the banner
+            conn.rollback()
+            log(f"  banner not made: {e!r}")
         return dict(stats), summary
     except Exception as e:
         conn.rollback()

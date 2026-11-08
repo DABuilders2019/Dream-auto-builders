@@ -73,6 +73,13 @@ def token(client=None):
     try:
         r = c.post(f"{base_url(cfg)}/security/v1/oauth/token", data={"grant_type": "client_credentials"},
                    auth=(cfg["client_id"], cfg["client_secret"]), headers=headers)
+        if r.status_code == 401 and "x-merchant-id" in headers:
+            # some UPS apps refuse the sign-in when the account number header is sent; try once without it
+            r2 = c.post(f"{base_url(cfg)}/security/v1/oauth/token", data={"grant_type": "client_credentials"},
+                        auth=(cfg["client_id"], cfg["client_secret"]),
+                        headers={"Content-Type": "application/x-www-form-urlencoded"})
+            if r2.status_code == 200:
+                r = r2
     except httpx.HTTPError as e:
         raise UPSError(f"Couldn't reach UPS: {e}") from e
     finally:

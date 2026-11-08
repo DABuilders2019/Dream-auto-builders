@@ -58,3 +58,15 @@ def test_admin_page(shop, keys, monkeypatch):
     assert "UPS connection" in page and "UPS_CLIENT_ID is set" in page
     monkeypatch.setattr(ups, "token", lambda client=None: (_ for _ in ()).throw(ups.UPSError("UPS refused the sign-in (HTTP 401): bad")))
     assert "UPS refused the sign-in" in c.post("/admin/ups/test", data={}).text
+
+
+def test_sign_in_retries_without_account_header(keys):
+    tries = []
+
+    def handler(req):
+        tries.append("x-merchant-id" in req.headers)
+        if "x-merchant-id" in req.headers:
+            return httpx.Response(401, json={"response": {"errors": [{"code": "10401", "message": "ClientId is Invalid"}]}})
+        return httpx.Response(200, json={"access_token": "tok2", "expires_in": "3600"})
+
+    assert ups.token(client=fake(handler)) == "tok2" and tries == [True, False]

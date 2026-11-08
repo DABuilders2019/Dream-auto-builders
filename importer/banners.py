@@ -321,6 +321,8 @@ def written_blurb(brand_id, name):
         if k in data:
             return data[k]
     best = max((d for d in data for k in keys if len(d) >= 3 and k.startswith(d)), key=len, default=None)
+    if not best:        # a shorter name for a listed brand ("Coker" for "Coker Tire")
+        best = min((d for d in data for k in keys if len(k) >= 4 and d.startswith(k)), key=len, default=None)
     return data[best] if best else None
 
 

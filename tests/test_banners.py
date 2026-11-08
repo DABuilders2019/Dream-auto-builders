@@ -128,9 +128,11 @@ def test_logo_keeps_its_own_colours():
     assert any(p[3] > 200 and max(p[:3]) < 30 for p in px)                     # black still black
     assert any(p[3] > 200 and p[0] > 200 and p[2] < 60 for p in px)            # yellow still yellow
     assert dark                                                                # gets the light outline on the page
-    # a coloured logo isn't marked dark
-    _, dark = bn.banner_logo(_logo(lambda d: d.rectangle((20, 20, 380, 140), fill=(20, 60, 200))))
-    assert not dark
+    # a bright logo reads on the red without an outline; a dark blue one gets it
+    _, outline = bn.banner_logo(_logo(lambda d: d.rectangle((20, 20, 380, 140), fill=(250, 210, 0))))
+    assert not outline
+    _, outline = bn.banner_logo(_logo(lambda d: d.rectangle((20, 20, 380, 140), fill=(20, 40, 140))))
+    assert outline
 
 
 def test_grey_lettering_darkened_when_asked():

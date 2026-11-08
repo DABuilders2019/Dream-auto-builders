@@ -589,38 +589,42 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 @media (max-width:900px){ .funnel{grid-template-columns:repeat(2,1fr)} .agrid2{grid-template-columns:1fr} }
 
 /* brand page banner */
-.bbanner{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);min-height:300px;margin:6px 0 22px;border-radius:14px;overflow:hidden;isolation:isolate;
+.bbanner{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);min-height:300px;margin:6px 0 22px;border-radius:16px;overflow:hidden;isolation:isolate;
+ border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.06),0 10px 28px rgba(60,10,12,.10);
  background:
-  radial-gradient(70% 120% at 82% 55%,#fff 0%,rgba(255,255,255,.92) 30%,rgba(255,255,255,0) 68%),
-  linear-gradient(102deg,#3d0609 0%,#7a0d12 22%,#A8131A 42%,#c4474c 58%,#ecc9cb 74%,#fbf3f3 88%,#fff 100%)}
+  radial-gradient(60% 95% at 78% 50%,#f6f4f4 0%,rgba(246,244,244,.85) 35%,rgba(246,244,244,0) 70%),
+  linear-gradient(102deg,#3d0609 0%,#7a0d12 22%,#A8131A 42%,#c24a4f 57%,#dcbfc0 72%,#e9e5e5 86%,#e2dfdf 100%)}
 .bbanner::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.16;
- background:repeating-linear-gradient(115deg,rgba(255,255,255,.0) 0 38px,rgba(255,255,255,.55) 38px 40px,rgba(255,255,255,0) 40px 90px);
+ background:repeating-linear-gradient(115deg,rgba(255,255,255,0) 0 38px,rgba(255,255,255,.55) 38px 40px,rgba(255,255,255,0) 40px 90px);
  -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 45%,transparent 70%);mask-image:linear-gradient(90deg,#000 0%,#000 45%,transparent 70%)}
 .bb-text{padding:30px 34px 30px 36px;color:#fff;display:flex;flex-direction:column;justify-content:center;gap:10px}
-.bb-logo{background:#fff;border-radius:10px;padding:10px 14px;display:inline-flex;align-self:flex-start;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.bb-logo img{height:54px;width:auto;max-width:300px;object-fit:contain;display:block}
-.bb-name{font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;font-size:52px;line-height:.95;letter-spacing:.5px;margin:6px 0 0;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.25)}
+.bb-logo{display:inline-flex;align-self:flex-start}
+.bb-logo img{height:64px;width:auto;max-width:320px;object-fit:contain;object-position:left center;display:block;filter:drop-shadow(0 2px 8px rgba(0,0,0,.35))}
+.bb-name{font-family:'Barlow Condensed',sans-serif;font-weight:800;text-transform:uppercase;font-size:52px;line-height:.95;letter-spacing:.5px;margin:8px 0 0;color:#fff;text-shadow:0 2px 14px rgba(0,0,0,.25)}
 .bb-blurb{font-size:16px;line-height:1.5;max-width:520px;margin:0;color:rgba(255,255,255,.92)}
 .bb-meta{font-size:14px;color:rgba(255,255,255,.85);display:flex;gap:14px;align-items:center;margin-top:4px}
 .bb-meta b{color:#fff}
 .bb-meta .pill{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:999px;padding:4px 10px}
-.bb-pic{position:relative;display:flex;align-items:center;justify-content:center}
-.bb-pic{padding:26px 34px 26px 0}
-.bb-pic img{width:100%;height:auto;max-height:290px;object-fit:contain;
- filter:drop-shadow(0 22px 16px rgba(70,0,0,.28)) drop-shadow(0 2px 3px rgba(0,0,0,.18))}
+.bb-pic{position:relative;display:flex;align-items:center;justify-content:center;padding:26px 34px 30px 0}
+/* a soft shadow on the "floor" under the part, so it sits on the banner instead of floating */
+.bb-pic::after{content:"";position:absolute;left:14%;right:16%;bottom:16px;height:34px;z-index:-1;
+ background:radial-gradient(50% 50% at 50% 50%,rgba(60,20,22,.32) 0%,rgba(60,20,22,.14) 45%,rgba(60,20,22,0) 72%);filter:blur(4px)}
+.bb-pic img{width:100%;height:auto;max-height:285px;object-fit:contain;mix-blend-mode:multiply;
+ filter:drop-shadow(0 14px 14px rgba(70,10,12,.18))}
+.bb-pic.boxed img{border-radius:12px;filter:none;-webkit-mask-image:radial-gradient(closest-side,#000 70%,transparent 100%);mask-image:radial-gradient(closest-side,#000 70%,transparent 100%)}
+.bb-pic.boxed::after{display:none}
+.bbanner.nopic{grid-template-columns:1fr}
 .shop-h.withbanner{align-items:center}
 .bb-sub{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;font-size:22px;margin:0 0 2px}.bb-sub em{font-style:normal;color:var(--red)}
-.bbanner.nopic{grid-template-columns:1fr}
-.bb-pic.boxed img{border-radius:10px;-webkit-mask-image:radial-gradient(closest-side,#000 72%,transparent 100%);mask-image:radial-gradient(closest-side,#000 72%,transparent 100%);filter:none}
 @media (max-width:720px){
- .bbanner{grid-template-columns:1fr;min-height:0;border-radius:12px;
-  background:radial-gradient(120% 60% at 50% 18%,#fff 0%,rgba(255,255,255,.9) 35%,rgba(255,255,255,0) 70%),linear-gradient(180deg,#fff 0%,#f3d9da 22%,#c4474c 42%,#A8131A 60%,#5a080c 100%)}
+ .bbanner{grid-template-columns:1fr;min-height:0;border-radius:14px;
+  background:radial-gradient(110% 55% at 50% 16%,#f6f4f4 0%,rgba(246,244,244,.85) 40%,rgba(246,244,244,0) 72%),linear-gradient(180deg,#e2dfdf 0%,#e9e5e5 14%,#dcbfc0 30%,#c24a4f 44%,#A8131A 60%,#5a080c 100%)}
  .bbanner::before{-webkit-mask-image:linear-gradient(180deg,transparent 35%,#000 70%);mask-image:linear-gradient(180deg,transparent 35%,#000 70%)}
- .bb-pic{order:-1;height:190px}
- .bb-pic img{width:100%;margin:0;max-height:200px;}
- .bb-pic{padding:18px 24px 0}
- .bb-text{padding:4px 20px 22px}
- .bb-logo img{height:34px;max-width:220px}
+ .bb-pic{order:-1;padding:20px 26px 18px;height:auto}
+ .bb-pic img{max-height:190px}
+ .bb-pic::after{bottom:8px;height:24px}
+ .bb-text{padding:6px 20px 22px}
+ .bb-logo img{height:46px;max-width:240px}
  .bb-name{font-size:38px}
  .bb-blurb{font-size:14.5px}
 }

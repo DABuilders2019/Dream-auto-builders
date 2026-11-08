@@ -383,13 +383,14 @@ def _results(request, kind, q="", category=None, brand=None):
                       next_url=url(page=str(page + 1)) if page < res["pages"] else None,
                       show_all_url=url(all="1"), fit_only_url=url(all=None), clear_url=_clear_url(kind, base_path, q, category),
                       brand_logo=cached(request, "logos", lambda: Q.brand_logos(conn, s)).get(brand) if brand else None,
-                      banner=_banner(conn, s, brand) if kind == "brand" else None)
+                      banner=_banner(request, conn, s, brand) if kind == "brand" else None)
 
 
-def _banner(conn, s, brand):
+def _banner(request, conn, s, brand):
     from importer import banners
     try:
-        return banners.for_page(conn, brand, s.storage)
+        logo = cached(request, "logos", lambda: Q.brand_logos(conn, s)).get(brand)
+        return banners.for_page(conn, brand, s.storage, logo)
     except Exception:       # noqa: BLE001 - the page works without it
         return None
 

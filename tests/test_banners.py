@@ -25,9 +25,9 @@ def photo(size=(1000, 700), part=(200, 150, 800, 550), color=(40, 40, 40), bg=(2
 def test_cutout_removes_white_background():
     pic, boxed = bn.cutout(photo())
     im = Image.open(io.BytesIO(pic))
-    assert im.mode == "RGBA" and not boxed
+    assert not boxed
     assert im.size[0] < 700 and im.size[1] < 500              # trimmed to the part
-    assert im.getpixel((im.size[0] // 2, im.size[1] // 2))[3] == 255
+    assert im.convert("RGBA").getpixel((im.size[0] // 2, im.size[1] // 2))[3] == 255
     # a photo with no white background is kept whole (marked boxed)
     _, boxed = bn.cutout(photo(bg=(90, 120, 160)))
     assert boxed
@@ -89,6 +89,7 @@ def test_brand_page_and_admin(shop, monkeypatch):
     from store.app import create_app
     with TestClient(create_app(conn.info.dsn)) as tc:
         page = tc.get("/brand/testbrand").text
+        assert "/photos/banners/testbrand-logo-" in page or "bb-logo" not in page
         assert 'class="bbanner' in page and 'class="bb-name">TestBrand' in page and "/photos/banners/" in page
         tc.post("/admin/login", data={"password": "admin-pw"})
         assert "Page banner" in tc.get("/admin").text
@@ -108,3 +109,25 @@ def test_brand_page_and_admin(shop, monkeypatch):
         assert bn.needs_banner(conn) == []
         tc.post("/admin/banner/testbrand/pick", data={"product_id": "auto"})
         assert conn.execute("SELECT banner_src FROM brands WHERE id = 'testbrand'").fetchone()[0] == "auto"
+
+
+def _logo(draw):
+    im = Image.new("RGB", (400, 160), (255, 255, 255))
+    draw(ImageDraw.Draw(im))
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    return buf.getvalue()
+
+
+def test_logo_made_for_the_red_banner():
+    # black lettering next to a coloured shape: the white goes, the lettering turns white, the colour stays
+    raw = _logo(lambda d: (d.rectangle((20, 40, 200, 70), fill=(0, 0, 0)), d.rectangle((20, 90, 380, 130), fill=(230, 200, 0))))
+    im = Image.open(io.BytesIO(bn.banner_logo(raw))).convert("RGBA")
+    px = list(im.getdata())
+    assert any(p[3] < 10 for p in px)                                         # background see-through
+    assert not any(p[3] > 200 and max(p[:3]) < 60 for p in px)                 # no black left
+    assert any(p[3] > 200 and p[0] > 200 and p[2] < 60 for p in px)            # yellow kept
+    # black inside a coloured panel (like MagnaFlow's) stays black
+    raw = _logo(lambda d: (d.rectangle((20, 20, 380, 140), fill=(250, 220, 0)), d.rectangle((60, 50, 200, 110), fill=(0, 0, 0))))
+    im = Image.open(io.BytesIO(bn.banner_logo(raw))).convert("RGBA")
+    assert any(p[3] > 200 and max(p[:3]) < 60 for p in im.getdata())

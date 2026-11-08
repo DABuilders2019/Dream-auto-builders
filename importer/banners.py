@@ -22,7 +22,7 @@ log = logging.getLogger("banners")
 
 CONFIG = pathlib.Path(__file__).resolve().parent.parent / "config" / "brand_blurbs.json"
 POOL = 160          # parts looked at per brand (priciest first)
-VERSION = 2         # bump to rebuild every automatic banner
+VERSION = 3         # bump to rebuild every automatic banner
 
 
 # ------------------------------------------------------------------ reading photos
@@ -78,39 +78,149 @@ def score(raw):
     return round(s, 3), {"w": w, "h": h, "white": round(border, 2), "fill": round(fill, 2), "contrast": round(contrast, 2)}
 
 
+def _flood_from_edges(mask):
+    """mask: L image, 255 where the pixel could be background. Returns an L image, 255 where it's background
+    connected to the picture's edges (so white inside a part, like a chrome highlight, isn't removed)."""
+    m = mask.copy()
+    w, h = m.size
+    step = max(2, min(w, h) // 150)
+    seeds = ([(x, 0) for x in range(0, w, step)] + [(x, h - 1) for x in range(0, w, step)]
+             + [(0, y) for y in range(0, h, step)] + [(w - 1, y) for y in range(0, h, step)])
+    for xy in seeds:
+        if m.getpixel(xy) == 255:
+            ImageDraw.floodfill(m, xy, 128)
+    return m.point(lambda v: 255 if v == 128 else 0)
+
+
+def _soft_cut(rgb, bg_color, tol, band=4, alpha=None, wide=0):
+    """Remove the background colour bg_color around the subject, with soft, de-haloed edges.
+    rgb: RGB image. Returns (RGBA image, share of the picture that was background)."""
+    import numpy as np
+    a = np.asarray(rgb).astype(np.float32)
+    bgc = np.array(bg_color, np.float32)
+    dist = np.abs(a - bgc).max(axis=2)
+    near = Image.fromarray(((dist < tol) * 255).astype(np.uint8))
+    bg = np.asarray(_flood_from_edges(near)) > 0
+    ring = np.asarray(Image.fromarray((bg * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(band * 2 + 1))) > 0
+    edge = ring & ~bg
+    al = np.ones(dist.shape, np.float32) if alpha is None else alpha.astype(np.float32) / 255
+    al[bg] = 0
+    soft = np.clip((dist - tol * 0.4) / (tol * 2.2), 0, 1)
+    al[edge] = np.minimum(al[edge], soft[edge])
+    shadow = np.zeros(bg.shape, bool)
+    if wide:
+        # a soft grey shadow on the photo's floor becomes a see-through shadow (so it fades out and shows the banner
+        # through it) instead of a grey blob with a hard edge: smooth, grey, darker than the background, and
+        # reached from the background without crossing an edge (so a chrome tube next to it isn't touched)
+        lum = a @ np.array([0.299, 0.587, 0.114], np.float32)
+        bgl = float(bgc @ np.array([0.299, 0.587, 0.114], np.float32))
+        texture = np.asarray(Image.fromarray(np.clip(lum, 0, 255).astype(np.uint8)).filter(ImageFilter.FIND_EDGES)
+                             .filter(ImageFilter.MaxFilter(5)).filter(ImageFilter.BoxBlur(3))).astype(np.float32)
+        maybe = (~bg & ((a.max(axis=2) - a.min(axis=2)) < 14) & (texture < 7) & (lum < bgl - 2) & (lum > bgl * 0.45)) | bg
+        flood = np.asarray(_flood_from_edges(Image.fromarray((maybe * 255).astype(np.uint8)))) > 0
+        shadow = flood & ~bg
+        if shadow.mean() < 0.35:                    # (a whole grey photo isn't a shadow)
+            al[shadow] = np.clip(1 - lum[shadow] / bgl, 0, 0.6)
+            a[shadow] = 0
+        else:
+            shadow[:] = False
+    # take the background colour back out of the see-through edge pixels, so no light halo is left
+    k = edge & (al > 0.02) & ~shadow
+    a[k] = np.clip((a[k] - (1 - al[k, None]) * bgc) / al[k, None], 0, 255)
+    out = np.dstack([a, al * 255]).round().astype(np.uint8)
+    return Image.fromarray(out, "RGBA"), float(bg.mean())
+
+
 def cutout(raw):
-    """WebP image with the white background (connected to the edges) made transparent and trimmed.
-    Returns (png bytes, boxed): boxed=True when the photo has no clean white background to remove."""
+    """WebP image with the photo's background (the light colour around its edges) made transparent and trimmed.
+    Returns (bytes, boxed): boxed=True when the photo has no clean light background to remove."""
     im = Image.open(io.BytesIO(raw))
     if im.format == "JPEG":
         im.draft("RGB", (1400, 1400))
     im = im.convert("RGB")
     im.thumbnail((1200, 1200))
     w, h = im.size
-    mn = _min_channel(im)
-    spread = ImageChops.subtract(ImageChops.lighter(ImageChops.lighter(*im.split()[:2]), im.split()[2]), mn)
-    near = ImageChops.multiply(mn.point(lambda v: 255 if v > 238 else 0), spread.point(lambda v: 255 if v < 14 else 0))
-    # flood the near-white area that touches the edges (white inside the part, like a chrome highlight, stays)
-    step = max(4, min(w, h) // 120)
-    seeds = ([(x, 0) for x in range(0, w, step)] + [(x, h - 1) for x in range(0, w, step)]
-             + [(0, y) for y in range(0, h, step)] + [(w - 1, y) for y in range(0, h, step)])
-    for xy in seeds:
-        if near.getpixel(xy) == 255:
-            ImageDraw.floodfill(near, xy, 128)
-    bg = near.point(lambda v: 255 if v == 128 else 0)
-    boxed = _frac(bg) < 0.15
+    k = max(2, min(w, h) // 100)
+    strips = [im.crop(b) for b in [(0, 0, w, k), (0, h - k, w, h), (0, 0, k, h), (w - k, 0, w, h)]]
+    px = [p for st in strips for p in st.getdata()]
+    px.sort(key=sum)
+    bgc = px[len(px) // 2]                                      # the typical edge colour
+    boxed = min(bgc) < 200
     if boxed:
-        alpha = Image.new("L", im.size, 255)
+        out = im.convert("RGBA")
     else:
-        alpha = ImageChops.invert(bg).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
-    out = im.convert("RGBA")
-    out.putalpha(alpha)
-    box = alpha.point(lambda v: 255 if v > 10 else 0).getbbox()
+        out, share = _soft_cut(im, bgc, tol=24, wide=max(6, min(w, h) // 45))
+        if share < 0.12:                                        # hardly anything removed: keep the photo whole
+            out, boxed = im.convert("RGBA"), True
+    box = out.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
     if box:
         out = out.crop(box)
     buf = io.BytesIO()
     out.save(buf, "WEBP", quality=86, method=5)     # keeps the transparency at a fraction of a PNG's size
     return buf.getvalue(), boxed
+
+
+def banner_logo(raw):
+    """The brand logo made to sit straight on the dark red banner: its white background removed, and black or grey
+    lettering that sits on the background turned white (black inside a coloured shape, like MagnaFlow's, stays).
+    Returns PNG bytes."""
+    import numpy as np
+    im = Image.open(io.BytesIO(raw))
+    im.load()
+    im = im.convert("RGBA")
+    im.thumbnail((900, 360))
+    rgb, alpha = im.convert("RGB"), np.asarray(im.split()[-1])
+    px = np.asarray(rgb).astype(np.int16)
+    colourful = ((px.max(axis=2) - px.min(axis=2)) > 60) & (alpha > 40)
+    if colourful.sum() < 0.04 * max(1, (alpha > 40).sum()):
+        # a black-and-white logo: print it in white, its darkness becoming the ink (white parts turn see-through)
+        lum = (px * [0.299, 0.587, 0.114]).sum(axis=2)
+        ink = np.clip((235 - lum) / 175, 0, 1) * (alpha / 255)
+        out = np.dstack([np.full(lum.shape + (3,), 255), ink[..., None] * 255]).round().astype(np.uint8)
+        res = Image.fromarray(out, "RGBA")
+        box = res.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
+        res = res.crop(box) if box else res
+        buf = io.BytesIO()
+        res.save(buf, "PNG", optimize=True)
+        return buf.getvalue()
+    if alpha.min() > 250:                                       # no transparency: take the white around it out
+        im, _ = _soft_cut(rgb, (255, 255, 255), tol=26, band=2)
+    a = np.asarray(im).astype(np.int16)
+    rgbv, al = a[..., :3], a[..., 3]
+    lum = (rgbv * [0.299, 0.587, 0.114]).sum(axis=2)
+    sat = rgbv.max(axis=2) - rgbv.min(axis=2)
+    ink = (al > 40) & (lum < 110) & (sat < 45)                  # black / dark grey lettering
+    outside = al < 30
+    near_out = np.asarray(Image.fromarray((outside * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
+    m = Image.fromarray((ink * 255).astype(np.uint8)).copy()    # (copy: a fromarray image can't be flood-filled)
+    h, w = ink.shape
+    recolor = np.zeros_like(ink)
+    ys, xs = np.nonzero(ink & near_out)
+    for y, x in zip(ys[::3], xs[::3]):
+        if m.getpixel((int(x), int(y))) != 255:
+            continue
+        ImageDraw.floodfill(m, (int(x), int(y)), 128)
+        comp = np.asarray(m) == 128
+        if not comp.any():
+            continue
+        cy, cx = np.nonzero(comp)
+        solidity = comp.sum() / max(1, (np.ptp(cy) + 1) * (np.ptp(cx) + 1))
+        big = comp.sum() > 0.45 * (al > 40).sum()
+        if solidity < 0.55 or not big:                          # strokes and letters, not a big black panel
+            recolor |= comp
+        m = Image.fromarray(np.where(comp, 60, np.asarray(m)).astype(np.uint8)).copy()
+    # the soft grey edge pixels around recoloured letters go white too
+    grow = np.asarray(Image.fromarray((recolor * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))) > 0
+    recolor |= grow & (sat < 45) & (lum < 200) & (al > 0)
+    out = a.copy()
+    out[recolor, :3] = 255
+    res = Image.fromarray(out.astype(np.uint8), "RGBA")
+    box = res.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
+    if box:
+        res = res.crop(box)
+    buf = io.BytesIO()
+    res.save(buf, "PNG", optimize=True)
+    return buf.getvalue()
 
 
 # ------------------------------------------------------------------ choosing
@@ -249,7 +359,42 @@ def default_blurb(conn, brand_id, name):
             f"Shop genuine {name} parts at Dream Auto Builders, with fitment checked for your vehicle.")
 
 
-def for_page(conn, brand_id, storage=None):
+STATIC = pathlib.Path(__file__).resolve().parent.parent / "store" / "static"
+LOGO_VERSION = 1
+
+
+def logo_for(conn, brand_id, logo_url, storage=None):
+    """URL of the brand's logo prepared for the banner, made from logo_url (the logo shown everywhere else) the
+    first time and again whenever that logo changes. None when there's no logo or it can't be read."""
+    if not logo_url:
+        return None
+    storage = storage or get_storage()
+    src = f"{logo_url}#v{LOGO_VERSION}"
+    r = conn.execute("SELECT banner_logo_key, banner_logo_from, logo_key FROM brands WHERE id = %s", (brand_id,)).fetchone()
+    if not r:
+        return None
+    if r[0] and r[1] == src:
+        return storage.url(r[0])
+    try:
+        if logo_url.startswith("/static/"):
+            raw = (STATIC / logo_url[len("/static/"):].split("?")[0]).read_bytes()
+        elif r[2]:
+            raw = read(storage, r[2])
+        else:
+            return None
+        png = banner_logo(raw)
+    except Exception:       # noqa: BLE001 - fall back to the plain logo
+        log.warning("banner logo for %s not made", brand_id, exc_info=True)
+        return logo_url
+    key = f"banners/{brand_id}-logo-{hashlib.md5(png).hexdigest()[:10]}.png"
+    storage.put(key, png, "image/png")
+    if r[0] and r[0] != key and hasattr(storage, "root"):
+        (storage.root / r[0]).unlink(missing_ok=True)
+    conn.execute("UPDATE brands SET banner_logo_key = %s, banner_logo_from = %s WHERE id = %s", (key, src, brand_id))
+    return storage.url(key)
+
+
+def for_page(conn, brand_id, storage=None, logo_url=None):
     """What the brand page needs: {"name", "logo", "image", "boxed", "blurb", "parts"} or None."""
     r = conn.execute("""SELECT b.name, b.banner_key, b.banner_boxed, b.banner_blurb,
                                (SELECT count(*) FROM products p WHERE p.brand_id = b.id AND p.status = 'active' AND p.price IS NOT NULL)
@@ -259,4 +404,5 @@ def for_page(conn, brand_id, storage=None):
     name, key, boxed, blurb, parts = r
     storage = storage or get_storage()
     return {"name": name, "image": storage.url(key) if key else None, "boxed": bool(boxed),
+            "logo": logo_for(conn, brand_id, logo_url, storage),
             "blurb": (blurb or "").strip() or default_blurb(conn, brand_id, name), "parts": parts}

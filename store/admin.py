@@ -708,7 +708,7 @@ def banner_page(request: Request, brand_id: str, error: str = "", saved: str = "
         if not r:
             return _back(error="Unknown brand.")
         name, src, pid, blurb = r
-        banner = bn.for_page(conn, brand_id, s.storage)
+        banner = bn.for_page(conn, brand_id, s.storage, Q.brand_logos(conn, s).get(brand_id))
         cands = bn.candidates(conn, brand_id, s.storage, limit=12)
         default = bn.default_blurb(conn, brand_id, name)
     for c in cands:

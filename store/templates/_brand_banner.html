@@ -1,6 +1,6 @@
   <section class="bbanner{{ ' nopic' if not banner.image }}">
     <div class="bb-text">
-      {% if brand_logo %}<div class="bb-logo"><img src="{{ brand_logo }}" alt="{{ banner.name }} logo"></div>{% endif %}
+      {% if banner.logo %}<div class="bb-logo"><img src="{{ banner.logo }}" alt="{{ banner.name }} logo"></div>{% endif %}
       <h1 class="bb-name">{{ banner.name if not title else title }}</h1>
       <p class="bb-blurb">{{ banner.blurb }}</p>
       <div class="bb-meta"><span class="pill"><b class="num">{{ banner.parts|num }}</b> part{{ 's' if banner.parts != 1 }}</span><span>Authorized dealer</span></div>

@@ -60,13 +60,25 @@ before launch day.
       to confirm the shop list meets their terms: Places API (New) Text Search with name/address/map link only,
       shown without a map with the "Google Maps" text attribution, only place IDs stored, shown in order emails
 
-## Analytics and cart reminders
+## Analytics
 - [ ] Privacy Policy: say the site uses a session cookie to count visits and clicks anonymously (kept 180 days,
-      Do Not Track / Global Privacy Control respected) and that shoppers who opt in at checkout may get a cart reminder email
-- [ ] Stripe dashboard → Developers → Webhooks: the endpoint must send checkout.session.expired (as well as
-      checkout.session.completed, async_payment_succeeded and async_payment_failed) for cart reminders to work
-- [ ] Add the business's postal address to the cart reminder email footer (CAN-SPAM requires it in marketing emails)
-- [ ] Decide on a promo code for cart reminders (config/store.json → cart_recovery.allow_promotion_codes, codes made in Stripe)
-- [ ] Customer accounts: SMTP settings must be in Render for sign-in codes and the "account is ready" email.
+      Do Not Track / Global Privacy Control respected).
+
+## Cart reminder emails ("You left something in your cart")
+Off until these are done: checkout works without them, but the reminder emails won't go out.
+- [ ] Email (SMTP) settings in Render, so the site can send email at all (also needed for orders and sign-in codes).
+- [ ] Stripe: Settings > Payments > Checkout and Payment Links > **View all settings** > accept the terms for
+      promotional-email consent. Do it in the live account (and the sandbox, to test). Until it's accepted, the site
+      opens the payment page without the "send me updates" box, and no reminders go out.
+- [ ] Stripe webhook (live mode) sends checkout.session.expired, as well as checkout.session.completed,
+      async_payment_succeeded and async_payment_failed.
+- [ ] Add the business's postal address to the reminder email footer (CAN-SPAM requires it in marketing emails).
+- [ ] Privacy Policy: shoppers who tick "send me updates" at checkout may get one cart reminder email.
+- [ ] Decide on a promo code for reminders, or none (config/store.json > cart_recovery.allow_promotion_codes; codes made in Stripe).
+- [ ] Test it: start a checkout, tick "send me updates", leave the payment page, and wait for it to expire (3 hours,
+      config/store.json > cart_recovery.hours). The reminder email should arrive, and Admin > Analytics shows the
+      abandoned checkout as "reminder sent".
+
+## Customer accounts
+- [ ] SMTP settings must be in Render for sign-in codes and the "account is ready" email.
 - [ ] Privacy policy: describe customer accounts (name, email, orders, saved vehicles and builds; deleting an account).
-- [ ] Stripe live mode: Settings > Checkout, accept the terms for promotional-email consent (cart reminders). Done in the sandbox first.

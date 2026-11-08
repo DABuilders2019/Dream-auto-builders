@@ -33,10 +33,31 @@ before launch day.
 ## Switching on
 
 - [ ] Stripe live keys (`sk_live_...`) and a live-mode webhook endpoint; a real test order and refund.
-- [ ] Order emails set up (SMTP) and tested.
-- [ ] Domain: add it in Render (Custom Domains), set `SITE_URL`.
+- [ ] Order emails and domain: see "Moving day" below.
 - [ ] Delete `SITE_PASSWORD`, set `SITE_PREVIEW` to `0`.
 - [ ] Check the shop at the new address on desktop and phone.
+
+## Moving day: dreamautobuilders.com to the new site
+Do these in order. Email setup waits until the DNS is on its final provider, so the records are only added once.
+- [ ] Before switching DNS providers: write down every current record, especially the **MX records** (and any SPF/DKIM
+      TXT records for your inbox). Copy them to the new provider before switching, or admin@dreamautobuilders.com
+      stops receiving email.
+- [ ] Move the DNS (nameservers), if it's changing providers. Send a test email to admin@ afterwards to confirm it arrives.
+- [ ] Render: dream-auto-builders > Settings > Custom Domains > add dreamautobuilders.com (and www); add the DNS records
+      Render shows; wait for the certificate to show as issued.
+- [ ] Resend (resend.com, sign up with admin@dreamautobuilders.com): Domains > Add Domain > dreamautobuilders.com
+      (North America); add its DNS records; click Verify and wait for "Verified".
+- [ ] Resend: API Keys > Create API Key ("Sending access") and copy it (shown once).
+- [ ] Render > Environment (edit existing names, don't add duplicates):
+      `SMTP_HOST`=smtp.resend.com, `SMTP_PORT`=587, `SMTP_USERNAME`=resend, `SMTP_PASSWORD`=the re_ key,
+      `MAIL_FROM`=Dream Auto Builders <admin@dreamautobuilders.com>, `ORDER_NOTIFY_EMAIL`=admin@dreamautobuilders.com
+- [ ] Render: set `SITE_URL` to https://dreamautobuilders.com
+- [ ] Stripe: Workbench > Webhooks > the new site's destination > Edit destination > URL
+      https://dreamautobuilders.com/stripe/webhook (the signing secret stays the same). Then delete the old
+      WooCommerce webhook (?wc-api=wc_stripe) once the old store is off.
+- [ ] Stripe: Settings > Business > Public details > support email admin@dreamautobuilders.com.
+- [ ] Test: Sign In > Email me a code (arrives?), then a test order (customer email + new-order alert to admin@,
+      order Paid in Admin > Orders, Stripe webhook delivery "Succeeded").
 
 ## Turn 14
 

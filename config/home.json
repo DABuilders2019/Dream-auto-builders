@@ -111,7 +111,11 @@
     "coker": ["keep_holes"],
     "cokertire": ["keep_holes"],
     "rubiconexpress": ["keep_holes"],
-    "carr": ["keep_holes"]
+    "carr": ["keep_holes"],
+    "racesport": ["keep_holes"],
+    "snowperformance": ["strong"],
+    "realtruckbak": ["strong"],
+    "usspeedo": ["strong"]
   },
   "free_shipping_over": 149,
   "props": [

@@ -116,6 +116,12 @@ def test_brand_page_and_admin(shop, monkeypatch):
         assert conn.execute("SELECT banner_keep_holes FROM brands WHERE id = 'testbrand'").fetchone()[0] is True
         tc.post("/admin/logos/testbrand", data={"keep": "clear"})
         assert conn.execute("SELECT banner_keep_holes FROM brands WHERE id = 'testbrand'").fetchone()[0] is False
+        # upload a finished logo: used exactly as it is, then back to the site-made one
+        tc.post("/admin/logos/testbrand/upload", files={"file": ("l.png", _logo(lambda d: d.rectangle((20, 20, 200, 80), fill=(0, 90, 200))), "image/png")})
+        key = conn.execute("SELECT banner_logo_custom_key FROM brands WHERE id = 'testbrand'").fetchone()[0]
+        assert key and bn.logo_for(conn, "testbrand", "/static/x.png", store) == store.url(key)
+        tc.post("/admin/logos/testbrand/reset")
+        assert conn.execute("SELECT banner_logo_custom_key FROM brands WHERE id = 'testbrand'").fetchone()[0] is None
 
 
 def _logo(draw):
@@ -166,3 +172,14 @@ def test_letter_holes_are_cleared_but_white_lettering_kept():
     assert im.getpixel((ox, oy))[3] < 20                              # hole is see-through
     assert im.getpixel((247 - 20, 95 - 20))[3] > 200                  # the white F stays white
     assert im.getpixel((247 - 20, 95 - 20))[0] > 230
+
+
+def test_red_and_blue_letter_holes_clear(tmp_path):
+    def draw(d):
+        d.ellipse((20, 20, 140, 140), fill=(220, 25, 40))            # a red O
+        d.ellipse((55, 55, 105, 105), fill=(255, 255, 255))
+        d.ellipse((180, 20, 300, 140), fill=(25, 50, 170))           # a blue O
+        d.ellipse((215, 55, 265, 105), fill=(255, 255, 255))
+    png, _ = bn.banner_logo(_logo(draw))
+    im = Image.open(io.BytesIO(png)).convert("RGBA")
+    assert im.getpixel((60, 60))[3] < 20 and im.getpixel((220, 60))[3] < 20

@@ -15,13 +15,21 @@
       <div class="lshow">{% if b.logo %}<div class="bb-logo{{ ' dark' if b.outline }}"><img src="/admin/logos/{{ b.id }}/img" alt="{{ b.name }} logo" loading="lazy"></div>{% else %}<span class="muted" style="color:#fff">No logo yet</span>{% endif %}</div>
       <div class="lmeta">
         <div><b>{{ b.name }}</b><br><span class="muted">{{ b.parts|num }} parts · <a href="/brand/{{ b.id }}" target="_blank" rel="noopener">brand page</a></span></div>
-        {% if b.logo %}
+        {% if b.logo and not b.custom %}
         <form method="post" action="/admin/logos/{{ b.id }}" class="lchoice">
           <button name="keep" value="keep" class="btn btn-sm {{ 'btn-red' if b.keep else 'btn-ghost' }}" type="submit">Keep white</button>
           <button name="keep" value="clear" class="btn btn-sm {{ 'btn-red' if not b.keep else 'btn-ghost' }}" type="submit">See-through</button>
         </form>
         {% endif %}
       </div>
+      <details class="lmore"><summary>{% if b.custom %}Using your uploaded logo{% else %}Original logo · upload your own{% endif %}</summary>
+        {% if b.logo %}<p class="small"><a href="{{ b.logo }}" target="_blank" rel="noopener" download>Open the original logo file</a> (to send it, or edit it).</p>{% endif %}
+        <form method="post" action="/admin/logos/{{ b.id }}/upload" enctype="multipart/form-data" class="lup">
+          <input type="file" name="file" accept="image/png,image/webp,image/jpeg" required>
+          <button class="btn btn-ghost btn-sm" type="submit">Use on the banner as is</button>
+        </form>
+        {% if b.custom %}<form method="post" action="/admin/logos/{{ b.id }}/reset"><button class="linkbtn" type="submit">Go back to the site-made logo</button></form>{% endif %}
+      </details>
     </div>
     {% endfor %}
   </div>

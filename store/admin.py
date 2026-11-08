@@ -2,6 +2,7 @@
 
 Turned on by setting ADMIN_PASSWORD. Sign-in is kept in the same signed cookie as the cart.
 """
+import io
 import hmac
 import os
 import pathlib
@@ -788,17 +789,18 @@ def logos_page(request: Request, saved: str = ""):
     with st.pool.connection() as conn:
         s = st.get_searcher(conn)
         logos = Q.brand_logos(conn, s)
-        rows = conn.execute("""SELECT b.id, b.name, b.banner_keep_holes, b.banner_logo_key,
+        rows = conn.execute("""SELECT b.id, b.name, b.banner_keep_holes, b.banner_logo_key, b.banner_logo_custom_key IS NOT NULL,
                                       (SELECT count(*) FROM products p WHERE p.brand_id = b.id AND p.status = 'active' AND p.price IS NOT NULL)
                                FROM brands b WHERE b.active ORDER BY lower(b.name)""").fetchall()
     brands = []
-    for bid, name, keep, lkey, parts in rows:
+    for bid, name, keep, lkey, custom, parts in rows:
         if not parts:
             continue
-        std = "keep_holes" in bn._tweaks(bid, name)
+        tw = bn._tweaks(bid, name)
+        std = "keep_holes" in tw
         brands.append({"id": bid, "name": name, "logo": logos.get(bid), "parts": parts,
                        "keep": std if keep is None else keep, "chosen": keep is not None,
-                       "outline": bool(lkey and "-logo-d-" in lkey)})
+                       "outline": bool(lkey and "-logo-d-" in lkey) and not custom, "custom": custom})
     return _page(request, "admin_logos.html", title="Banner logos", section="logos", brands=brands, saved=saved)
 
 
@@ -816,6 +818,51 @@ def logo_image(request: Request, brand_id: str):
     if not url:
         return web.not_found(request)
     return RedirectResponse(url, status_code=303, headers={"Cache-Control": "no-store"})
+
+
+@router.post("/logos/{brand_id}/upload")
+def logo_upload(request: Request, brand_id: str, file: UploadFile = File(None)):
+    """Use an uploaded logo on the banner exactly as it is (a PNG with a see-through background works best)."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    import hashlib
+    from urllib.parse import quote
+    from PIL import Image
+    raw = file.file.read(8 * 1024 * 1024 + 1) if file is not None and file.filename else b""
+    if not raw or len(raw) > 8 * 1024 * 1024:
+        return RedirectResponse(f"/admin/logos?saved={quote('Choose a PNG, WebP or JPG under 8 MB.')}#b-{brand_id}", status_code=303)
+    try:
+        im = Image.open(io.BytesIO(raw))
+        im.load()
+        im = im.convert("RGBA")
+        im.thumbnail((900, 360))
+        box = im.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
+        im = im.crop(box) if box else im
+        buf = io.BytesIO()
+        im.save(buf, "PNG", optimize=True)
+    except Exception:       # noqa: BLE001
+        return RedirectResponse(f"/admin/logos?saved={quote('That file is not a picture the site can read.')}#b-{brand_id}", status_code=303)
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        s = st.get_searcher(conn)
+        key = f"banners/{brand_id}-custom-{hashlib.md5(buf.getvalue()).hexdigest()[:10]}.png"
+        s.storage.put(key, buf.getvalue(), "image/png")
+        name = conn.execute("UPDATE brands SET banner_logo_custom_key = %s WHERE id = %s RETURNING name", (key, brand_id)).fetchone()
+    return RedirectResponse(f"/admin/logos?saved={quote((name[0] if name else brand_id) + ': your logo is on the banner now, exactly as uploaded.')}#b-{brand_id}",
+                            status_code=303)
+
+
+@router.post("/logos/{brand_id}/reset")
+def logo_reset(request: Request, brand_id: str):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from urllib.parse import quote
+    with web._state(request).pool.connection() as conn:
+        name = conn.execute("UPDATE brands SET banner_logo_custom_key = NULL WHERE id = %s RETURNING name", (brand_id,)).fetchone()
+    return RedirectResponse(f"/admin/logos?saved={quote((name[0] if name else brand_id) + ': back to the site-made logo.')}#b-{brand_id}",
+                            status_code=303)
 
 
 @router.post("/logos/{brand_id}")

@@ -733,3 +733,7 @@ form.inline{display:inline}
 .lshow .bb-logo{align-self:center}
 .lmeta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;font-size:14px}
 .lchoice{display:flex;gap:6px;flex:none}
+.lmore{border-top:1px solid var(--line);padding:8px 14px 10px;font-size:13px}
+.lmore summary{cursor:pointer;color:var(--muted)}
+.lmore .lup{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+.lmore input[type=file]{font-size:12.5px;max-width:200px}

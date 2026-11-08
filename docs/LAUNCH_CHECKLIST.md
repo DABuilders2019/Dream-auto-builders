@@ -69,3 +69,4 @@ before launch day.
 - [ ] Decide on a promo code for cart reminders (config/store.json → cart_recovery.allow_promotion_codes, codes made in Stripe)
 - [ ] Customer accounts: SMTP settings must be in Render for sign-in codes and the "account is ready" email.
 - [ ] Privacy policy: describe customer accounts (name, email, orders, saved vehicles and builds; deleting an account).
+- [ ] Stripe live mode: Settings > Checkout, accept the terms for promotional-email consent (cart reminders). Done in the sandbox first.

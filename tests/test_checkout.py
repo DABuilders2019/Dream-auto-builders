@@ -183,3 +183,21 @@ def test_checkout_off_without_stripe_key(shop, monkeypatch):
     c.post("/cart/add", data={"product_id": pid(c, "LK-100")})
     assert "switched on yet" in html.unescape(c.get("/cart").text)
     assert "switched on yet" in html.unescape(c.post("/checkout").text)
+
+
+def test_checkout_still_opens_if_stripe_refuses_marketing_consent(shop, monkeypatch):
+    calls = []
+
+    def picky(api_key=None, **params):
+        calls.append(params)
+        if "consent_collection" in params:
+            raise stripe.InvalidRequestError("To set `consent_collection.promotions`, please visit "
+                                             "https://dashboard.stripe.com/settings/checkout to agree to the Terms of Service.",
+                                             "consent_collection")
+        return SimpleNamespace(id="cs_test_ok", url="https://checkout.stripe.com/c/pay/cs_test_ok")
+
+    monkeypatch.setattr(stripe.checkout.Session, "create", staticmethod(picky))
+    c = shop.c
+    c.post("/cart/add", data={"product_id": pid(c, "LK-100"), "qty": 1})
+    r = c.post("/checkout", follow_redirects=False)
+    assert r.headers["location"].endswith("cs_test_ok") and len(calls) == 2 and "consent_collection" not in calls[1]

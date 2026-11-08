@@ -129,7 +129,16 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
             "cancel_url": f"{base}/cart?cancelled=1",
         }
         try:
-            session = stripe.checkout.Session.create(api_key=stripe_key(), **params)
+            try:
+                session = stripe.checkout.Session.create(api_key=stripe_key(), **params)
+            except stripe.InvalidRequestError as e:
+                # Marketing-email consent needs the Stripe terms accepted (Settings > Checkout) once per mode;
+                # until it is, open the payment page without it rather than lose the sale.
+                if "consent_collection" not in str(e) or "consent_collection" not in params:
+                    raise
+                log.warning("Stripe refused consent_collection (accept the terms in Stripe > Settings > Checkout): %s", e)
+                params.pop("consent_collection")
+                session = stripe.checkout.Session.create(api_key=stripe_key(), **params)
         except stripe.StripeError as e:
             O.set_status(conn, order_id, "cancelled", f"Stripe refused the checkout: {e.user_message or e}")
             return _cart_redirect("The payment page couldn't be opened. Please try again in a minute.")

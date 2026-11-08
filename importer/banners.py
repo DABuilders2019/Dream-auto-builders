@@ -243,7 +243,39 @@ def _clear_counters(im, strong=False):
     return Image.fromarray(out.round().astype(np.uint8), "RGBA")
 
 
-def banner_logo(raw, darken_grey=False, keep_holes=False, strong=False):
+def _clear_points(im, points):
+    """Make specific white spots see-through: points are (x, y) as fractions of the logo's width and height; the
+    white area at each point is cleared (for a hole the automatic check misses, like Oracle's A)."""
+    import numpy as np
+    a = np.asarray(im).astype(np.float32)
+    al, rgb = a[..., 3], a[..., :3]
+    h, w = al.shape
+    whiteish = (al > 150) & (rgb.min(axis=2) > 200) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 30)
+    work = Image.fromarray((whiteish * 255).astype(np.uint8)).copy()
+    clear = np.zeros(al.shape, bool)
+    for fx, fy in points:
+        x, y = int(fx * (w - 1)), int(fy * (h - 1))
+        if work.getpixel((x, y)) != 255:
+            continue
+        ImageDraw.floodfill(work, (x, y), 128)
+        region = np.asarray(work) == 128
+        if region.sum() < 0.08 * h * w:                     # never a big part of the logo
+            clear |= region
+    if not clear.any():
+        return im
+    grow = np.asarray(Image.fromarray((clear * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
+    edge = grow & ~clear & (al > 0) & (rgb.min(axis=2) > 120)
+    out = a.copy()
+    out[clear, 3] = 0
+    t = np.clip((rgb.min(axis=2)[edge] - 110) / 145, 0, 0.92)
+    out[edge, 3] = al[edge] * (1 - t)
+    k = edge & (out[..., 3] > 1)
+    tk = t[k[edge]][:, None]
+    out[k, :3] = np.clip((rgb[k] - tk * 255) / (1 - tk), 0, 255)
+    return Image.fromarray(out.round().astype(np.uint8), "RGBA")
+
+
+def banner_logo(raw, darken_grey=False, keep_holes=False, strong=False, clear_points=()):
     """The brand logo for the banner, in its own colours: only the plain white around it is removed (white inside
     the logo stays). Returns (PNG bytes, outline): outline=True when much of the logo's outer edge has too little
     contrast with the red (black, dark or red lettering), so the page gives it a soft light outline.
@@ -257,6 +289,9 @@ def banner_logo(raw, darken_grey=False, keep_holes=False, strong=False):
         im, _ = _soft_cut(im.convert("RGB"), (255, 255, 255), tol=26, band=2)
     if not keep_holes:
         im = _clear_counters(im, strong=strong)                 # and the white inside letters (O, B, D, A...)
+    if clear_points:
+        box = im.split()[-1].point(lambda v: 255 if v > 10 else 0).getbbox()
+        im = _clear_points(im.crop(box) if box else im, clear_points)
     a = np.asarray(im).astype(np.int16)
     al = a[..., 3]
     sat = a[..., :3].max(axis=2) - a[..., :3].min(axis=2)
@@ -431,8 +466,18 @@ def _tweaks(brand_id, brand_name=None):
         cfg = json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "home.json").read_text())
     except (OSError, ValueError):
         return set()
-    t = {norm(k): set(v) for k, v in (cfg.get("banner_logo_tweaks") or {}).items()}
+    t = {norm(k): set(x for x in v if isinstance(x, str)) for k, v in (cfg.get("banner_logo_tweaks") or {}).items()}
     return t.get(norm(brand_id), set()) | t.get(norm(brand_name), set())
+
+
+def _points(brand_id, brand_name=None):
+    """Spots to clear for a brand, from config/home.json "banner_logo_clear": {"<brand>": [[x, y], ...]}."""
+    try:
+        cfg = json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "home.json").read_text())
+    except (OSError, ValueError):
+        return []
+    p = {norm(k): v for k, v in (cfg.get("banner_logo_clear") or {}).items()}
+    return [tuple(x) for x in (p.get(norm(brand_id)) or p.get(norm(brand_name)) or []) if len(x) == 2]
 
 
 def logo_for(conn, brand_id, logo_url, storage=None):
@@ -450,7 +495,8 @@ def logo_for(conn, brand_id, logo_url, storage=None):
     tw = _tweaks(brand_id, r[3])
     if r[4] is not None:                    # chosen on Admin > Logos: Keep white, or See-through (thorough)
         tw = (tw | {"keep_holes"}) - {"strong"} if r[4] else (tw - {"keep_holes"}) | {"strong"}
-    src = f"{logo_url}#v{LOGO_VERSION}" + "".join(f"+{x}" for x in sorted(tw))
+    pts = _points(brand_id, r[3])
+    src = f"{logo_url}#v{LOGO_VERSION}" + "".join(f"+{x}" for x in sorted(tw)) + (f"+p{pts}" if pts else "")
     if r[0] and r[1] == src:
         return storage.url(r[0])
     try:
@@ -460,7 +506,8 @@ def logo_for(conn, brand_id, logo_url, storage=None):
             raw = read(storage, r[2])
         else:
             return None
-        png, dark = banner_logo(raw, darken_grey="darken_grey" in tw, keep_holes="keep_holes" in tw, strong="strong" in tw)
+        png, dark = banner_logo(raw, darken_grey="darken_grey" in tw, keep_holes="keep_holes" in tw, strong="strong" in tw,
+                                clear_points=pts)
     except Exception:       # noqa: BLE001 - fall back to the plain logo
         log.warning("banner logo for %s not made", brand_id, exc_info=True)
         return logo_url

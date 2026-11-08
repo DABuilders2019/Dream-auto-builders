@@ -33,3 +33,7 @@ a clean white background, size, detail, contrast and how well the part fills the
   white lettering on a black or coloured panel and big white parts of a badge (Lucas, Coker's whitewall) stay.
 - **Admin > Logos** shows every brand's banner logo on the red, with **Keep white** / **See-through** for the white
   inside its letters (saved per brand in `brands.banner_keep_holes`; it wins over `banner_logo_tweaks`).
+- Letter holes are cleared for letters of any colour (red, blue...). Choosing **See-through** on Admin > Logos clears
+  more thoroughly for that brand ("strong"). A spot the check misses can be cleared by position:
+  `config/home.json` "banner_logo_clear": {"oracle": [[0.4667, 0.3647]]} (fractions of the logo's width and height).
+- Admin > Logos also has each brand's **original logo** file, and **upload your own** to use on the banner exactly as is.

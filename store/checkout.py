@@ -138,6 +138,7 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
                     raise
                 log.warning("Stripe refused consent_collection (accept the terms in Stripe > Settings > Checkout): %s", e)
                 params.pop("consent_collection")
+                params.pop("after_expiration", None)        # reminders only go to shoppers who opted in, so drop them too
                 session = stripe.checkout.Session.create(api_key=stripe_key(), **params)
         except stripe.StripeError as e:
             O.set_status(conn, order_id, "cancelled", f"Stripe refused the checkout: {e.user_message or e}")

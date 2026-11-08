@@ -200,4 +200,5 @@ def test_checkout_still_opens_if_stripe_refuses_marketing_consent(shop, monkeypa
     c = shop.c
     c.post("/cart/add", data={"product_id": pid(c, "LK-100"), "qty": 1})
     r = c.post("/checkout", follow_redirects=False)
-    assert r.headers["location"].endswith("cs_test_ok") and len(calls) == 2 and "consent_collection" not in calls[1]
+    assert r.headers["location"].endswith("cs_test_ok") and len(calls) == 2
+    assert "consent_collection" not in calls[1] and "after_expiration" not in calls[1]

@@ -9,15 +9,18 @@ import os
 import time
 from urllib.parse import urlencode
 
+import logging
+
 import stripe
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import installers, mailer, tracking, web
+from . import accounts, installers, mailer, tracking, web
 from . import orders as O
 
 router = APIRouter()
+log = logging.getLogger("store.checkout")
 WEBHOOK_EVENTS = ("checkout.session.completed", "checkout.session.async_payment_succeeded",
                   "checkout.session.async_payment_failed", "checkout.session.expired")
 
@@ -54,7 +57,7 @@ def remember_order(request, number):
 # ------------------------------------------------------------------ start checkout
 
 @router.post("/checkout")
-def checkout(request: Request, ship_state: str = Form("")):
+def checkout(request: Request, ship_state: str = Form(""), save_account: str = Form("")):
     if not checkout_ready():
         return _cart_redirect("Checkout isn't switched on yet.")
     st = web._state(request)
@@ -82,6 +85,9 @@ def checkout(request: Request, ship_state: str = Form("")):
         aid = web.active_id(request)
         vehicle = next((v["label"] for v in web.garage_vehicles(conn, request) if v["id"] == aid), None)
         order_id, number = O.create(conn, lines, vehicle, note=f"shipping to {state}" if state else None)
+        acct = accounts.current(request, conn)
+        if acct:
+            conn.execute("UPDATE orders SET account_id = %s WHERE id = %s", (acct["id"], order_id))
         vid = request.session.get("v") if tracking._ok_to_track(request) else None
         if vid:
             conn.execute("UPDATE orders SET visitor = %s WHERE id = %s", (vid, order_id))
@@ -111,7 +117,9 @@ def checkout(request: Request, ship_state: str = Form("")):
             "phone_number_collection": {"enabled": True},
             "automatic_tax": {"enabled": bool(cfg.get("automatic_tax"))},
             "client_reference_id": number,
-            "metadata": {"order_id": str(order_id), "order_number": number, **({"visitor": vid} if vid else {})},
+            "metadata": {"order_id": str(order_id), "order_number": number, **({"visitor": vid} if vid else {}),
+                         **({"save_account": "1"} if save_account and not acct else {})},
+            **_customer_params(conn, acct),
             **({"consent_collection": {"promotions": "auto"},
                 "after_expiration": {"recovery": {"enabled": True, "allow_promotion_codes": rec["allow_promotion_codes"]}},
                 "expires_at": int(time.time()) + rec["hours"] * 3600} if rec["enabled"] else {}),
@@ -138,7 +146,8 @@ def order_page(request: Request, number: str, session_id: str = ""):
     with st.pool.connection() as conn:
         s = st.get_searcher(conn)
         o = O.get(conn, number=number.upper())
-        allowed = o and ((session_id and session_id == o["stripe_session_id"]) or o["number"] in request.session.get("orders", []))
+        allowed = o and ((session_id and session_id == o["stripe_session_id"]) or o["number"] in request.session.get("orders", [])
+                         or accounts.owns_order(conn, request, o["number"]))
         if not allowed:
             return web.not_found(request)
         if o["status"] == "pending" and o["stripe_session_id"] and checkout_ready():
@@ -215,8 +224,38 @@ def handle_event(request, event):
                     O.set_status(conn, o["id"], "payment_failed", "Payment failed")
 
 
+def _customer_params(conn, acct):
+    """Signed in: check out as the account's Stripe customer, so a saved card and address come back and the shopper
+    can choose to save a new card. Otherwise Stripe asks for everything (guest)."""
+    if not acct:
+        return {}
+    cid = acct.get("stripe_customer_id")
+    if not cid:
+        try:
+            c = stripe.Customer.create(api_key=stripe_key(), email=acct["email"], name=acct.get("name") or None,
+                                       metadata={"account_id": str(acct["id"])})
+            cid = c.id
+            conn.execute("UPDATE accounts SET stripe_customer_id = %s WHERE id = %s", (cid, acct["id"]))
+        except stripe.StripeError:
+            return {"customer_email": acct["email"]}
+    return {"customer": cid, "customer_update": {"name": "auto", "address": "auto", "shipping": "auto"},
+            "saved_payment_method_options": {"payment_method_save": "enabled"}}
+
+
 def on_paid(request, conn, o, s):
     send_order_emails(request, o)
+    if (s.get("metadata") or {}).get("save_account") == "1":
+        try:
+            a, made = accounts.save_at_checkout(conn, o, s)
+            if made and a:
+                base = site_url(request)
+                mailer.send(a["email"], "Your Dream Auto Builders account is ready",
+                            f"Hi {(a['name'] or '').split(' ')[0] or 'there'},\n\nWe saved your name and email, so you have a "
+                            f"Dream Auto Builders account now. There's no password to remember: go to {base}/account, choose "
+                            "\"Email me a code\", and we'll send you a code to sign in.\n\nYour orders, garage and saved "
+                            "builds are all in your account.")
+        except Exception:       # noqa: BLE001 - never lose the payment over this
+            log.warning("account at checkout not made", exc_info=True)
     v = (s.get("metadata") or {}).get("visitor") or o.get("visitor")
     if v:
         tracking.record(None, "purchase", o["number"], path="/checkout", conn=conn, visitor_id=v)

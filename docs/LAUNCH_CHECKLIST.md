@@ -67,3 +67,5 @@ before launch day.
       checkout.session.completed, async_payment_succeeded and async_payment_failed) for cart reminders to work
 - [ ] Add the business's postal address to the cart reminder email footer (CAN-SPAM requires it in marketing emails)
 - [ ] Decide on a promo code for cart reminders (config/store.json → cart_recovery.allow_promotion_codes, codes made in Stripe)
+- [ ] Customer accounts: SMTP settings must be in Render for sign-in codes and the "account is ready" email.
+- [ ] Privacy policy: describe customer accounts (name, email, orders, saved vehicles and builds; deleting an account).

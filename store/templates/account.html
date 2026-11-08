@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block main %}
+<div class="wrap page acctpage">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>{{ title }}</span></nav>
+  {% set nxt = request.query_params.get('next', '') %}
+  {% set q = ('?next=' ~ nxt|urlencode) if nxt else '' %}
+
+  {% if msg == 'signedout' %}<div class="notice">{{ icon('checkc', 18) }} <span>You're signed out.</span></div>{% endif %}
+  {% if msg == 'deleted' %}<div class="notice">{{ icon('checkc', 18) }} <span>Your account is deleted. Orders you placed are still kept for our records and warranty claims.</span></div>{% endif %}
+  {% if error and mode != 'account' %}<div class="notice warn" role="alert">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+
+  {% if mode == 'signin' %}
+  <div class="acctgrid">
+    <section class="acctbox">
+      <h1>Sign in</h1>
+      <form method="post" action="/account/signin{{ q }}">
+        <div class="formrow"><label for="aEmail"><b>Email</b></label><input id="aEmail" name="email" type="email" value="{{ email }}" autocomplete="email" required></div>
+        <div class="formrow"><label for="aPw"><b>Password</b></label><input id="aPw" name="password" type="password" autocomplete="current-password" required></div>
+        <button class="btn btn-red" type="submit">Sign in</button>
+      </form>
+      <div class="orline"><span>or</span></div>
+      <form method="post" action="/account/code{{ q }}" id="codeform">
+        <p class="muted">No password, or forgot it? We'll email you a 6-digit code to sign in.</p>
+        <div class="formrow"><label for="cEmail"><b>Email</b></label><input id="cEmail" name="email" type="email" value="{{ email }}" autocomplete="email" required></div>
+        <button class="btn btn-ghost" type="submit"{% if not codes_on %} disabled{% endif %}>Email me a code</button>
+        {% if not codes_on %}<p class="muted small">Emailed codes are switched on once the store's email is set up.</p>{% endif %}
+      </form>
+    </section>
+    <section class="acctbox alt">
+      <h2>New here?</h2>
+      <p>An account keeps your orders, your garage and your saved builds in one place, on any device, and makes checkout quicker next time.</p>
+      <ul class="ticks">
+        <li>{{ icon('check', 16) }} Order history and tracking</li>
+        <li>{{ icon('check', 16) }} Your vehicles and builds on every device</li>
+        <li>{{ icon('check', 16) }} Saved card and address at checkout</li>
+      </ul>
+      <a class="btn btn-red" href="/account/signup{{ q }}">Create an account</a>
+      <p class="muted small">You don't need an account to order. You can also save your name and email in the cart when you check out.</p>
+    </section>
+  </div>
+
+  {% elif mode == 'code' %}
+  <section class="acctbox narrow">
+    <h1>Check your email</h1>
+    <p>If there's an account for <b>{{ email }}</b>, we've sent it a 6-digit code. It works for 10 minutes.</p>
+    <form method="post" action="/account/code/verify{{ ('?next=' ~ nxt|urlencode) if nxt else '' }}">
+      <input type="hidden" name="email" value="{{ email }}">
+      <div class="formrow"><label for="code"><b>Code</b></label>
+        <input id="code" name="code" class="codeinput" inputmode="numeric" pattern="[0-9 ]{6,7}" maxlength="7" autocomplete="one-time-code" required autofocus></div>
+      <button class="btn btn-red" type="submit">Sign in</button>
+    </form>
+    <form method="post" action="/account/code{{ q }}" class="inline"><input type="hidden" name="email" value="{{ email }}">
+      <button class="linkbtn" type="submit">Send a new code</button></form>
+    <p class="muted small">Didn't get it? Check spam, or <a href="/account/signup?email={{ email|urlencode }}">create an account</a> if you don't have one yet.</p>
+  </section>
+
+  {% elif mode == 'signup' %}
+  <section class="acctbox narrow">
+    <h1>Create your account</h1>
+    <form method="post" action="/account/signup{{ q }}">
+      <div class="formrow"><label for="sName"><b>Name</b></label><input id="sName" name="name" value="{{ form_name or "" }}" autocomplete="name" required></div>
+      <div class="formrow"><label for="sEmail"><b>Email</b></label><input id="sEmail" name="email" type="email" value="{{ email }}" autocomplete="email" required></div>
+      <div class="formrow"><label for="sPw"><b>Password</b>{% if codes_on %} <span class="muted">(optional)</span>{% endif %}</label>
+        <input id="sPw" name="password" type="password" autocomplete="new-password" minlength="{{ min_password }}"{% if not codes_on %} required{% endif %}>
+        <span class="muted small">At least {{ min_password }} characters.{% if codes_on %} Leave it empty to sign in with a code we email you each time.{% endif %}</span></div>
+      <button class="btn btn-red" type="submit">Create account</button>
+    </form>
+    <p class="muted small">Already have one? <a href="/account{{ q }}">Sign in</a></p>
+  </section>
+
+  {% else %}
+  {% set errs = {'current': "Your current password isn't right.", 'short': "Use at least " ~ min_password ~ " characters for your password.",
+                 'confirm': 'Type DELETE in the box to delete your account.', 'name': 'Enter your name.'} %}
+  <div class="accthead">
+    <div><h1>Hi{% if a.name %}, {{ a.name.split(' ')[0] }}{% endif %}</h1><p class="muted">{{ a.email }}</p></div>
+    <form method="post" action="/account/signout"><button class="btn btn-ghost btn-sm" type="submit">Sign out</button></form>
+  </div>
+  {% if msg == 'welcome' %}<div class="notice">{{ icon('checkc', 18) }} <span>Your account is ready. Your garage and builds are saved to it.</span></div>{% endif %}
+  {% if msg == 'saved' %}<div class="notice">{{ icon('checkc', 18) }} <span>Saved.</span></div>{% endif %}
+  {% if msg == 'password' %}<div class="notice">{{ icon('checkc', 18) }} <span>Password saved.</span></div>{% endif %}
+  {% if error in errs %}<div class="notice warn" role="alert">{{ icon('info', 18) }} <span>{{ errs[error] }}</span></div>{% endif %}
+
+  <div class="acctcards">
+    <a class="acctcard" href="/garage">{{ icon('garage', 22) }}<b>My Garage</b><span>{{ garage_count }} vehicle{{ 's' if garage_count != 1 }} · {{ builds_count }} build{{ 's' if builds_count != 1 }}</span></a>
+    <a class="acctcard" href="#orders">{{ icon('box', 22) }}<b>Orders</b><span>{{ orders|length }} order{{ 's' if orders|length != 1 }}</span></a>
+    <a class="acctcard" href="#security">{{ icon('user', 22) }}<b>Account</b><span>Name, password</span></a>
+  </div>
+
+  <section class="acard" id="orders">
+    <h2>Orders</h2>
+    {% if not a.email_verified %}
+    <div class="note">Ordered before you had an account? <form method="post" action="/account/code?next=/account%23orders" class="inline">
+      <input type="hidden" name="email" value="{{ a.email }}"><button class="linkbtn" type="submit"{% if not codes_on %} disabled{% endif %}>Confirm your email</button></form>
+      and orders placed with {{ a.email }} show up here too.</div>
+    {% endif %}
+    {% if orders %}
+    <div class="tblwrap"><table class="tbl num ordertbl">
+      <thead><tr><th>Order</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr></thead>
+      <tbody>{% for o in orders %}
+        <tr><td><a href="/order/{{ o.number }}"><b>{{ o.number }}</b></a></td><td>{{ o.created_at.strftime('%b %-d, %Y') }}</td>
+          <td>{{ o.qty or 0 }}</td><td>{{ o.total|money if o.total is not none else '' }}</td>
+          <td><span class="ostat s-{{ o.status }}">{{ o.status|replace('_', ' ')|title }}</span>{% if o.tracking_number %}<br><span class="muted small">{{ o.carrier }} {{ o.tracking_number }}</span>{% endif %}</td>
+          <td><a class="btn btn-ghost btn-sm" href="/order/{{ o.number }}">View</a></td></tr>
+      {% endfor %}</tbody></table></div>
+    {% else %}<p class="muted">No orders yet. <a href="/">Find parts for your vehicle</a>.</p>{% endif %}
+  </section>
+
+  <section class="acard" id="security">
+    <h2>Your details</h2>
+    <div class="acctforms">
+      <form method="post" action="/account/profile">
+        <div class="formrow"><label for="pName"><b>Name</b></label><input id="pName" name="name" value="{{ a.name or '' }}" autocomplete="name" required></div>
+        <button class="btn btn-ghost btn-sm" type="submit">Save name</button>
+      </form>
+      <form method="post" action="/account/password">
+        {% if a.has_password and not recent_code %}
+        <div class="formrow"><label for="pCur"><b>Current password</b></label><input id="pCur" name="current_password" type="password" autocomplete="current-password" required></div>
+        {% endif %}
+        <div class="formrow"><label for="pNew"><b>{{ 'New password' if a.has_password else 'Add a password' }}</b></label>
+          <input id="pNew" name="new_password" type="password" autocomplete="new-password" minlength="{{ min_password }}" required>
+          <span class="muted small">{% if not a.has_password %}You sign in with emailed codes now. A password lets you sign in without waiting for an email (codes keep working too).{% else %}At least {{ min_password }} characters.{% endif %}</span></div>
+        <button class="btn btn-ghost btn-sm" type="submit">{{ 'Change password' if a.has_password else 'Save password' }}</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="acard" id="delete">
+    <details><summary><b>Delete my account</b></summary>
+      <form method="post" action="/account/delete" class="delform">
+        <p class="muted">This deletes your account, saved vehicles and builds. Orders you've placed are kept for our records and warranty claims.</p>
+        <div class="formrow"><label for="dConf">Type <b>DELETE</b> to confirm</label><input id="dConf" name="confirm" autocomplete="off" required></div>
+        <button class="btn btn-ghost btn-sm danger" type="submit">Delete my account</button>
+      </form>
+    </details>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

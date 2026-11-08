@@ -54,4 +54,5 @@ is declined. No money moves in test mode.
 
 - Purchase orders sent to Turn14 / Keystone automatically (needs their API access).
 - Live stock from the distributor feeds.
-- Customer accounts (order history, saved garage on every device).
+
+Customer accounts: see [ACCOUNTS.md](ACCOUNTS.md).

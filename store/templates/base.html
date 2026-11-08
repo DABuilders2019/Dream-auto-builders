@@ -9,7 +9,7 @@
 <link rel="icon" type="image/png" href="/static/img/favicon.png">
 <link rel="preload" href="/static/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/css/site.css?v=30">
+<link rel="stylesheet" href="/static/css/site.css?v=31">
 </head>
 <body data-vehicle="{{ active.id if active else '' }}">
 <a class="sr skip" href="#main">Skip to content</a>
@@ -37,7 +37,7 @@
       </div>
       <a class="hbtn" data-track="header: track order" href="/track">{{ icon('box') }}<span class="lbl">Track Order<small>Where's my part?</small></span></a>
       <a class="hbtn" data-track="header: my garage" href="/garage">{{ icon('garage') }}<span class="lbl">My Garage<small>{{ active.label if active else 'Add a vehicle' }}</small></span>{% if garage %}<span class="badge">{{ garage|length }}</span>{% endif %}</a>
-      <a class="hbtn" href="/account" id="acctBtn">{{ icon('user') }}<span class="lbl">Sign In<small>Orders &amp; account</small></span></a>
+      <a class="hbtn" data-track="header: account" href="/account" id="acctBtn">{{ icon('user') }}<span class="lbl">{% if acct %}{{ (acct.name or 'My account').split(' ')[0][:14] }}<small>My account</small>{% else %}Sign In<small>Orders &amp; account</small>{% endif %}</span></a>
       <a class="hbtn" href="/cart" id="cartBtn">{{ icon('cart') }}<span class="lbl">Cart<small id="cartSmall">{{ cart_subtotal|money }}</small></span><span class="badge" id="cartCount"{% if not cart_count %} hidden{% endif %}>{{ cart_count }}</span></a>
     </nav>
   </div>

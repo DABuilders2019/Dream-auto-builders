@@ -46,7 +46,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import admin, banner_schedule, builds, checkout, installers, sema_schedule, tracking, turn14_schedule
+from . import accounts, admin, banner_schedule, builds, checkout, installers, sema_schedule, tracking, turn14_schedule
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -151,6 +151,7 @@ def create_app(dsn=None):
     if not secret:
         logging.getLogger("store").warning("SECRET_KEY is not set: using a temporary key, so carts reset when the server restarts")
         secret = secrets.token_urlsafe(32)
+    accounts.install(app)            # signed-in shoppers' garage and builds kept on their account
     tracking.install(app)            # page views (inside the session middleware, for the visitor id)
     web.install_site_gate(app)       # (inside the session middleware below, so it can read the cookie)
     app.add_middleware(SessionMiddleware, secret_key=secret, session_cookie="dab", max_age=90 * 24 * 3600,
@@ -210,6 +211,7 @@ def create_app(dsn=None):
     app.include_router(installers.router)
     app.include_router(tracking.router)
     app.include_router(builds.router)
+    app.include_router(accounts.router)
     web.install(app)
     return app
 

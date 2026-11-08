@@ -11,8 +11,6 @@
     <div class="formrow"><label for="tEmail"><b>Email</b></label><input id="tEmail" name="email" type="email" placeholder="you@example.com" required></div>
     <button class="btn btn-red" type="submit">Track order</button>
   </form>
-  {% elif page == 'account' %}
-  <div class="note">Sign-in isn't connected yet. It comes after checkout is set up.</div>
   {% elif not paras or page in ('fitment-guarantee', 'about') %}
   <div class="note">This page is a placeholder. Dream Auto Builders will add the final wording before the site launches.</div>
   {% endif %}

@@ -36,6 +36,13 @@
         <select class="ymm" id="shipState" name="ship_state" required><option value="">Choose a state</option>{% for code, name in states.items() %}<option value="{{ code }}"{% if code == ship_state %} selected{% endif %}>{{ name }}</option>{% endfor %}</select>
         <small class="muted">Your cart has a catalytic converter that isn't CARB-approved. Those can't ship to {{ restricted_names }}.</small></div>
       {% endif %}
+      {% if acct %}
+      <p class="cartsigned">Signed in as <b>{{ acct.email }}</b>. This order is saved to your account.</p>
+      {% else %}
+      <label class="cartacct"><input type="checkbox" name="save_account" value="1">
+        <span>Save my name and email to create an account
+          <small>No password needed: sign in later with a code we email you. See your orders and keep your garage on any device.</small></span></label>
+      {% endif %}
       <button class="btn btn-red" type="submit"{% if not checkout_ready %} disabled{% endif %}>{{ icon('lock', 18) }} Secure checkout</button>
     </form>
     {% if not checkout_ready %}<p class="secure" style="text-align:center">Checkout isn't switched on yet on this test site.</p>

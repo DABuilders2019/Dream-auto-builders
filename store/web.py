@@ -155,7 +155,11 @@ def render(request, conn, searcher, name, status_code=200, **ctx):
     here = request.url.path + (("?" + request.url.query) if request.url.query else "")
     from .orders import store_config
     builder = bool((store_config().get("interactive_garage") or {}).get("url"))
-    base = dict(request=request, garage=garage, active=active, cart_count=count, cart_subtotal=subtotal, garage_builder=builder,
+    acct = None
+    if request.session.get("acct"):
+        from . import accounts
+        acct = accounts.current(request, conn)
+    base = dict(request=request, garage=garage, active=active, cart_count=count, cart_subtotal=subtotal, garage_builder=builder, acct=acct,
                 years=years, footer_cats=top[:6], nav_brands=nav_brands, here=here, q=ctx.pop("q", ""), money=money)
     resp = templates.TemplateResponse(request, name, {**base, **ctx}, status_code=status_code)
     if is_preview():
@@ -608,14 +612,6 @@ def track_page(request: Request):
         return render(request, conn, st.get_searcher(conn), "page.html", title="Track Your Order", page="track",
                       paras=["Enter the order number from your confirmation email and the email address you ordered with."],
                       track_error=request.query_params.get("error") == "1", track_number=request.query_params.get("number", "")[:20])
-
-
-@router.get("/account", response_class=HTMLResponse)
-def account_page(request: Request):
-    st = _state(request)
-    with st.pool.connection() as conn:
-        return render(request, conn, st.get_searcher(conn), "page.html", title="Sign In", page="account",
-                      paras=["Customer accounts will let you see past orders, reorder parts and keep your garage on every device."])
 
 
 @router.get("/robots.txt", response_class=PlainTextResponse)

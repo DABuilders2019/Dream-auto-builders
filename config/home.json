@@ -110,7 +110,8 @@
     "mickeythompson": ["darken_grey"],
     "coker": ["keep_holes"],
     "cokertire": ["keep_holes"],
-    "rubiconexpress": ["keep_holes"]
+    "rubiconexpress": ["keep_holes"],
+    "carr": ["keep_holes"]
   },
   "free_shipping_over": 149,
   "props": [

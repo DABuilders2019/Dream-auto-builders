@@ -183,3 +183,17 @@ def test_red_and_blue_letter_holes_clear(tmp_path):
     png, _ = bn.banner_logo(_logo(draw))
     im = Image.open(io.BytesIO(png)).convert("RGBA")
     assert im.getpixel((60, 60))[3] < 20 and im.getpixel((220, 60))[3] < 20
+
+
+def test_badge_inside_filled_white_when_set():
+    im = Image.new("RGBA", (300, 300), (255, 255, 255, 0))
+    d = ImageDraw.Draw(im)
+    d.ellipse((20, 20, 280, 280), outline=(0, 0, 0, 255), width=10)          # a badge with a see-through middle
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    off = Image.open(io.BytesIO(bn.banner_logo(buf.getvalue(), keep_holes=True)[0])).convert("RGBA")
+    on = Image.open(io.BytesIO(bn.banner_logo(buf.getvalue(), keep_holes=True, fill_inside=True)[0])).convert("RGBA")
+    c = (off.size[0] // 2, off.size[1] // 2)
+    assert off.getpixel(c)[3] < 20 and on.getpixel(c)[3] == 255 and on.getpixel(c)[0] == 255
+    assert on.getpixel((2, 2))[3] < 20                                         # outside stays see-through
+    assert bn._tweaks("x", "CARR") >= {"keep_holes", "fill_inside"}

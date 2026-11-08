@@ -111,7 +111,7 @@
     "coker": ["keep_holes"],
     "cokertire": ["keep_holes"],
     "rubiconexpress": ["keep_holes"],
-    "carr": ["keep_holes"],
+    "carr": ["keep_holes", "fill_inside"],
     "racesport": ["keep_holes"],
     "snowperformance": ["strong"],
     "realtruckbak": ["strong"],

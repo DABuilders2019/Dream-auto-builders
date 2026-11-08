@@ -10,9 +10,13 @@
   {% if error and mode != 'account' %}<div class="notice warn" role="alert">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
 
   {% if mode == 'signin' %}
+  <div class="accthero">
+    <div><h1>Welcome back</h1><p>Sign in to see your orders, your garage and your saved builds.</p></div>
+    <span class="accthero-ic">{{ icon('user', 34) }}</span>
+  </div>
   <div class="acctgrid">
     <section class="acctbox">
-      <h1>Sign in</h1>
+      <h2 class="boxh">{{ icon('lock', 20) }} Sign in</h2>
       <form method="post" action="/account/signin{{ q }}">
         <div class="formrow"><label for="aEmail"><b>Email</b></label><input id="aEmail" name="email" type="email" value="{{ email }}" autocomplete="email" required></div>
         <div class="formrow"><label for="aPw"><b>Password</b></label><input id="aPw" name="password" type="password" autocomplete="current-password" required></div>
@@ -26,21 +30,22 @@
         {% if not codes_on %}<p class="muted small">Emailed codes are switched on once the store's email is set up.</p>{% endif %}
       </form>
     </section>
-    <section class="acctbox alt">
+    <section class="acctbox promo">
       <h2>New here?</h2>
       <p>An account keeps your orders, your garage and your saved builds in one place, on any device, and makes checkout quicker next time.</p>
       <ul class="ticks">
-        <li>{{ icon('check', 16) }} Order history and tracking</li>
-        <li>{{ icon('check', 16) }} Your vehicles and builds on every device</li>
-        <li>{{ icon('check', 16) }} Saved card and address at checkout</li>
+        <li><span class="tick">{{ icon('box', 18) }}</span> Order history and tracking</li>
+        <li><span class="tick">{{ icon('garage', 18) }}</span> Your vehicles and builds on every device</li>
+        <li><span class="tick">{{ icon('lock', 18) }}</span> Saved card and address at checkout</li>
       </ul>
-      <a class="btn btn-red" href="/account/signup{{ q }}">Create an account</a>
+      <a class="btn btn-white" href="/account/signup{{ q }}">Create an account</a>
       <p class="muted small">You don't need an account to order. You can also save your name and email in the cart when you check out.</p>
     </section>
   </div>
 
   {% elif mode == 'code' %}
   <section class="acctbox narrow">
+    <span class="bigic">{{ icon('info', 26) }}</span>
     <h1>Check your email</h1>
     <p>If there's an account for <b>{{ email }}</b>, we've sent it a 6-digit code. It works for 10 minutes.</p>
     <form method="post" action="/account/code/verify{{ ('?next=' ~ nxt|urlencode) if nxt else '' }}">
@@ -55,8 +60,11 @@
   </section>
 
   {% elif mode == 'signup' %}
+  <div class="accthero">
+    <div><h1>Create your account</h1><p>Keep your orders, vehicles and builds in one place, on every device.</p></div>
+    <span class="accthero-ic">{{ icon('garage', 34) }}</span>
+  </div>
   <section class="acctbox narrow">
-    <h1>Create your account</h1>
     <form method="post" action="/account/signup{{ q }}">
       <div class="formrow"><label for="sName"><b>Name</b></label><input id="sName" name="name" value="{{ form_name or "" }}" autocomplete="name" required></div>
       <div class="formrow"><label for="sEmail"><b>Email</b></label><input id="sEmail" name="email" type="email" value="{{ email }}" autocomplete="email" required></div>
@@ -71,9 +79,9 @@
   {% else %}
   {% set errs = {'current': "Your current password isn't right.", 'short': "Use at least " ~ min_password ~ " characters for your password.",
                  'confirm': 'Type DELETE in the box to delete your account.', 'name': 'Enter your name.'} %}
-  <div class="accthead">
-    <div><h1>Hi{% if a.name %}, {{ a.name.split(' ')[0] }}{% endif %}</h1><p class="muted">{{ a.email }}</p></div>
-    <form method="post" action="/account/signout"><button class="btn btn-ghost btn-sm" type="submit">Sign out</button></form>
+  <div class="accthero">
+    <div><h1>Hi{% if a.name %}, {{ a.name.split(' ')[0] }}{% endif %}</h1><p>{{ a.email }}{% if a.email_verified %} · <span class="verified">{{ icon('checkc', 15) }} Email confirmed</span>{% endif %}</p></div>
+    <form method="post" action="/account/signout"><button class="btn btn-onred btn-sm" type="submit">Sign out</button></form>
   </div>
   {% if msg == 'welcome' %}<div class="notice">{{ icon('checkc', 18) }} <span>Your account is ready. Your garage and builds are saved to it.</span></div>{% endif %}
   {% if msg == 'saved' %}<div class="notice">{{ icon('checkc', 18) }} <span>Saved.</span></div>{% endif %}
@@ -81,13 +89,13 @@
   {% if error in errs %}<div class="notice warn" role="alert">{{ icon('info', 18) }} <span>{{ errs[error] }}</span></div>{% endif %}
 
   <div class="acctcards">
-    <a class="acctcard" href="/garage">{{ icon('garage', 22) }}<b>My Garage</b><span>{{ garage_count }} vehicle{{ 's' if garage_count != 1 }} · {{ builds_count }} build{{ 's' if builds_count != 1 }}</span></a>
-    <a class="acctcard" href="#orders">{{ icon('box', 22) }}<b>Orders</b><span>{{ orders|length }} order{{ 's' if orders|length != 1 }}</span></a>
-    <a class="acctcard" href="#security">{{ icon('user', 22) }}<b>Account</b><span>Name, password</span></a>
+    <a class="acctcard" href="/garage"><span class="aic">{{ icon('garage', 22) }}</span><b>My Garage</b><span>{{ garage_count }} vehicle{{ 's' if garage_count != 1 }} · {{ builds_count }} build{{ 's' if builds_count != 1 }}</span></a>
+    <a class="acctcard" href="#orders"><span class="aic">{{ icon('box', 22) }}</span><b>Orders</b><span>{{ orders|length }} order{{ 's' if orders|length != 1 }}</span></a>
+    <a class="acctcard" href="#security"><span class="aic">{{ icon('user', 22) }}</span><b>Account</b><span>Name, password</span></a>
   </div>
 
-  <section class="acard" id="orders">
-    <h2>Orders</h2>
+  <section class="acard acctsec" id="orders">
+    <h2>{{ icon('box', 22) }} Orders</h2>
     {% if not a.email_verified %}
     <div class="note">Ordered before you had an account? <form method="post" action="/account/code?next=/account%23orders" class="inline">
       <input type="hidden" name="email" value="{{ a.email }}"><button class="linkbtn" type="submit"{% if not codes_on %} disabled{% endif %}>Confirm your email</button></form>
@@ -105,8 +113,8 @@
     {% else %}<p class="muted">No orders yet. <a href="/">Find parts for your vehicle</a>.</p>{% endif %}
   </section>
 
-  <section class="acard" id="security">
-    <h2>Your details</h2>
+  <section class="acard acctsec" id="security">
+    <h2>{{ icon('user', 22) }} Your details</h2>
     <div class="acctforms">
       <form method="post" action="/account/profile">
         <div class="formrow"><label for="pName"><b>Name</b></label><input id="pName" name="name" value="{{ a.name or '' }}" autocomplete="name" required></div>
@@ -124,7 +132,7 @@
     </div>
   </section>
 
-  <section class="acard" id="delete">
+  <section class="acard acctsec" id="delete">
     <details><summary><b>Delete my account</b></summary>
       <form method="post" action="/account/delete" class="delform">
         <p class="muted">This deletes your account, saved vehicles and builds. Orders you've placed are kept for our records and warranty claims.</p>

@@ -184,3 +184,11 @@ def test_change_password_and_delete(shop, mails, conn):
     c.post("/account/delete", data={"confirm": "delete"})
     assert conn.execute("SELECT count(*) FROM accounts WHERE email = 'del@example.com'").fetchone()[0] == 0
     assert "Sign in" in c.get("/account").text
+
+
+def test_cart_hides_save_account_without_email(shop, mails, monkeypatch):
+    c = shop.c
+    c.post("/cart/add", data={"product_id": pid(c, "LK-100"), "qty": 1})
+    assert "Save my name and email" in c.get("/cart").text
+    monkeypatch.delenv("SMTP_HOST")
+    assert "Save my name and email" not in c.get("/cart").text

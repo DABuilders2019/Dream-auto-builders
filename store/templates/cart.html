@@ -38,7 +38,7 @@
       {% endif %}
       {% if acct %}
       <p class="cartsigned">{{ icon('checkc', 18) }} <span>Signed in as <b>{{ acct.email }}</b>. This order is saved to your account.</span></p>
-      {% else %}
+      {% elif mail_on %}
       <label class="cartacct"><input type="checkbox" name="save_account" value="1">
         <span><b>Save my name and email to create an account</b>
           <small>No password needed: sign in later with a code we email you. See your orders and keep your garage on any device.</small></span></label>

@@ -159,7 +159,7 @@ def render(request, conn, searcher, name, status_code=200, **ctx):
     if request.session.get("acct"):
         from . import accounts
         acct = accounts.current(request, conn)
-    base = dict(request=request, garage=garage, active=active, cart_count=count, cart_subtotal=subtotal, garage_builder=builder, acct=acct,
+    base = dict(request=request, garage=garage, active=active, cart_count=count, cart_subtotal=subtotal, garage_builder=builder, acct=acct, mail_on=_mail_on(),
                 years=years, footer_cats=top[:6], nav_brands=nav_brands, here=here, q=ctx.pop("q", ""), money=money)
     resp = templates.TemplateResponse(request, name, {**base, **ctx}, status_code=status_code)
     if is_preview():
@@ -689,3 +689,8 @@ def install(app):
         if exc.status_code == 404 and not request.url.path.startswith(("/api/", "/photos/", "/static/")):
             return await run_in_threadpool(not_found, request)
         return await http_exception_handler(request, exc)
+
+
+def _mail_on():
+    from . import mailer
+    return mailer.configured()

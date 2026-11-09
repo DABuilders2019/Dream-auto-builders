@@ -51,6 +51,10 @@ Do these in order. Email setup waits until the DNS is on its final provider, so 
 - [ ] Render > Environment (edit existing names, don't add duplicates):
       `SMTP_HOST`=smtp.resend.com, `SMTP_PORT`=587, `SMTP_USERNAME`=resend, `SMTP_PASSWORD`=the re_ key,
       `MAIL_FROM`=Dream Auto Builders <admin@dreamautobuilders.com>, `ORDER_NOTIFY_EMAIL`=admin@dreamautobuilders.com
+- [ ] Make sure the live site sends from the real domain, not Resend's test sender: Resend > Domains shows
+      dreamautobuilders.com as "Verified", `MAIL_FROM` in Render is admin@dreamautobuilders.com (never
+      onboarding@resend.dev, which can only email the Resend account owner), and a test email reaches an outside
+      address (e.g. a personal Gmail) that isn't the Resend account's own email.
 - [ ] Render: set `SITE_URL` to https://dreamautobuilders.com
 - [ ] Stripe: Workbench > Webhooks > the new site's destination > Edit destination > URL
       https://dreamautobuilders.com/stripe/webhook (the signing secret stays the same). Then delete the old

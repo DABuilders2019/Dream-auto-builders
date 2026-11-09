@@ -197,3 +197,14 @@ def test_badge_inside_filled_white_when_set():
     assert off.getpixel(c)[3] < 20 and on.getpixel(c)[3] == 255 and on.getpixel(c)[0] == 255
     assert on.getpixel((2, 2))[3] < 20                                         # outside stays see-through
     assert bn._tweaks("x", "CARR") >= {"keep_holes", "fill_inside"}
+
+
+def test_box_logo_kept_whole():
+    def draw(d):
+        d.rectangle((20, 20, 380, 140), fill=(230, 0, 40))
+        d.rectangle((200, 60, 260, 140), fill=(255, 255, 255))         # white letter running into the box's bottom edge
+    png, _ = bn.banner_logo(_logo(draw), box=True)
+    im = Image.open(io.BytesIO(png)).convert("RGBA")
+    assert im.size == (361, 121)                                      # trimmed to the box
+    assert im.getpixel((200, 118)) == (255, 255, 255, 255)            # the white letter at the edge stays white
+    assert bn._tweaks("x", "Motul") == {"box"}

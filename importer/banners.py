@@ -300,7 +300,26 @@ def _fill_inside(im):
     return Image.fromarray(out.round().astype(np.uint8), "RGBA")
 
 
-def banner_logo(raw, darken_grey=False, keep_holes=False, strong=False, clear_points=(), fill_inside=False):
+def _as_box(raw):
+    """A logo that is a solid box (like Motul's red one): keep everything inside the box exactly as it is, including
+    white letters that touch its edge, and only trim the white margin around it."""
+    import numpy as np
+    im = Image.open(io.BytesIO(raw))
+    im.load()
+    im = im.convert("RGBA")
+    im.thumbnail((900, 360))
+    a = np.asarray(im).astype(np.int16)
+    ink = (a[..., 3] > 40) & ~((a[..., :3].min(axis=2) > 235) & ((a[..., :3].max(axis=2) - a[..., :3].min(axis=2)) < 20))
+    rows, cols = ink.mean(axis=1), ink.mean(axis=0)
+    ys, xs = np.nonzero(rows > 0.2)[0], np.nonzero(cols > 0.2)[0]     # rows/columns that are mostly the box
+    if not len(ys) or not len(xs):
+        return im
+    out = im.crop((int(xs[0]), int(ys[0]), int(xs[-1]) + 1, int(ys[-1]) + 1))
+    out.putalpha(255)
+    return out
+
+
+def banner_logo(raw, darken_grey=False, keep_holes=False, strong=False, clear_points=(), fill_inside=False, box=False):
     """The brand logo for the banner, in its own colours: only the plain white around it is removed (white inside
     the logo stays). Returns (PNG bytes, outline): outline=True when much of the logo's outer edge has too little
     contrast with the red (black, dark or red lettering), so the page gives it a soft light outline.
@@ -310,7 +329,10 @@ def banner_logo(raw, darken_grey=False, keep_holes=False, strong=False, clear_po
     im.load()
     im = im.convert("RGBA")
     im.thumbnail((900, 360))
-    if np.asarray(im.split()[-1]).min() > 250:                  # no transparency: take the white around it out
+    if box:
+        im = _as_box(raw)
+        keep_holes = True
+    elif np.asarray(im.split()[-1]).min() > 250:                # no transparency: take the white around it out
         im, _ = _soft_cut(im.convert("RGB"), (255, 255, 255), tol=26, band=2)
     if fill_inside:
         im = _fill_inside(im)                                   # a badge whose middle should be white
@@ -489,7 +511,8 @@ LOGO_VERSION = 6
 def _tweaks(brand_id, brand_name=None):
     """Per-brand banner logo adjustments from config/home.json "banner_logo_tweaks": {"<brand id or name>": [...]}.
     "darken_grey": grey lettering printed dark; "keep_holes": leave the white inside letters as it is;
-    "strong": clear letter holes thoroughly; "fill_inside": fill a badge's inside with white."""
+    "strong": clear letter holes thoroughly; "fill_inside": fill a badge's inside with white;
+    "box": the logo is a solid box, keep it whole (white letters touching its edge stay)."""
     try:
         cfg = json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "home.json").read_text())
     except (OSError, ValueError):
@@ -546,7 +569,7 @@ def logo_for(conn, brand_id, logo_url, storage=None):
         else:
             return None
         png, dark = banner_logo(raw, darken_grey="darken_grey" in tw, keep_holes="keep_holes" in tw, strong="strong" in tw,
-                                clear_points=pts, fill_inside="fill_inside" in tw)
+                                clear_points=pts, fill_inside="fill_inside" in tw, box="box" in tw)
     except Exception:       # noqa: BLE001 - fall back to the plain logo
         log.warning("banner logo for %s not made", brand_id, exc_info=True)
         return logo_url

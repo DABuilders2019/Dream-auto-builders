@@ -57,9 +57,9 @@ def too_big(weight, dims):
     return weight > 150 or l > 108 or l + 2 * (w + h) > 165
 
 
-def packages_for(conn, lines, sh, weights=None):
+def packages_for(conn, lines, sh, sizes=None):
     """{origin_zip: [(weight, dims), ...]} and the lines that are too big for UPS.
-    Pass a dict as weights to get each part's shipping weight (lb) by product id."""
+    Pass a dict as sizes to get each part's (weight lb, (l, w, h) in) by product id."""
     ids = [l["product_id"] for l in lines]
     rows = {r[0]: r[1:] for r in conn.execute("SELECT id, weight_lb, package_dims, brand_id FROM products WHERE id = ANY(%s)", (ids,)).fetchall()}
     by_origin, big = {}, []
@@ -67,8 +67,8 @@ def packages_for(conn, lines, sh, weights=None):
         weight, dims, brand = rows.get(l["product_id"], (None, None, None))
         weight = float(weight) if weight else float(sh["default_weight_lb"])
         dims = parse_dims(dims, sh["default_dims"])
-        if weights is not None:
-            weights[l["product_id"]] = weight
+        if sizes is not None:
+            sizes[l["product_id"]] = (weight, dims)
         if too_big(weight, dims):
             big.append(l)
             continue
@@ -82,7 +82,11 @@ def quote(conn, lines, to_zip, cfg=None):
     "error": str or None, "live": bool, "free": {...}}. UPS prices are cached for 30 minutes so the cart and
     checkout show the same prices; the free-shipping rule (Admin > UPS) is applied on top each time."""
     raw = _ups_quote(conn, lines, to_zip, cfg)
-    return apply_free(raw, free_rule(conn), lines, to_zip)
+
+    def price_of(sub):                   # UPS prices for just these parts (the ones free shipping doesn't cover)
+        part = _ups_quote(conn, sub, to_zip, cfg)
+        return {o["code"]: o["amount"] for o in part["options"]} if part["live"] and not part["big"] else {}
+    return apply_free(raw, free_rule(conn), lines, to_zip, price_of)
 
 
 def _ups_quote(conn, lines, to_zip, cfg=None):
@@ -93,9 +97,9 @@ def _ups_quote(conn, lines, to_zip, cfg=None):
         hit = _cache.get(key)
         if hit and time.time() - hit[0] < CACHE_MINUTES * 60:
             return hit[1]
-    weights = {}
-    by_origin, big = packages_for(conn, lines, sh, weights)
-    result = {"options": [], "big": big, "error": None, "live": True, "weights": weights}
+    sizes = {}
+    by_origin, big = packages_for(conn, lines, sh, sizes)
+    result = {"options": [], "big": big, "error": None, "live": True, "sizes": sizes}
     if big:
         return result
     try:
@@ -128,7 +132,7 @@ def _ups_quote(conn, lines, to_zip, cfg=None):
 # ------------------------------------------------------------------ free shipping over an order amount (Admin > UPS)
 
 FREE_KEY = "free_shipping"
-FREE_DEFAULT = {"on": False, "over": 149.0, "max_lb": 50.0, "service": "03", "lower48": True}
+FREE_DEFAULT = {"on": False, "over": 149.0, "max_lb": 50.0, "service": "03", "lower48": True, "oversize": True}
 FREE_SERVICES = {"03": "UPS Ground", "12": "UPS 3 Day Select", "02": "UPS 2nd Day Air"}
 
 
@@ -157,37 +161,81 @@ def _subtotal(lines):
     return round(sum(float(l.get("unit_price", l.get("price")) or 0) * int(l["qty"]) for l in lines), 2)
 
 
-def apply_free(raw, rule, lines, to_zip):
-    """A copy of the quote with the free service at $0 when the order qualifies. result["free"] says why or why not:
-    why = None (free), "short" (add `short` more), "heavy" (`heavy` lists parts over the weight limit),
-    "area" (outside the lower 48), "service" (UPS didn't offer that service), or "off"."""
+def ups_surcharge(weight, dims):
+    """True when UPS adds a handling or large-package charge for this box: over 50 lb, longest side over 48 in,
+    second-longest side over 30 in, longer than 96 in, or length + girth over 130 in."""
+    l, w, h = dims
+    return weight > 50 or l > 48 or w > 30 or l > 96 or l + 2 * (w + h) > 130
+
+
+def excluded(rule, lines, sizes):
+    """[(line, reason)] for the parts free shipping doesn't cover: over the weight limit, or (when the
+    'oversized' setting is on) a box UPS charges extra for."""
+    out, max_lb = [], float(rule["max_lb"] or 0)
+    for l in lines:
+        weight, dims = sizes.get(l["product_id"], (0, (0, 0, 0)))
+        if max_lb and weight > max_lb:
+            out.append((l, f"over {max_lb:g} lb"))
+        elif rule.get("oversize") and ups_surcharge(weight, dims):
+            out.append((l, "oversized box"))
+    return out
+
+
+def _label(l):
+    return " ".join(filter(None, [l.get("brand_name"), l.get("part_number")])) or l.get("title", "")
+
+
+def apply_free(raw, rule, lines, to_zip, price_of=None):
+    """A copy of the quote with the free service applied when the order qualifies.
+
+    The order total (all parts) must reach the minimum. Parts free shipping doesn't cover (see excluded) still pay:
+    the free service then costs the UPS price of just those parts, and everything else rides free. If every part is
+    excluded, nothing changes. Faster services always keep their full UPS price.
+
+    result["free"]["why"]: None (all free), "partial" (free except `heavy`, which cost `charge`), "short" (add `short`
+    more), "heavy" (every part is excluded), "area" (outside the lower 48), "service" (no price for that service),
+    or "off"."""
     q = dict(raw, options=[dict(o) for o in raw["options"]])
-    weights = raw.get("weights") or {}
+    sizes = raw.get("sizes") or {}
     sub = _subtotal(lines)
     info = {"on": bool(rule["on"]), "ok": False, "why": "off", "over": float(rule["over"]), "short": 0.0,
-            "max_lb": float(rule["max_lb"] or 0), "heavy": [], "service": FREE_SERVICES.get(rule["service"], "UPS Ground")}
+            "max_lb": float(rule["max_lb"] or 0), "heavy": [], "charge": 0.0,
+            "service": FREE_SERVICES.get(rule["service"], "UPS Ground")}
     q["free"] = info
     if not rule["on"] or q["big"]:
         return q
     state = ups.state_for_zip(to_zip)
-    heavy = [l for l in lines if info["max_lb"] and weights.get(l["product_id"], 0) > info["max_lb"]]
+    out = excluded(rule, lines, sizes)
+    info["heavy"] = [{"name": _label(l), "why": why} for l, why in out]
     if rule["lower48"] and (state not in O.US_STATES or state in ("AK", "HI")):
         info["why"] = "area"
-    elif heavy:
-        info.update(why="heavy", heavy=[" ".join(filter(None, [l.get("brand_name"), l.get("part_number")])) or l.get("title", "") for l in heavy])
-    elif sub < info["over"]:
+        return q
+    if len(out) == len(lines):
+        info["why"] = "heavy"
+        return q
+    if sub < info["over"]:
         info.update(why="short", short=round(info["over"] - sub, 2))
+        return q
+    if q["live"]:
+        pick = next((o for o in q["options"] if o["code"] == rule["service"]), None)
+    else:                                # UPS didn't answer: the standard fallback rate is the free one
+        pick = q["options"][0] if q["options"] and not out else None
+    charge = 0.0
+    if pick and out:
+        prices = price_of([l for l, _ in out]) if price_of else {}
+        if rule["service"] not in prices:
+            pick = None
+        else:
+            charge = round(min(prices[rule["service"]], pick["amount"]), 2)
+    if not pick:
+        info["why"] = "service"
+        return q
+    if charge:
+        pick.update(amount=charge, name=pick["name"] + " (free except oversized parts)")
     else:
-        if q["live"]:
-            pick = next((o for o in q["options"] if o["code"] == rule["service"]), None)
-        else:                            # UPS didn't answer: the standard fallback rate is the free one
-            pick = q["options"][0] if q["options"] else None
-        if not pick:
-            info["why"] = "service"
-            return q
         pick.update(amount=0.0, name="Free " + (pick["name"] if q["live"] else "standard shipping"))
-        q["options"] = [pick] + [o for o in q["options"] if o is not pick]
-        info.update(ok=True, why=None)
+    q["options"] = [pick] + [o for o in q["options"] if o is not pick]
+    info.update(ok=True, why="partial" if out else None, charge=charge)
     return q
 
 

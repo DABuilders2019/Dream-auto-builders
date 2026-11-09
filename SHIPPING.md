@@ -5,6 +5,9 @@ Saved in the database (app_state key `free_shipping`), so it can be changed with
 
 - **Offer free shipping** on/off, **on orders of at least $** (default 149), **free service** (UPS Ground by default).
 - **Not if any part weighs over (lb)** (default 50; 0 = no limit). **Lower 48 states only** (default on).
-- When the cart qualifies, that service shows as "Free UPS Ground" at $0 and is listed first; faster services keep their UPS price.
-- Otherwise the cart says why: how much more to add, which part is too heavy, or that free shipping is lower 48 only.
-- Freight parts never ship free. If UPS doesn't answer, the standard fallback rate is the one made free.
+- **Also leave out oversized boxes** (default on): boxes UPS charges extra for (longest side over 48 in, second side over 30 in, length + girth over 130 in, or over 50 lb).
+- The whole order total counts toward the minimum.
+- Mixed carts: parts that are left out pay their own UPS price for the free service (UPS is asked for just those boxes); everything else rides free. Shown as "UPS Ground (free except oversized parts)".
+- All parts left out: no free shipping. Faster services always keep their full UPS price.
+- The cart says why: how much more to add, which parts are left out and what they cost, or that free shipping is lower 48 only.
+- Freight parts need a freight quote. If UPS doesn't answer, the standard fallback rate is made free only when no part is left out.

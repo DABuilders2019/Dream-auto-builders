@@ -43,9 +43,11 @@
       <ul class="shipopts">{% for o in ship_quote.options %}<li><span>{{ o.name }}{% if o.days %} <small>{{ o.days }} business day{{ 's' if o.days|int != 1 }}</small>{% endif %}</span><b class="num">{{ 'Free' if o.amount == 0 else o.amount|money }}</b></li>{% endfor %}</ul>
       {% set fr = ship_quote.free %}
       {% if fr and fr.on %}
-        {% if fr.ok %}<p class="freenote ok">{{ icon('checkc', 16) }} Your order ships free with {{ fr.service if ship_quote.live else 'standard shipping' }}.</p>
-        {% elif fr.why == 'short' %}<p class="freenote num">Add <b>{{ fr.short|money }}</b> more for free {{ fr.service }}.</p>
-        {% elif fr.why == 'heavy' %}<p class="freenote">Free shipping doesn't cover parts over {{ '%g'|format(fr.max_lb) }} lb: {{ fr.heavy|join(', ') }}.</p>
+        {% set left_out = fr.heavy|map(attribute='name')|join(', ') %}
+        {% if fr.ok and fr.why == 'partial' %}<p class="freenote">{{ fr.service }} is free on everything except {{ left_out }} ({{ fr.heavy|map(attribute='why')|unique|join(', ') }}), which costs <b class="num">{{ fr.charge|money }}</b> to ship.</p>
+        {% elif fr.ok %}<p class="freenote ok">{{ icon('checkc', 16) }} Your order ships free with {{ fr.service if ship_quote.live else 'standard shipping' }}.</p>
+        {% elif fr.why == 'short' %}<p class="freenote num">Add <b>{{ fr.short|money }}</b> more for free {{ fr.service }}{% if fr.heavy %} (except {{ left_out }}){% endif %}.</p>
+        {% elif fr.why == 'heavy' %}<p class="freenote">Free shipping doesn't cover {{ left_out }} ({{ fr.heavy|map(attribute='why')|unique|join(', ') }}).</p>
         {% elif fr.why == 'area' %}<p class="freenote">Free shipping is for the lower 48 states.</p>{% endif %}
       {% endif %}
       <p class="muted small" style="margin:4px 0 0">{% if ship_quote.live %}UPS prices to {{ ship_zip }}. You choose the speed on the payment page.{% else %}Live UPS prices aren't available right now, so this is our standard rate.{% endif %}</p>

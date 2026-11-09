@@ -190,6 +190,47 @@ def test_free_rule_defaults_and_fallback(conn):
     assert shipping.free_rule(conn) == shipping.FREE_DEFAULT
     rule = shipping.save_free_rule(conn, {"on": True, "over": 100, "max_lb": 0, "service": "03", "lower48": True})
     raw = {"options": [{"code": "", "name": "Standard shipping", "amount": 14.95, "days": 7}], "big": [], "live": False,
-           "error": "x", "weights": {1: 5}}
+           "error": "x", "sizes": {1: (5, (20, 12, 8))}}
     q = shipping.apply_free(raw, rule, [{"product_id": 1, "qty": 2, "unit_price": 60}], "30309")
     assert q["free"]["ok"] and q["options"][0]["amount"] == 0 and raw["options"][0]["amount"] == 14.95   # cache untouched
+
+
+def test_mixed_cart_only_oversized_parts_pay(shop, keys, monkeypatch, conn):
+    """A normal part and an oversized one over the minimum: Ground costs only the oversized part's UPS price."""
+    from store import shipping
+    shipping._cache.clear()
+    seen = []
+
+    def fake_rates(from_zip, to_zip, packages=None, **kw):       # $10 a box for Ground, $40 a box for 2nd Day
+        seen.append(len(packages))
+        return [{"code": "03", "service": "UPS Ground", "price": 10.0 * len(packages), "list_price": 0, "negotiated": True, "days": None},
+                {"code": "02", "service": "UPS 2nd Day Air", "price": 40.0 * len(packages), "list_price": 0, "negotiated": True, "days": "2"}]
+    monkeypatch.setattr(ups, "rates", fake_rates)
+    c = shop.c
+    c.post("/admin/login", data={"password": "pw"})
+    c.post("/admin/ups/free", data={"on": "1", "over": "1", "max_lb": "50", "service": "03", "lower48": "1", "oversize": "1"})
+    normal = pid(c, "LK-100")
+    other = conn.execute("SELECT id FROM products WHERE id <> %s AND price > 0 ORDER BY id LIMIT 1", (normal,)).fetchone()[0]
+    conn.execute("UPDATE products SET weight_lb = 5, package_dims = '20 x 12 x 8 in.' WHERE id = %s", (normal,))
+    conn.execute("UPDATE products SET weight_lb = 30, package_dims = '60 x 10 x 8 in.' WHERE id = %s", (other,))   # long box
+    conn.commit()
+    c.post("/cart/add", data={"product_id": normal, "qty": 1})
+    c.post("/cart/add", data={"product_id": other, "qty": 1})
+    page = c.post("/cart/zip", data={"zip": "30309"}, follow_redirects=True).text
+    assert "free except oversized parts" in page and "oversized box" in page and "$10.00" in page
+    c.post("/checkout")
+    opts = [(o["shipping_rate_data"]["display_name"], o["shipping_rate_data"]["fixed_amount"]["amount"])
+            for o in shop.created[-1]["shipping_options"]]
+    assert opts == [("UPS Ground (free except oversized parts)", 1000), ("UPS 2nd Day Air", 8000)]
+    # with the oversized setting off, the long box is fine: everything ships free
+    c.post("/admin/ups/free", data={"on": "1", "over": "1", "max_lb": "50", "service": "03", "lower48": "1"})
+    assert "Free UPS Ground" in c.get("/cart").text
+
+
+def test_surcharge_sizes():
+    from store import shipping
+    assert not shipping.ups_surcharge(20, (40, 20, 10))
+    assert shipping.ups_surcharge(51, (20, 12, 8))           # over 50 lb
+    assert shipping.ups_surcharge(10, (49, 10, 10))          # longest side over 48 in
+    assert shipping.ups_surcharge(10, (40, 31, 5))           # second side over 30 in
+    assert shipping.ups_surcharge(10, (44, 30, 30))          # length + girth 164 > 130

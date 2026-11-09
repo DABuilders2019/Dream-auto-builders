@@ -752,8 +752,8 @@ form.inline{display:inline}
 .summary .shipzip-row .btn{width:auto;flex:none;height:40px;padding:0 16px;margin:0}
 .shipzip-row input{width:auto}
 /* free shipping: cart note and admin checkboxes */
-.freenote{margin:8px 0 0;font-size:13px;display:flex;gap:6px;align-items:center}
-.freenote.ok{color:#1d7a3a;font-weight:600}
+.freenote{margin:8px 0 0;font-size:13px;line-height:1.45}
+.freenote.ok{color:#1d7a3a;font-weight:600;display:flex;gap:6px;align-items:center}
 .upsform label.chk{display:flex;gap:8px;align-items:center;font-weight:400;cursor:pointer}
 .upsform label.chk input{width:auto;margin:0}
 .upsform .formrow:has(> label.chk){grid-column:1/-1}

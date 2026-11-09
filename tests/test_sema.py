@@ -396,3 +396,22 @@ def test_vehicle_groups_in_model_menu(conn):
         ("motorcycle", "CBR1000RR")]
     assert models[2]["group_label"] == "Powersports (UTV / ATV)"
     assert veh.get(conn, models[3]["id"])["label"] == "2022 Honda Talon 1000R"
+
+
+def test_job_connection_reconnects_after_drop():
+    import os
+    import psycopg
+    import pytest
+    from semadata.conn import ReconnectingConnection
+    url = os.environ.get("DATABASE_URL")
+    if not url:
+        pytest.skip("DATABASE_URL not set")
+    rc = ReconnectingConnection(url, connect=lambda: psycopg.connect(url, autocommit=True))
+    rc.raw.close()                                   # the database drops us mid-job
+    assert rc.execute("SELECT 1").fetchone()[0] == 1 and rc.reconnects == 1
+    with pytest.raises(psycopg.errors.UndefinedTable):    # a real SQL error is not retried
+        rc.execute("SELECT * FROM no_such_table")
+    assert rc.reconnects == 1
+    with rc.cursor() as cur:                         # everything else goes to the live connection
+        cur.execute("SELECT 2")
+        assert cur.fetchone()[0] == 2

@@ -4,8 +4,6 @@ import json
 import os
 import sys
 
-import psycopg
-
 from .client import StopSync
 from .sync import run
 
@@ -15,9 +13,10 @@ def main(argv=None):
     if not argv or argv[0] not in ("test", "load"):
         print(__doc__)
         return 2
-    conn = psycopg.connect(os.environ["DATABASE_URL"], autocommit=True)
     from importer import db
-    db.migrate(conn)
+    from .conn import ReconnectingConnection
+    conn = ReconnectingConnection(os.environ["DATABASE_URL"])
+    db.migrate(conn.raw)
     try:
         stats = run(conn, argv[0], argv[1:], log=lambda m: print(m, flush=True))
     except StopSync as e:

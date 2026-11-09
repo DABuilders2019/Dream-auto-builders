@@ -132,7 +132,7 @@ def _ups_quote(conn, lines, to_zip, cfg=None):
 # ------------------------------------------------------------------ free shipping over an order amount (Admin > UPS)
 
 FREE_KEY = "free_shipping"
-FREE_DEFAULT = {"on": False, "over": 149.0, "max_lb": 50.0, "service": "03", "lower48": True, "oversize": True}
+FREE_DEFAULT = {"on": False, "over": 149.0, "max_lb": 50.0, "service": "03", "lower48": True, "oversize": True, "cap": 0.0}
 FREE_SERVICES = {"03": "UPS Ground", "12": "UPS 3 Day Select", "02": "UPS 2nd Day Air"}
 
 
@@ -162,10 +162,23 @@ def _subtotal(lines):
 
 
 def ups_surcharge(weight, dims):
-    """True when UPS adds a handling or large-package charge for this box: over 50 lb, longest side over 48 in,
-    second-longest side over 30 in, longer than 96 in, or length + girth over 130 in."""
+    """True when UPS adds an Additional Handling or Large Package charge for this box (UPS rules from January 2026):
+    over 50 lb, longest side over 48 in, second-longest side over 30 in, more than 10,368 cubic inches,
+    longer than 96 in, or length + girth over 130 in."""
     l, w, h = dims
-    return weight > 50 or l > 48 or w > 30 or l > 96 or l + 2 * (w + h) > 130
+    return weight > 50 or l > 48 or w > 30 or l * w * h > 10368 or l + 2 * (w + h) > 130
+
+
+def ship_class(weight, dims_text, rule, sh=None):
+    """For the product page: "freight" (too big for UPS), "oversized" (free shipping doesn't cover it), or None."""
+    sh = sh or settings()
+    weight = float(weight) if weight else float(sh["default_weight_lb"])
+    dims = parse_dims(dims_text, sh["default_dims"])
+    if too_big(weight, dims):
+        return "freight"
+    if rule["on"] and ((rule["max_lb"] and weight > float(rule["max_lb"])) or (rule.get("oversize") and ups_surcharge(weight, dims))):
+        return "oversized"
+    return None
 
 
 def excluded(rule, lines, sizes):
@@ -227,6 +240,9 @@ def apply_free(raw, rule, lines, to_zip, price_of=None):
             pick = None
         else:
             charge = round(min(prices[rule["service"]], pick["amount"]), 2)
+            cap = float(rule.get("cap") or 0)
+            if cap:                      # never more than the cap for each oversized box
+                charge = min(charge, round(cap * sum(int(l["qty"]) for l, _ in out), 2))
     if not pick:
         info["why"] = "service"
         return q

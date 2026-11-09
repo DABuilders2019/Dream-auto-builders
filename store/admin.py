@@ -931,7 +931,7 @@ def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""),
 
 @router.post("/ups/free")
 def ups_free(request: Request, on: str = Form(""), over: str = Form("149"), max_lb: str = Form("50"),
-             service: str = Form("03"), lower48: str = Form(""), oversize: str = Form("")):
+             service: str = Form("03"), lower48: str = Form(""), oversize: str = Form(""), cap: str = Form("0")):
     stop = _guard(request)
     if stop:
         return stop
@@ -943,7 +943,7 @@ def ups_free(request: Request, on: str = Form(""), over: str = Form("149"), max_
         except ValueError:
             return default
     rule = {"on": on == "1", "over": num(over, 149.0), "max_lb": num(max_lb, 0.0),
-            "service": service if service in shipping.FREE_SERVICES else "03", "lower48": lower48 == "1", "oversize": oversize == "1"}
+            "service": service if service in shipping.FREE_SERVICES else "03", "lower48": lower48 == "1", "oversize": oversize == "1", "cap": num(cap, 0.0)}
     st = web._state(request)
     with st.pool.connection() as conn:
         shipping.save_free_rule(conn, rule)

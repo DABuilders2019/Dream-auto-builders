@@ -234,3 +234,39 @@ def test_surcharge_sizes():
     assert shipping.ups_surcharge(10, (49, 10, 10))          # longest side over 48 in
     assert shipping.ups_surcharge(10, (40, 31, 5))           # second side over 30 in
     assert shipping.ups_surcharge(10, (44, 30, 30))          # length + girth 164 > 130
+
+
+def test_oversize_cap_and_product_note(shop, keys, monkeypatch, conn):
+    from store import shipping
+    shipping._cache.clear()
+    monkeypatch.setattr(ups, "rates", lambda *a, packages=None, **k: [
+        {"code": "03", "service": "UPS Ground", "price": 70.0 * len(packages), "list_price": 0, "negotiated": True, "days": None}])
+    c = shop.c
+    c.post("/admin/login", data={"password": "pw"})
+    c.post("/admin/ups/free", data={"on": "1", "over": "1", "max_lb": "50", "service": "03", "lower48": "1", "oversize": "1", "cap": "45"})
+    normal = pid(c, "LK-100")
+    other, slug = conn.execute("SELECT id, slug FROM products WHERE id <> %s AND price > 0 ORDER BY id LIMIT 1", (normal,)).fetchone()
+    nslug = conn.execute("SELECT slug FROM products WHERE id = %s", (normal,)).fetchone()[0]
+    conn.execute("UPDATE products SET weight_lb = 5, package_dims = '20 x 12 x 8 in.' WHERE id = %s", (normal,))
+    conn.execute("UPDATE products SET weight_lb = 30, package_dims = '60 x 10 x 8 in.' WHERE id = %s", (other,))
+    conn.commit()
+    page = c.get(f"/p/{slug}").text
+    assert "Oversized: shipping extra" in page and "$45.00" in page
+    npage = c.get(f"/p/{nslug}").text
+    assert "Oversized: shipping extra" not in npage and "Free UPS Ground on orders over" in npage
+    c.post("/cart/add", data={"product_id": normal, "qty": 1})
+    c.post("/cart/add", data={"product_id": other, "qty": 2})
+    c.post("/cart/zip", data={"zip": "30309"})
+    c.post("/checkout")
+    opts = shop.created[-1]["shipping_options"]
+    assert opts[0]["shipping_rate_data"]["fixed_amount"]["amount"] == 9000      # two oversized boxes, capped at $45 each
+    conn.execute("UPDATE products SET weight_lb = 200 WHERE id = %s", (other,))
+    conn.commit()
+    page = c.get(f"/p/{slug}").text
+    assert "Ships by truck freight" in page
+
+
+def test_ups_2026_cubic_rule():
+    from store import shipping
+    assert shipping.ups_surcharge(20, (24, 22, 22))      # 11,616 cubic inches, every side under the limits
+    assert not shipping.ups_surcharge(20, (24, 20, 20))  # 9,600

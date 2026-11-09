@@ -14,7 +14,9 @@
       <div class="formrow"><label for="fSvc"><b>Free service</b></label><select class="ymm" id="fSvc" name="service">{% for code, name in free_services.items() %}<option value="{{ code }}"{% if code == free.service %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
       <div class="formrow"><label for="fLb"><b>Not if any part weighs over (lb)</b></label><input id="fLb" name="max_lb" value="{{ '%g'|format(free.max_lb) }}" inputmode="decimal">
         <small class="muted">Heavy parts cost the most to ship. 0 means no weight limit.</small></div>
-      <div class="formrow"><label class="chk"><input type="checkbox" name="oversize" value="1"{% if free.oversize %} checked{% endif %}> Also leave out oversized boxes UPS charges extra for (longest side over 48 in, second side over 30 in, or length + girth over 130 in)</label></div>
+      <div class="formrow"><label class="chk"><input type="checkbox" name="oversize" value="1"{% if free.oversize %} checked{% endif %}> Also leave out oversized boxes UPS charges extra for (longest side over 48 in, second side over 30 in, over 10,368 cubic in, or length + girth over 130 in)</label></div>
+      <div class="formrow"><label for="fCap"><b>Most an oversized part pays ($ per box)</b></label><input id="fCap" name="cap" value="{{ '%g'|format(free.cap) }}" inputmode="decimal">
+        <small class="muted">Shoppers pay the real UPS price for oversized parts, up to this much each; you cover the rest. 0 means no cap.</small></div>
       <div class="formrow"><label class="chk"><input type="checkbox" name="lower48" value="1"{% if free.lower48 %} checked{% endif %}> Lower 48 states only (not Alaska, Hawaii or territories)</label></div>
       <button class="btn btn-red" type="submit">Save free shipping</button>
       <p class="muted small">The order total counts toward the minimum. Parts left out still pay their own UPS price; everything else in the order ships free. Parts too big for UPS (freight) need a freight quote.</p>

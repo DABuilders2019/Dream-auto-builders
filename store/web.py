@@ -459,8 +459,15 @@ def product_page(request: Request, slug: str):
         }
         specs = [(k, val) for k, val in (p["specs"] or {}).items() if val not in (None, "")]
         size = (p["attributes"] or {}).get("Tire Size")
+        from . import shipping
+        rule = shipping.free_rule(conn)
+        dims = conn.execute("SELECT package_dims FROM products WHERE id = %s", (p["id"],)).fetchone()[0]
+        ship_note = {"kind": shipping.ship_class(p.get("weight_lb"), dims, rule), "over": rule["over"],
+                     "cap": float(rule.get("cap") or 0), "service": shipping.FREE_SERVICES.get(rule["service"], "UPS Ground"),
+                     "free_on": bool(rule["on"])}
         return render(request, conn, s, "product.html", p=p, v=v, fit_info=fit_info, summary=summary, related=related,
-                      in_cart=in_cart, specs=specs, size=size, title=p["short_name"], t14_on=_t14_has_data(conn))
+                      in_cart=in_cart, specs=specs, size=size, title=p["short_name"], t14_on=_t14_has_data(conn),
+                      ship_note=ship_note)
 
 
 def _t14_has_data(conn):

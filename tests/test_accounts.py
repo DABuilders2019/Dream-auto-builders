@@ -192,3 +192,12 @@ def test_cart_hides_save_account_without_email(shop, mails, monkeypatch):
     assert "Save my name and email" in c.get("/cart").text
     monkeypatch.delenv("SMTP_HOST")
     assert "Save my name and email" not in c.get("/cart").text
+
+
+def test_admin_email_page(shop, mails, monkeypatch):
+    c = shop.c
+    c.post("/admin/login", data={"password": "pw"})
+    page = c.get("/admin/email").text
+    assert "SMTP_HOST" in page and "smtp.example.com" in page
+    monkeypatch.setattr(mailer, "test_send", lambda to: (False, "The email service refused the email (550): only your own email"))
+    assert "only your own email" in c.post("/admin/email/test", data={"to": "x@example.com"}).text

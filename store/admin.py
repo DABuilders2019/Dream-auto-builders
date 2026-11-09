@@ -918,3 +918,40 @@ def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""),
     except ValueError:
         ctx["error"] = "Weight and box size must be numbers."
     return _page(request, "admin_ups.html", **ctx)
+
+
+# ------------------------------------------------------------------ email: settings check and a test send
+
+@router.get("/email", response_class=HTMLResponse)
+def email_page(request: Request):
+    stop = _guard(request)
+    if stop:
+        return stop
+    return _page(request, "admin_email.html", title="Email", section="email", **_email_ctx())
+
+
+def _email_ctx():
+    keys = ["SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "SMTP_PASSWORD", "MAIL_FROM", "ORDER_NOTIFY_EMAIL"]
+    shown = {"SMTP_HOST", "SMTP_PORT", "SMTP_USERNAME", "MAIL_FROM", "ORDER_NOTIFY_EMAIL"}
+    rows = []
+    for k in keys:
+        v = (os.environ.get(k) or "").strip()
+        rows.append({"key": k, "set": bool(v), "value": v if k in shown else (f"{v[:3]}… ({len(v)} characters)" if v else "")})
+    return {"rows": rows, "to": os.environ.get("ORDER_NOTIFY_EMAIL", "")}
+
+
+@router.post("/email/test", response_class=HTMLResponse)
+def email_test(request: Request, to: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import mailer
+    ctx = _email_ctx()
+    to = to.strip()
+    ctx["to"] = to
+    if not to or "@" not in to:
+        ctx.update(ok=False, result="Enter an email address to send the test to.")
+    else:
+        ok, result = mailer.test_send(to)
+        ctx.update(ok=ok, result=result)
+    return _page(request, "admin_email.html", title="Email", section="email", **ctx)

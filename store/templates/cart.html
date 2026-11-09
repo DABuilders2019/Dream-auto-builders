@@ -26,12 +26,32 @@
   </div>
   <aside class="summary"><h2>Order summary</h2>
     <div class="row num"><span>Subtotal</span><span>{{ subtotal|money }}</span></div>
+    {% if ship_live %}
+    {% set cheapest = (ship_quote.options|map(attribute='amount')|min) if ship_quote and ship_quote.options else none %}
+    <div class="row num"><span>Shipping</span><span>{% if cheapest is not none %}from {{ cheapest|money }}{% else %}Enter your ZIP{% endif %}</span></div>
+    <div class="row"><span>Sales tax</span><span>Calculated at checkout</span></div>
+    <div class="row total num"><span>Estimated total</span><span>{{ (subtotal + (cheapest or 0))|money }}</span></div>
+    <form method="post" action="/cart/zip" class="shipzip" id="shipping">
+      <label for="shipZip"><b>Shipping to ZIP code</b></label>
+      <div class="shipzip-row"><input id="shipZip" name="zip" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" value="{{ ship_zip }}" placeholder="e.g. 30309" required>
+        <button class="btn btn-ghost btn-sm" type="submit">{{ 'Update' if ship_zip else 'Get prices' }}</button></div>
+    </form>
+    {% if ship_quote %}
+      {% if ship_quote.big %}
+      <div class="notice warn" style="margin-top:10px">{{ icon('info', 18) }} <span>{% for b in ship_quote.big %}<b>{{ b.title }}</b>{{ ', ' if not loop.last }}{% endfor %} {{ 'is' if ship_quote.big|length == 1 else 'are' }} too big for UPS and ship by freight. <a href="/contact">Contact us</a> for a freight quote.</span></div>
+      {% else %}
+      <ul class="shipopts">{% for o in ship_quote.options %}<li><span>{{ o.name }}{% if o.days %} <small>{{ o.days }} business day{{ 's' if o.days|int != 1 }}</small>{% endif %}</span><b class="num">{{ o.amount|money }}</b></li>{% endfor %}</ul>
+      <p class="muted small" style="margin:4px 0 0">{% if ship_quote.live %}UPS prices to {{ ship_zip }}. You choose the speed on the payment page.{% else %}Live UPS prices aren't available right now, so this is our standard rate.{% endif %}</p>
+      {% endif %}
+    {% endif %}
+    {% else %}
     <div class="row"><span>Shipping</span><span>{{ 'Free' if subtotal >= free_over else flat_shipping|money }}</span></div>
     <div class="row"><span>Sales tax</span><span>Calculated at checkout</span></div>
     <div class="row total num"><span>Estimated total</span><span>{{ (subtotal + (0 if subtotal >= free_over else flat_shipping))|money }}</span></div>
     {% if subtotal < free_over %}<p class="num" style="font-size:13px;color:var(--muted);margin-top:6px">Add {{ (free_over - subtotal)|money }} more for free shipping.</p>{% endif %}
+    {% endif %}
     <form method="post" action="/checkout">
-      {% if needs_state %}
+      {% if needs_state and not ship_live %}
       <div class="formrow" style="margin-top:14px"><label for="shipState"><b>Shipping to which state?</b></label>
         <select class="ymm" id="shipState" name="ship_state" required><option value="">Choose a state</option>{% for code, name in states.items() %}<option value="{{ code }}"{% if code == ship_state %} selected{% endif %}>{{ name }}</option>{% endfor %}</select>
         <small class="muted">Your cart has a catalytic converter that isn't CARB-approved. Those can't ship to {{ restricted_names }}.</small></div>
@@ -43,7 +63,8 @@
         <span><b>Save my name and email to create an account</b>
           <small>No password needed: sign in later with a code we email you. See your orders and keep your garage on any device.</small></span></label>
       {% endif %}
-      <button class="btn btn-red" type="submit"{% if not checkout_ready %} disabled{% endif %}>{{ icon('lock', 18) }} Secure checkout</button>
+      <button class="btn btn-red" type="submit"{% if not checkout_ready or (ship_live and (not ship_quote or ship_quote.big)) %} disabled{% endif %}>{{ icon('lock', 18) }} Secure checkout</button>
+      {% if ship_live and not ship_quote and checkout_ready %}<p class="muted small" style="text-align:center;margin:6px 0 0">Enter your ZIP code above to see shipping prices and check out.</p>{% endif %}
     </form>
     {% if not checkout_ready %}<p class="secure" style="text-align:center">Checkout isn't switched on yet on this test site.</p>
     {% elif preview() %}<p class="secure" style="text-align:center">Test mode: pay with card 4242 4242 4242 4242, any future date, any CVC.</p>{% endif %}

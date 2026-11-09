@@ -116,8 +116,11 @@ def token(client=None):
     return data["access_token"]
 
 
-def rates(from_zip, to_zip, weight_lb, dims=(20, 12, 8), from_state="", to_state="", residential=True, client=None):
-    """Every UPS service's price for one package: [{"code", "service", "price", "list_price", "days"}], cheapest first."""
+def rates(from_zip, to_zip, weight_lb=None, dims=(20, 12, 8), from_state="", to_state="", residential=True, client=None,
+          packages=None):
+    """Every UPS service's price for a shipment: [{"code", "service", "price", "list_price", "days"}], cheapest first.
+    One package (weight_lb, dims), or packages=[(weight_lb, (l, w, h)), ...]."""
+    packages = packages or [(weight_lb if weight_lb is not None else 10, dims)]
     cfg = settings()
     tok = token(client)
 
@@ -135,9 +138,9 @@ def rates(from_zip, to_zip, weight_lb, dims=(20, 12, 8), from_state="", to_state
         "ShipTo": {"Name": "Customer", "Address": {**addr(to_zip, to_state), **({"ResidentialAddressIndicator": ""} if residential else {})}},
         "Package": [{
             "PackagingType": {"Code": "02"},
-            "Dimensions": {"UnitOfMeasurement": {"Code": "IN"}, "Length": f"{dims[0]:g}", "Width": f"{dims[1]:g}", "Height": f"{dims[2]:g}"},
-            "PackageWeight": {"UnitOfMeasurement": {"Code": "LBS"}, "Weight": f"{max(0.1, float(weight_lb)):g}"},
-        }],
+            "Dimensions": {"UnitOfMeasurement": {"Code": "IN"}, "Length": f"{d[0]:g}", "Width": f"{d[1]:g}", "Height": f"{d[2]:g}"},
+            "PackageWeight": {"UnitOfMeasurement": {"Code": "LBS"}, "Weight": f"{max(0.1, round(float(wt), 1)):g}"},
+        } for wt, d in packages],
     }
     if cfg["account"]:
         shipper["ShipperNumber"] = cfg["account"]

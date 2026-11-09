@@ -42,5 +42,32 @@
     "hours": 3,
     "email": true,
     "allow_promotion_codes": false
+  },
+  "shipping": {
+    "_comment": "carrier: 'ups' for live UPS prices at checkout (the exact UPS price, needs the UPS_ settings in Render), or 'flat' for free_shipping_over / flat_shipping. from_zip: the supplier warehouse ZIP parts ship from; brand_from_zip: {brand id: ZIP} for brands that ship from somewhere else. services: UPS service codes offered, in order (03 Ground, 12 3 Day Select, 02 2nd Day Air, 13 Next Day Air Saver, 01 Next Day Air; at most 5). fallback: prices used if UPS doesn't answer. default_weight_lb / default_dims: for parts with no weight or box size.",
+    "carrier": "ups",
+    "from_zip": "11691",
+    "brand_from_zip": {},
+    "services": [
+      "03",
+      "12",
+      "02",
+      "13",
+      "01"
+    ],
+    "default_weight_lb": 10,
+    "default_dims": [
+      20,
+      12,
+      8
+    ],
+    "fallback": [
+      {
+        "name": "Standard shipping",
+        "amount": 14.95,
+        "min_days": 3,
+        "max_days": 7
+      }
+    ]
   }
 }

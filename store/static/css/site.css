@@ -741,3 +741,13 @@ form.inline{display:inline}
 .upsform .btn,.upsform p{grid-column:1/-1;justify-self:start}
 .upsform .boxin{display:flex;gap:6px;align-items:center}.upsform .boxin input{width:60px}
 @media (max-width:720px){.upsform{grid-template-columns:1fr 1fr}}
+
+.shipzip{margin-top:14px}
+.shipzip label{display:block;font-size:14px;margin-bottom:6px}
+.shipzip-row{display:flex;gap:8px}.shipzip-row input{flex:1;min-width:0;height:40px;border:1px solid var(--line);border-radius:8px;padding:0 12px;font-size:15px}
+.shipopts{list-style:none;padding:0;margin:10px 0 0;border:1px solid var(--line);border-radius:10px;background:#fff}
+.shipopts li{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;font-size:14px}
+.shipopts li+li{border-top:1px solid var(--line)}
+.shipopts small{display:block;color:var(--muted);font-size:12px}
+.summary .shipzip-row .btn{width:auto;flex:none;height:40px;padding:0 16px;margin:0}
+.shipzip-row input{width:auto}

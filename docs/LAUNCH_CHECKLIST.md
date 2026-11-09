@@ -108,3 +108,11 @@ Off until these are done: checkout works without them, but the reminder emails w
 ## Customer accounts
 - [ ] SMTP settings must be in Render for sign-in codes and the "account is ready" email.
 - [ ] Privacy policy: describe customer accounts (name, email, orders, saved vehicles and builds; deleting an account).
+
+## Shipping (UPS)
+- [ ] Set the real ship-from ZIP(s): config/store.json > shipping.from_zip is the supplier warehouse ZIP (11691 is
+      only a placeholder), plus brand_from_zip for brands that ship from a different warehouse.
+- [ ] Render: `UPS_ENV` = `production` (real prices; the testing server's prices are samples), then check
+      Admin > UPS and a test cart.
+- [ ] Compare a few UPS quotes with what suppliers actually charge for drop-shipping, and adjust if needed.
+- [ ] Decide how freight-only parts (over UPS limits) are quoted and sold.

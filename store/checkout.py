@@ -16,7 +16,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import accounts, installers, mailer, tracking, web
+from . import accounts, installers, mailer, shipping, tracking, ups, web
 from . import orders as O
 
 router = APIRouter()
@@ -75,6 +75,16 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
         if not lines:
             return _cart_redirect("Your cart is empty.")
         state = ship_state.strip().upper()
+        ship_live = shipping.live(cfg)
+        ship_zip = request.session.get("ship_zip") or ""
+        q = None
+        if ship_live:
+            if not ship_zip:
+                return _cart_redirect("Enter your ZIP code to see shipping prices.")
+            q = shipping.quote(conn, lines, ship_zip, cfg)
+            if q["big"]:
+                return _cart_redirect("Part of your order is too big for UPS and ships by freight. Contact us for a freight quote.")
+            state = ups.state_for_zip(ship_zip)
         if any(l["emissions"] == "federal_only" for l in lines):
             if state not in O.US_STATES:
                 return _cart_redirect("Choose the state you're shipping to. Some catalytic converters can't ship to every state.")
@@ -84,7 +94,11 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
                                       + ", ".join(f"{b['brand_name']} {b['part_number']}" for b in bad) + " to continue.")
         aid = web.active_id(request)
         vehicle = next((v["label"] for v in web.garage_vehicles(conn, request) if v["id"] == aid), None)
-        order_id, number = O.create(conn, lines, vehicle, note=f"shipping to {state}" if state else None)
+        note = f"shipping to {state}" if state else None
+        if q:
+            note = (f"UPS prices quoted to ZIP {ship_zip}" if q["live"]
+                    else f"UPS didn't answer ({q['error']}); standard shipping offered to ZIP {ship_zip}")
+        order_id, number = O.create(conn, lines, vehicle, note=note)
         acct = accounts.current(request, conn)
         if acct:
             conn.execute("UPDATE orders SET account_id = %s WHERE id = %s", (acct["id"], order_id))
@@ -109,7 +123,7 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
                                      **({"images": [base + l["image_url"]]} if l["image_url"] and l["image_url"].startswith("/") else {})},
                 }} for l in lines],
             "shipping_address_collection": {"allowed_countries": cfg["ship_to_countries"]},
-            "shipping_options": [{"shipping_rate_data": {
+            "shipping_options": shipping.stripe_options(q, cfg["currency"]) if q else [{"shipping_rate_data": {
                 "type": "fixed_amount", "display_name": "Free shipping" if ship == 0 else "Standard shipping",
                 "fixed_amount": {"amount": round(ship * 100), "currency": cfg["currency"]},
                 "delivery_estimate": {"minimum": {"unit": "business_day", "value": 3},
@@ -118,6 +132,7 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
             "automatic_tax": {"enabled": bool(cfg.get("automatic_tax"))},
             "client_reference_id": number,
             "metadata": {"order_id": str(order_id), "order_number": number, **({"visitor": vid} if vid else {}),
+                         **({"ship_zip": ship_zip} if q else {}),
                          **({"save_account": "1"} if save_account and not acct else {})},
             **_customer_params(conn, acct),
             **({"consent_collection": {"promotions": "auto"},
@@ -253,6 +268,12 @@ def _customer_params(conn, acct):
 
 
 def on_paid(request, conn, o, s):
+    quoted = (s.get("metadata") or {}).get("ship_zip")
+    if quoted:
+        _, addr = O._shipping_details(s)
+        got = "".join(ch for ch in str(addr.get("postal_code") or "") if ch.isdigit())[:5]
+        if got and got != quoted:
+            O.add_event(conn, o["id"], f"Check shipping: UPS prices were for ZIP {quoted}, but the order ships to ZIP {got}.")
     send_order_emails(request, o)
     if (s.get("metadata") or {}).get("save_account") == "1":
         try:

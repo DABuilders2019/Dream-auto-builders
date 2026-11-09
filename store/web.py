@@ -510,6 +510,16 @@ def cart_update(request: Request, product_id: int = Form(...), qty: int = Form(.
     return RedirectResponse("/cart", status_code=303)
 
 
+@router.post("/cart/zip")
+def cart_zip(request: Request, zip: str = Form("")):
+    from . import shipping
+    z = shipping.clean_zip(zip)
+    if not z:
+        return RedirectResponse("/cart?" + urlencode({"error": "Enter a 5-digit US ZIP code to see shipping prices."}), status_code=303)
+    request.session["ship_zip"] = z
+    return RedirectResponse("/cart#shipping", status_code=303)
+
+
 @router.get("/cart", response_class=HTMLResponse)
 def cart_page(request: Request):
     st = _state(request)
@@ -518,10 +528,16 @@ def cart_page(request: Request):
         cart, prods, count, subtotal = cart_summary(conn, s, request)
         lines = [dict(prods[pid], qty=q, line_total=prods[pid]["price"] * q) for pid, q in cart.items() if pid in prods]
         Q.add_fit(conn, lines, active_id(request))
-        from . import checkout, orders as O
+        from . import checkout, orders as O, shipping
         cfg = O.store_config()
         restricted = cfg.get("carb_restricted_states", [])
+        ship_live = shipping.live(cfg)
+        ship_zip = request.session.get("ship_zip") or ""
+        ship_quote = None
+        if ship_live and ship_zip and lines:
+            ship_quote = shipping.quote(conn, [{"product_id": l["id"], "qty": l["qty"], **l} for l in lines], ship_zip, cfg)
         return render(request, conn, s, "cart.html", lines=lines, subtotal=subtotal, free_over=cfg["free_shipping_over"],
+                      ship_live=ship_live, ship_zip=ship_zip, ship_quote=ship_quote,
                       flat_shipping=float(cfg["flat_shipping"]), title="Cart", checkout_ready=checkout.checkout_ready(),
                       needs_state=any(l.get("emissions") == "federal_only" for l in lines), states=O.US_STATES,
                       restricted_names=", ".join(O.US_STATES[c] for c in restricted[:-1]) + (" or " if len(restricted) > 1 else "")

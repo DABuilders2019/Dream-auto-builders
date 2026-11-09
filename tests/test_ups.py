@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 from store import ups
-from test_checkout import shop  # noqa: F401  (fixture)
+from test_checkout import pid, shop  # noqa: F401  (fixture)
 
 
 @pytest.fixture
@@ -77,3 +77,64 @@ def test_sign_in_retries_without_account_header(keys):
 def test_state_from_zip():
     assert ups.state_for_zip("11691") == "NY" and ups.state_for_zip("30309") == "GA"
     assert ups.state_for_zip("90210") == "CA" and ups.state_for_zip("73301") == "TX" and ups.state_for_zip("") == ""
+
+
+def test_checkout_with_ups_rates(shop, keys, monkeypatch):
+    from store import shipping
+    shipping._cache.clear()
+    calls = []
+
+    def fake_rates(from_zip, to_zip, packages=None, **kw):
+        calls.append((from_zip, to_zip, packages))
+        return [{"code": "03", "service": "UPS Ground", "price": 21.37, "list_price": 30.0, "negotiated": True, "days": None},
+                {"code": "02", "service": "UPS 2nd Day Air", "price": 55.1, "list_price": 70.0, "negotiated": True, "days": "2"},
+                {"code": "14", "service": "UPS Next Day Air Early", "price": 140.0, "list_price": 150.0, "negotiated": True, "days": "1"}]
+
+    monkeypatch.setattr(ups, "rates", fake_rates)
+    c = shop.c
+    c.post("/cart/add", data={"product_id": pid(c, "LK-100"), "qty": 2})
+    page = c.get("/cart").text
+    assert "Shipping to ZIP code" in page and "Enter your ZIP" in page
+    assert "Enter your ZIP" in c.post("/checkout", follow_redirects=True).text      # can't check out without a ZIP
+    assert "5-digit" in c.post("/cart/zip", data={"zip": "123"}, follow_redirects=True).text
+    page = c.post("/cart/zip", data={"zip": "30309"}, follow_redirects=True).text
+    assert "UPS Ground" in page and "$21.37" in page and "from $21.37" in page and "Next Day Air Early" not in page
+    assert calls[0][0] == "11691" and calls[0][1] == "30309" and len(calls[0][2]) == 2      # two units, two boxes
+    c.post("/checkout")
+    params = shop.created[-1]
+    opts = [o["shipping_rate_data"] for o in params["shipping_options"]]
+    assert [o["display_name"] for o in opts] == ["UPS Ground", "UPS 2nd Day Air"]
+    assert opts[0]["fixed_amount"]["amount"] == 2137 and opts[1]["delivery_estimate"]["minimum"]["value"] == 2
+    assert params["metadata"]["ship_zip"] == "30309" and len(calls) == 1                  # the cart's quote was reused
+
+
+def test_ups_down_uses_fallback(shop, keys, monkeypatch):
+    from store import shipping
+    shipping._cache.clear()
+    monkeypatch.setattr(ups, "rates", lambda *a, **k: (_ for _ in ()).throw(ups.UPSError("timeout")))
+    c = shop.c
+    c.post("/cart/add", data={"product_id": pid(c, "LK-100"), "qty": 1})
+    page = c.post("/cart/zip", data={"zip": "30309"}, follow_redirects=True).text
+    assert "Standard shipping" in page and "standard rate" in page
+    c.post("/checkout")
+    assert shop.created[-1]["shipping_options"][0]["shipping_rate_data"]["fixed_amount"]["amount"] == 1495
+
+
+def test_freight_parts_block_checkout(shop, keys, monkeypatch, conn):
+    from store import shipping
+    shipping._cache.clear()
+    monkeypatch.setattr(ups, "rates", lambda *a, **k: [])
+    c = shop.c
+    p = pid(c, "LK-100")
+    conn.execute("UPDATE products SET weight_lb = 200 WHERE id = %s", (p,))
+    conn.commit()
+    c.post("/cart/add", data={"product_id": p, "qty": 1})
+    page = c.post("/cart/zip", data={"zip": "30309"}, follow_redirects=True).text
+    assert "freight quote" in page
+
+
+def test_dims_and_limits():
+    from store import shipping
+    assert shipping.parse_dims("29.5 x 29.5 x 8.8 in.", [1, 1, 1]) == (29.5, 29.5, 8.8)
+    assert shipping.parse_dims(None, [20, 12, 8]) == (20, 12, 8)
+    assert shipping.too_big(151, (10, 10, 10)) and shipping.too_big(20, (110, 5, 5)) and not shipping.too_big(45, (30, 30, 9))

@@ -889,18 +889,21 @@ def ups_page(request: Request):
     cfg = ups.settings()
     return _page(request, "admin_ups.html", title="UPS", section="ups", cfg=cfg, base=ups.base_url(cfg),
                  has={"id": bool(cfg["client_id"]), "secret": bool(cfg["client_secret"]), "account": bool(cfg["account"])},
-                 form={"from_zip": "", "to_zip": "", "weight": "10", "l": "20", "w": "12", "h": "8"})
+                 form={"from_zip": "", "to_zip": "", "from_state": "", "to_state": "", "weight": "10", "l": "20", "w": "12", "h": "8"})
 
 
 @router.post("/ups/test", response_class=HTMLResponse)
-def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""), weight: str = Form("10"),
+def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""), from_state: str = Form(""),
+             to_state: str = Form(""), weight: str = Form("10"),
              l: str = Form("20"), w: str = Form("12"), h: str = Form("8")):
     stop = _guard(request)
     if stop:
         return stop
     from . import ups
     cfg = ups.settings()
-    form = {"from_zip": from_zip.strip(), "to_zip": to_zip.strip(), "weight": weight, "l": l, "w": w, "h": h}
+    form = {"from_zip": from_zip.strip(), "to_zip": to_zip.strip(), "weight": weight, "l": l, "w": w, "h": h,
+            "from_state": (from_state.strip().upper() or ups.state_for_zip(from_zip))[:2],
+            "to_state": (to_state.strip().upper() or ups.state_for_zip(to_zip))[:2]}
     ctx = dict(title="UPS", section="ups", cfg=cfg, base=ups.base_url(cfg), form=form,
                has={"id": bool(cfg["client_id"]), "secret": bool(cfg["client_secret"]), "account": bool(cfg["account"])})
     try:
@@ -908,7 +911,8 @@ def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""),
         ctx["signed_in"] = True
         if form["from_zip"] and form["to_zip"]:
             ctx["results"] = ups.rates(form["from_zip"], form["to_zip"], float(weight or 10),
-                                       (float(l or 20), float(w or 12), float(h or 8)))
+                                       (float(l or 20), float(w or 12), float(h or 8)),
+                                       from_state=form["from_state"], to_state=form["to_state"])
     except ups.UPSError as e:
         ctx["error"] = str(e)
     except ValueError:

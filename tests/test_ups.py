@@ -32,6 +32,8 @@ def test_rates(keys):
         body = json.loads(req.content)
         assert body["RateRequest"]["Request"]["RequestOption"] == "Shop"
         assert body["RateRequest"]["Shipment"]["Shipper"]["ShipperNumber"] == "A1B2C3"
+        assert body["RateRequest"]["Shipment"]["ShipFrom"]["Address"]["StateProvinceCode"] == "NY"
+        assert body["RateRequest"]["Shipment"]["ShipTo"]["Address"]["StateProvinceCode"] == "CA"
         return httpx.Response(200, json={"RateResponse": {"RatedShipment": [
             {"Service": {"Code": "02"}, "TotalCharges": {"MonetaryValue": "60.10"},
              "NegotiatedRateCharges": {"TotalCharge": {"MonetaryValue": "41.20"}}, "GuaranteedDelivery": {"BusinessDaysInTransit": "2"}},
@@ -70,3 +72,8 @@ def test_sign_in_retries_without_account_header(keys):
         return httpx.Response(200, json={"access_token": "tok2", "expires_in": "3600"})
 
     assert ups.token(client=fake(handler)) == "tok2" and tries == [True, False]
+
+
+def test_state_from_zip():
+    assert ups.state_for_zip("11691") == "NY" and ups.state_for_zip("30309") == "GA"
+    assert ups.state_for_zip("90210") == "CA" and ups.state_for_zip("73301") == "TX" and ups.state_for_zip("") == ""

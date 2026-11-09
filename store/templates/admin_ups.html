@@ -15,12 +15,14 @@
     {% if error %}<div class="notice warn" role="alert">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
     {% if signed_in %}<div class="notice">{{ icon('checkc', 18) }} <span>Connected: UPS accepted your keys.</span></div>{% endif %}
     <form method="post" action="/admin/ups/test" class="upsform">
-      <div class="formrow"><label><b>Ship from ZIP</b></label><input name="from_zip" value="{{ form.from_zip }}" inputmode="numeric" placeholder="your ZIP"></div>
-      <div class="formrow"><label><b>Ship to ZIP</b></label><input name="to_zip" value="{{ form.to_zip }}" inputmode="numeric" placeholder="e.g. 90210"></div>
+      <div class="formrow"><label><b>Ship from ZIP · state</b></label><span class="boxin"><input name="from_zip" value="{{ form.from_zip }}" inputmode="numeric" placeholder="your ZIP" style="width:100%">
+        <input name="from_state" value="{{ form.from_state }}" maxlength="2" placeholder="NY" aria-label="Ship from state" style="width:56px"></span></div>
+      <div class="formrow"><label><b>Ship to ZIP · state</b></label><span class="boxin"><input name="to_zip" value="{{ form.to_zip }}" inputmode="numeric" placeholder="e.g. 90210" style="width:100%">
+        <input name="to_state" value="{{ form.to_state }}" maxlength="2" placeholder="CA" aria-label="Ship to state" style="width:56px"></span></div>
       <div class="formrow"><label><b>Weight (lb)</b></label><input name="weight" value="{{ form.weight }}" inputmode="decimal"></div>
       <div class="formrow"><label><b>Box (in)</b></label><span class="boxin"><input name="l" value="{{ form.l }}" aria-label="Length"> × <input name="w" value="{{ form.w }}" aria-label="Width"> × <input name="h" value="{{ form.h }}" aria-label="Height"></span></div>
       <button class="btn btn-red" type="submit">Test connection{{ ' and get prices' }}</button>
-      <p class="muted small">Leave the ZIP codes empty to only check that UPS accepts your keys.</p>
+      <p class="muted small">Leave the ZIP codes empty to only check that UPS accepts your keys. The state fills in from the ZIP if left empty.</p>
     </form>
   </section>
   {% if results is defined %}

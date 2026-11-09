@@ -138,3 +138,58 @@ def test_dims_and_limits():
     assert shipping.parse_dims("29.5 x 29.5 x 8.8 in.", [1, 1, 1]) == (29.5, 29.5, 8.8)
     assert shipping.parse_dims(None, [20, 12, 8]) == (20, 12, 8)
     assert shipping.too_big(151, (10, 10, 10)) and shipping.too_big(20, (110, 5, 5)) and not shipping.too_big(45, (30, 30, 9))
+
+
+def _rates_for_free(monkeypatch):
+    from store import shipping
+    shipping._cache.clear()
+    monkeypatch.setattr(ups, "rates", lambda *a, **k: [
+        {"code": "03", "service": "UPS Ground", "price": 21.37, "list_price": 30.0, "negotiated": True, "days": None},
+        {"code": "02", "service": "UPS 2nd Day Air", "price": 55.1, "list_price": 70.0, "negotiated": True, "days": "2"}])
+
+
+def test_free_shipping_rule(shop, keys, monkeypatch, conn):
+    from store import shipping
+    _rates_for_free(monkeypatch)
+    c = shop.c
+    c.post("/admin/login", data={"password": "pw"})
+    page = c.get("/admin/ups").text
+    assert "Free shipping" in page and "Save free shipping" in page
+    p = pid(c, "LK-100")
+    price = float(conn.execute("SELECT price FROM products WHERE id = %s", (p,)).fetchone()[0])
+    # threshold above one unit: the cart says how much more to add
+    r = c.post("/admin/ups/free", data={"on": "1", "over": str(price + 10), "max_lb": "50", "service": "03", "lower48": "1"},
+               follow_redirects=True)
+    assert "Saved." in r.text
+    c.post("/cart/add", data={"product_id": p, "qty": 1})
+    page = c.post("/cart/zip", data={"zip": "30309"}, follow_redirects=True).text
+    assert "more for free UPS Ground" in page and "$10.00" in page and "$21.37" in page
+    # two units pass it: Ground is free and listed first, 2nd Day keeps its price
+    c.post("/cart/add", data={"product_id": p, "qty": 1})
+    page = c.get("/cart").text
+    assert "Free UPS Ground" in page and "ships free" in page
+    c.post("/checkout")
+    opts = [o["shipping_rate_data"] for o in shop.created[-1]["shipping_options"]]
+    assert [(o["display_name"], o["fixed_amount"]["amount"]) for o in opts] == [("Free UPS Ground", 0), ("UPS 2nd Day Air", 5510)]
+    # Alaska: not free
+    assert "lower 48" in c.post("/cart/zip", data={"zip": "99501"}, follow_redirects=True).text
+    # a heavy part: not free
+    conn.execute("UPDATE products SET weight_lb = 60 WHERE id = %s", (p,))
+    conn.commit()
+    shipping._cache.clear()
+    page = c.post("/cart/zip", data={"zip": "30309"}, follow_redirects=True).text
+    assert "over 50 lb" in page and "Free UPS Ground" not in page
+    # switched off: plain UPS prices, no note
+    c.post("/admin/ups/free", data={"over": "1", "max_lb": "0", "service": "03"})
+    page = c.get("/cart").text
+    assert "Free UPS Ground" not in page and "free UPS Ground" not in page
+
+
+def test_free_rule_defaults_and_fallback(conn):
+    from store import shipping
+    assert shipping.free_rule(conn) == shipping.FREE_DEFAULT
+    rule = shipping.save_free_rule(conn, {"on": True, "over": 100, "max_lb": 0, "service": "03", "lower48": True})
+    raw = {"options": [{"code": "", "name": "Standard shipping", "amount": 14.95, "days": 7}], "big": [], "live": False,
+           "error": "x", "weights": {1: 5}}
+    q = shipping.apply_free(raw, rule, [{"product_id": 1, "qty": 2, "unit_price": 60}], "30309")
+    assert q["free"]["ok"] and q["options"][0]["amount"] == 0 and raw["options"][0]["amount"] == 14.95   # cache untouched

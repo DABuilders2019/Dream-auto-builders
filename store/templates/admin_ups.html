@@ -3,6 +3,22 @@
 <body>
 {% include "_admin_header.html" %}
 <main class="wrap admin">
+  <section class="acard" id="free">
+    <h2>Free shipping</h2>
+    <p class="muted">Orders that qualify get the service below for $0 at checkout. Faster services keep their UPS price.
+      Changes apply to the cart right away.{% if not ship_live %} <b>Live UPS prices are off right now</b> (shipping &gt; carrier in the store settings, ship-from ZIP and UPS keys), so this takes effect once they're on.{% endif %}</p>
+    {% if saved %}<div class="notice">{{ icon('checkc', 18) }} <span>Saved.</span></div>{% endif %}
+    <form method="post" action="/admin/ups/free" class="upsform">
+      <div class="formrow"><label class="chk"><input type="checkbox" name="on" value="1"{% if free.on %} checked{% endif %}> <b>Offer free shipping</b></label></div>
+      <div class="formrow"><label for="fOver"><b>On orders of at least ($)</b></label><input id="fOver" name="over" value="{{ '%g'|format(free.over) }}" inputmode="decimal"></div>
+      <div class="formrow"><label for="fSvc"><b>Free service</b></label><select class="ymm" id="fSvc" name="service">{% for code, name in free_services.items() %}<option value="{{ code }}"{% if code == free.service %} selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+      <div class="formrow"><label for="fLb"><b>Not if any part weighs over (lb)</b></label><input id="fLb" name="max_lb" value="{{ '%g'|format(free.max_lb) }}" inputmode="decimal">
+        <small class="muted">Heavy parts cost the most to ship. 0 means no weight limit.</small></div>
+      <div class="formrow"><label class="chk"><input type="checkbox" name="lower48" value="1"{% if free.lower48 %} checked{% endif %}> Lower 48 states only (not Alaska, Hawaii or territories)</label></div>
+      <button class="btn btn-red" type="submit">Save free shipping</button>
+      <p class="muted small">Parts too big for UPS (freight) never ship free. The cart tells shoppers how much more they need to add.</p>
+    </form>
+  </section>
   <section class="acard">
     <h2>UPS connection</h2>
     <p class="muted">Checks your UPS keys and shows sample prices. Nothing here charges anything or makes a shipment.

@@ -57,8 +57,9 @@ def too_big(weight, dims):
     return weight > 150 or l > 108 or l + 2 * (w + h) > 165
 
 
-def packages_for(conn, lines, sh):
-    """{origin_zip: [(weight, dims), ...]} and the lines that are too big for UPS."""
+def packages_for(conn, lines, sh, weights=None):
+    """{origin_zip: [(weight, dims), ...]} and the lines that are too big for UPS.
+    Pass a dict as weights to get each part's shipping weight (lb) by product id."""
     ids = [l["product_id"] for l in lines]
     rows = {r[0]: r[1:] for r in conn.execute("SELECT id, weight_lb, package_dims, brand_id FROM products WHERE id = ANY(%s)", (ids,)).fetchall()}
     by_origin, big = {}, []
@@ -66,6 +67,8 @@ def packages_for(conn, lines, sh):
         weight, dims, brand = rows.get(l["product_id"], (None, None, None))
         weight = float(weight) if weight else float(sh["default_weight_lb"])
         dims = parse_dims(dims, sh["default_dims"])
+        if weights is not None:
+            weights[l["product_id"]] = weight
         if too_big(weight, dims):
             big.append(l)
             continue
@@ -76,7 +79,13 @@ def packages_for(conn, lines, sh):
 
 def quote(conn, lines, to_zip, cfg=None):
     """Shipping choices for the cart to this ZIP: {"options": [{"code", "name", "amount", "days"}], "big": [lines],
-    "error": str or None, "live": bool}. Cached for 30 minutes so the cart and checkout show the same prices."""
+    "error": str or None, "live": bool, "free": {...}}. UPS prices are cached for 30 minutes so the cart and
+    checkout show the same prices; the free-shipping rule (Admin > UPS) is applied on top each time."""
+    raw = _ups_quote(conn, lines, to_zip, cfg)
+    return apply_free(raw, free_rule(conn), lines, to_zip)
+
+
+def _ups_quote(conn, lines, to_zip, cfg=None):
     sh = settings(cfg)
     key = hashlib.md5(json.dumps([sorted((l["product_id"], l["qty"]) for l in lines), to_zip, sh], sort_keys=True,
                                  default=str).encode()).hexdigest()
@@ -84,8 +93,9 @@ def quote(conn, lines, to_zip, cfg=None):
         hit = _cache.get(key)
         if hit and time.time() - hit[0] < CACHE_MINUTES * 60:
             return hit[1]
-    by_origin, big = packages_for(conn, lines, sh)
-    result = {"options": [], "big": big, "error": None, "live": True}
+    weights = {}
+    by_origin, big = packages_for(conn, lines, sh, weights)
+    result = {"options": [], "big": big, "error": None, "live": True, "weights": weights}
     if big:
         return result
     try:
@@ -113,6 +123,72 @@ def quote(conn, lines, to_zip, cfg=None):
             _cache.clear()
         _cache[key] = (time.time(), result)
     return result
+
+
+# ------------------------------------------------------------------ free shipping over an order amount (Admin > UPS)
+
+FREE_KEY = "free_shipping"
+FREE_DEFAULT = {"on": False, "over": 149.0, "max_lb": 50.0, "service": "03", "lower48": True}
+FREE_SERVICES = {"03": "UPS Ground", "12": "UPS 3 Day Select", "02": "UPS 2nd Day Air"}
+
+
+def free_rule(conn):
+    """The free-shipping settings saved on Admin > UPS (defaults if never saved)."""
+    rule = dict(FREE_DEFAULT)
+    try:
+        row = conn.execute("SELECT value FROM app_state WHERE key = %s", (FREE_KEY,)).fetchone()
+        if row and row[0]:
+            rule.update({k: v for k, v in json.loads(row[0]).items() if k in FREE_DEFAULT})
+    except Exception as e:               # a bad saved value must never break the cart
+        log.warning("free shipping settings unreadable: %s", e)
+    return rule
+
+
+def save_free_rule(conn, rule):
+    clean = {k: rule.get(k, v) for k, v in FREE_DEFAULT.items()}
+    conn.execute("""INSERT INTO app_state (key, value, updated_at) VALUES (%s, %s, now())
+                    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""",
+                 (FREE_KEY, json.dumps(clean)))
+    conn.commit()
+    return clean
+
+
+def _subtotal(lines):
+    return round(sum(float(l.get("unit_price", l.get("price")) or 0) * int(l["qty"]) for l in lines), 2)
+
+
+def apply_free(raw, rule, lines, to_zip):
+    """A copy of the quote with the free service at $0 when the order qualifies. result["free"] says why or why not:
+    why = None (free), "short" (add `short` more), "heavy" (`heavy` lists parts over the weight limit),
+    "area" (outside the lower 48), "service" (UPS didn't offer that service), or "off"."""
+    q = dict(raw, options=[dict(o) for o in raw["options"]])
+    weights = raw.get("weights") or {}
+    sub = _subtotal(lines)
+    info = {"on": bool(rule["on"]), "ok": False, "why": "off", "over": float(rule["over"]), "short": 0.0,
+            "max_lb": float(rule["max_lb"] or 0), "heavy": [], "service": FREE_SERVICES.get(rule["service"], "UPS Ground")}
+    q["free"] = info
+    if not rule["on"] or q["big"]:
+        return q
+    state = ups.state_for_zip(to_zip)
+    heavy = [l for l in lines if info["max_lb"] and weights.get(l["product_id"], 0) > info["max_lb"]]
+    if rule["lower48"] and (state not in O.US_STATES or state in ("AK", "HI")):
+        info["why"] = "area"
+    elif heavy:
+        info.update(why="heavy", heavy=[" ".join(filter(None, [l.get("brand_name"), l.get("part_number")])) or l.get("title", "") for l in heavy])
+    elif sub < info["over"]:
+        info.update(why="short", short=round(info["over"] - sub, 2))
+    else:
+        if q["live"]:
+            pick = next((o for o in q["options"] if o["code"] == rule["service"]), None)
+        else:                            # UPS didn't answer: the standard fallback rate is the free one
+            pick = q["options"][0] if q["options"] else None
+        if not pick:
+            info["why"] = "service"
+            return q
+        pick.update(amount=0.0, name="Free " + (pick["name"] if q["live"] else "standard shipping"))
+        q["options"] = [pick] + [o for o in q["options"] if o is not pick]
+        info.update(ok=True, why=None)
+    return q
 
 
 def stripe_options(q, currency, sh_fallback_days=(3, 7)):

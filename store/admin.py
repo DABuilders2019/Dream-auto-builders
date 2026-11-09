@@ -880,6 +880,14 @@ def logo_choice(request: Request, brand_id: str, keep: str = Form("")):
 
 # ------------------------------------------------------------------ UPS: check the connection and see sample rates
 
+def _free_ctx(request):
+    from . import shipping
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        rule = shipping.free_rule(conn)
+    return {"free": rule, "free_services": shipping.FREE_SERVICES, "ship_live": shipping.live()}
+
+
 @router.get("/ups", response_class=HTMLResponse)
 def ups_page(request: Request):
     stop = _guard(request)
@@ -888,6 +896,7 @@ def ups_page(request: Request):
     from . import ups
     cfg = ups.settings()
     return _page(request, "admin_ups.html", title="UPS", section="ups", cfg=cfg, base=ups.base_url(cfg),
+                 saved=request.query_params.get("saved") == "1", **_free_ctx(request),
                  has={"id": bool(cfg["client_id"]), "secret": bool(cfg["client_secret"]), "account": bool(cfg["account"])},
                  form={"from_zip": "", "to_zip": "", "from_state": "", "to_state": "", "weight": "10", "l": "20", "w": "12", "h": "8"})
 
@@ -904,7 +913,7 @@ def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""),
     form = {"from_zip": from_zip.strip(), "to_zip": to_zip.strip(), "weight": weight, "l": l, "w": w, "h": h,
             "from_state": (from_state.strip().upper() or ups.state_for_zip(from_zip))[:2],
             "to_state": (to_state.strip().upper() or ups.state_for_zip(to_zip))[:2]}
-    ctx = dict(title="UPS", section="ups", cfg=cfg, base=ups.base_url(cfg), form=form,
+    ctx = dict(title="UPS", section="ups", cfg=cfg, base=ups.base_url(cfg), form=form, **_free_ctx(request),
                has={"id": bool(cfg["client_id"]), "secret": bool(cfg["client_secret"]), "account": bool(cfg["account"])})
     try:
         ups.token()
@@ -918,6 +927,27 @@ def ups_test(request: Request, from_zip: str = Form(""), to_zip: str = Form(""),
     except ValueError:
         ctx["error"] = "Weight and box size must be numbers."
     return _page(request, "admin_ups.html", **ctx)
+
+
+@router.post("/ups/free")
+def ups_free(request: Request, on: str = Form(""), over: str = Form("149"), max_lb: str = Form("50"),
+             service: str = Form("03"), lower48: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import shipping
+
+    def num(v, default):
+        try:
+            return max(0.0, round(float(str(v).replace("$", "").replace(",", "").strip() or default), 2))
+        except ValueError:
+            return default
+    rule = {"on": on == "1", "over": num(over, 149.0), "max_lb": num(max_lb, 0.0),
+            "service": service if service in shipping.FREE_SERVICES else "03", "lower48": lower48 == "1"}
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        shipping.save_free_rule(conn, rule)
+    return RedirectResponse("/admin/ups?saved=1#free", status_code=303)
 
 
 # ------------------------------------------------------------------ email: settings check and a test send

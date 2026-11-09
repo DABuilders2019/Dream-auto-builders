@@ -28,7 +28,7 @@
     <div class="row num"><span>Subtotal</span><span>{{ subtotal|money }}</span></div>
     {% if ship_live %}
     {% set cheapest = (ship_quote.options|map(attribute='amount')|min) if ship_quote and ship_quote.options else none %}
-    <div class="row num"><span>Shipping</span><span>{% if cheapest is not none %}from {{ cheapest|money }}{% else %}Enter your ZIP{% endif %}</span></div>
+    <div class="row num"><span>Shipping</span><span>{% if cheapest == 0 %}Free{% elif cheapest is not none %}from {{ cheapest|money }}{% else %}Enter your ZIP{% endif %}</span></div>
     <div class="row"><span>Sales tax</span><span>Calculated at checkout</span></div>
     <div class="row total num"><span>Estimated total</span><span>{{ (subtotal + (cheapest or 0))|money }}</span></div>
     <form method="post" action="/cart/zip" class="shipzip" id="shipping">
@@ -40,7 +40,14 @@
       {% if ship_quote.big %}
       <div class="notice warn" style="margin-top:10px">{{ icon('info', 18) }} <span>{% for b in ship_quote.big %}<b>{{ b.title }}</b>{{ ', ' if not loop.last }}{% endfor %} {{ 'is' if ship_quote.big|length == 1 else 'are' }} too big for UPS and ship by freight. <a href="/contact">Contact us</a> for a freight quote.</span></div>
       {% else %}
-      <ul class="shipopts">{% for o in ship_quote.options %}<li><span>{{ o.name }}{% if o.days %} <small>{{ o.days }} business day{{ 's' if o.days|int != 1 }}</small>{% endif %}</span><b class="num">{{ o.amount|money }}</b></li>{% endfor %}</ul>
+      <ul class="shipopts">{% for o in ship_quote.options %}<li><span>{{ o.name }}{% if o.days %} <small>{{ o.days }} business day{{ 's' if o.days|int != 1 }}</small>{% endif %}</span><b class="num">{{ 'Free' if o.amount == 0 else o.amount|money }}</b></li>{% endfor %}</ul>
+      {% set fr = ship_quote.free %}
+      {% if fr and fr.on %}
+        {% if fr.ok %}<p class="freenote ok">{{ icon('checkc', 16) }} Your order ships free with {{ fr.service if ship_quote.live else 'standard shipping' }}.</p>
+        {% elif fr.why == 'short' %}<p class="freenote num">Add <b>{{ fr.short|money }}</b> more for free {{ fr.service }}.</p>
+        {% elif fr.why == 'heavy' %}<p class="freenote">Free shipping doesn't cover parts over {{ '%g'|format(fr.max_lb) }} lb: {{ fr.heavy|join(', ') }}.</p>
+        {% elif fr.why == 'area' %}<p class="freenote">Free shipping is for the lower 48 states.</p>{% endif %}
+      {% endif %}
       <p class="muted small" style="margin:4px 0 0">{% if ship_quote.live %}UPS prices to {{ ship_zip }}. You choose the speed on the payment page.{% else %}Live UPS prices aren't available right now, so this is our standard rate.{% endif %}</p>
       {% endif %}
     {% endif %}

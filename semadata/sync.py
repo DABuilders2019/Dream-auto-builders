@@ -382,6 +382,7 @@ def fetch_pies(c, aaia, parts, path, log):
                   '<Header><SubmissionType>FULL</SubmissionType>'
                   f'<BlanketEffectiveDate>{dt.date.today().isoformat()}</BlanketEffectiveDate></Header>\n<Items>\n')
         got, n = 0, 0
+        photo = {"with": 0, "assets": 0, "linked": 0, "sample": None, "keys": None}
         while batches:
             batch = batches.pop(0)
             try:
@@ -395,6 +396,17 @@ def fetch_pies(c, aaia, parts, path, log):
             for prod in body.get("Products") or []:
                 out.write(product_xml(prod, aaia))
                 got += 1
+                assets = _g(prod, "DigitalAssets") or []
+                if photo["keys"] is None:
+                    photo["keys"] = sorted(prod.keys()) if isinstance(prod, dict) else []
+                if assets:
+                    photo["with"] += 1
+                    for a in assets:
+                        photo["assets"] += 1
+                        if asset_link(a):
+                            photo["linked"] += 1
+                        elif photo["sample"] is None:
+                            photo["sample"] = a
             n += 1
             if n % 20 == 0:
                 log(f"  product data: {got:,} of {len(parts):,}")
@@ -403,6 +415,11 @@ def fetch_pies(c, aaia, parts, path, log):
         raise sc.BrandError(f"SEMA returned product data for only {got:,} of {len(parts):,} parts")
     tmp.replace(path)
     log(f"  product data: {got:,} parts")
+    log(f"  photos in SEMA's data: {photo['with']:,} parts have pictures; {photo['linked']:,} of {photo['assets']:,} with a download link")
+    if not photo["assets"]:
+        log("  SEMA sent no pictures for this brand. Product fields SEMA sent: " + ", ".join(photo["keys"] or [])[:600])
+    elif photo["sample"] is not None:
+        log("  a picture without a link we recognize: " + json.dumps(photo["sample"])[:600])
     return path
 
 
@@ -562,6 +579,14 @@ def fetch_fitment(c, aaia, parts, work, log, refresh=False):
 
 # ------------------------------------------------------------------ JSON product -> PIES XML
 
+ASSET_LINK_KEYS = ("Value", "URI", "Link", "Url", "AssetUrl", "FileUrl", "DownloadUrl", "AssetLink", "Path")
+
+
+def asset_link(a):
+    v = _g(a, *ASSET_LINK_KEYS)
+    return v if isinstance(v, str) and v.strip().lower().startswith(("http://", "https://", "//")) else (v if isinstance(v, str) and "/" in v else None)
+
+
 def _g(d, *keys):
     if not isinstance(d, dict):
         return None
@@ -642,7 +667,7 @@ def product_xml(p, aaia):
     if assets:
         x.append("<DigitalAssets>")
         for a in assets:
-            uri = _g(a, "Value", "URI", "Link")
+            uri = asset_link(a)
             if not uri:
                 continue
             x.append(f"<DigitalFileInformation><AssetType>{_e(_g(a, 'Code', 'AssetTypeCode', 'AssetType') or '')}</AssetType>"

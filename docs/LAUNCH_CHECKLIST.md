@@ -93,7 +93,8 @@ Do these in order. Email setup waits until the DNS is on its final provider, so 
 Off until these are done: checkout works without them, but the reminder emails won't go out.
 - [ ] Email (SMTP) settings in Render, so the site can send email at all (also needed for orders and sign-in codes).
 - [ ] Stripe: Settings > Payments > Checkout and Payment Links > **View all settings** > accept the terms for
-      promotional-email consent. Do it in the live account (and the sandbox, to test). Until it's accepted, the site
+      promotional-email consent ("Promotional emails > Accept terms of service"). The button is greyed out in the
+      sandbox: do it in live mode, after the Stripe account is activated, as an Administrator. Until it's accepted, the site
       opens the payment page without the "send me updates" box, and no reminders go out.
 - [ ] Stripe webhook (live mode) sends checkout.session.expired, as well as checkout.session.completed,
       async_payment_succeeded and async_payment_failed.

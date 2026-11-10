@@ -595,13 +595,22 @@ def sema_page(request: Request, error: str = "", started: str = "", saved: str =
                                       (SELECT count(*) FROM products p WHERE p.brand_id = s.brand_id AND p.status = 'active'),
                                       (SELECT count(*) FROM products p WHERE p.brand_id = s.brand_id AND p.status = 'active'
                                          AND p.main_image IS NOT NULL),
-                                      s.est_parts, s.est_calls
-                               FROM sema_brands s ORDER BY s.name""").fetchall()
+                                      s.est_parts, s.est_calls, t.id, t.approved,
+                                      (SELECT count(DISTINCT i.product_id) FROM t14_items i WHERE i.t14_brand_id = t.id
+                                         AND i.product_id IS NOT NULL),
+                                      (SELECT count(DISTINCT i.product_id) FROM t14_items i JOIN t14_inventory v ON v.item_id = i.item_id
+                                         WHERE i.t14_brand_id = t.id AND i.product_id IS NOT NULL AND v.total > 0),
+                                      (SELECT max(v.updated_at) FROM t14_items i JOIN t14_inventory v ON v.item_id = i.item_id
+                                         WHERE i.t14_brand_id = t.id AND i.product_id IS NOT NULL)
+                               FROM sema_brands s LEFT JOIN LATERAL (SELECT id, approved FROM t14_brands t
+                                    WHERE s.brand_id IS NOT NULL AND t.brand_id = s.brand_id ORDER BY approved DESC LIMIT 1) t ON true
+                               ORDER BY s.name""").fetchall()
         hour = conn.execute("SELECT count(*) FROM sema_requests WHERE at > now() - interval '1 hour'").fetchone()[0]
         recent = conn.execute("SELECT at, method, path, status, ms, task FROM sema_requests ORDER BY id DESC LIMIT 25").fetchall()
         wish = ss.wishlist(conn)
     cols = ["aaia", "name", "wanted", "wish", "status", "last_loaded", "error", "parts", "fitted", "sema_updated",
-            "loaded_updated", "brand_id", "approved", "live", "with_photo", "est_parts", "est_calls"]
+            "loaded_updated", "brand_id", "approved", "live", "with_photo", "est_parts", "est_calls",
+            "t14_id", "t14_ok", "t14_matched", "t14_stock", "t14_at"]
     brands = {r[0]: dict(zip(cols, r)) for r in rows}
     matches = state.get("matches") or {}
     listed = []
@@ -615,7 +624,31 @@ def sema_page(request: Request, error: str = "", started: str = "", saved: str =
                  auto=sema_schedule.enabled(), receiver=state.get("receiver"), last_test=state.get("last_test"),
                  last_load=state.get("last_load"), listed=listed, approved=approved, wish_text="\n".join(wish),
                  hour=hour, recent=recent, job=st.sema.current(), error=error, started=started, saved=saved,
-                 tested=bool(brands), to_load=to_load)
+                 tested=bool(brands), to_load=to_load, t14_on=_t14_configured(), t14_job=st.t14.current())
+
+
+def _t14_configured():
+    from turn14 import client as t14
+    return t14.configured()
+
+
+@router.post("/sema/turn14/{brand_id}")
+def sema_turn14_sync(request: Request, brand_id: str):
+    """Sync with Turn 14 for one brand from the SEMA Data page: items, part matching, pricing and stock."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import turn14_schedule
+    st = web._state(request)
+    if not _t14_configured():
+        return _sema_back(error="Turn 14 isn't connected: add TURN14_CLIENT_ID and TURN14_CLIENT_SECRET in Render first.")
+    with st.pool.connection() as conn:
+        r = conn.execute("SELECT name FROM brands WHERE id = %s", (brand_id,)).fetchone()
+    if not r:
+        return _sema_back(error="That brand isn't on the site yet: load it first.")
+    if not turn14_schedule.start(st, f"brand:{brand_id}", label=f"Sync {r[0]} with Turn 14"):
+        return _sema_back(error="A Turn 14 task is already running. Try again when it finishes (see the Turn 14 page).")
+    return _sema_back(started=f"Sync {r[0]} with Turn 14 (progress on the Turn 14 page)")
 
 
 @router.post("/sema/run/{task}")

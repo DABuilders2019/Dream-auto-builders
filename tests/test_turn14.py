@@ -200,3 +200,34 @@ def test_schedule(t14):
     assert sch.due(conn, at(0, 50)) is None           # less than an hour since the last run
     assert sch.due(conn, at(1, 20)) == "changes"      # hourly stock changes
     assert sch.due(conn, at(1, 35)) == "daily"        # after 1:30 AM Eastern
+
+
+def test_sync_one_brand_now(t14):
+    conn, fake, make, slept = t14
+    conn.execute("INSERT INTO brands (id, name) VALUES ('nobody', 'Nobody Carries This')")
+    stats = go(conn, make, "brand:testbrand,nobody")
+    assert stats["brands_synced"] == 1 and stats["brands_not_at_turn14"] == 1
+    assert conn.execute("SELECT count(*) FROM t14_items WHERE product_id IS NOT NULL").fetchone()[0] == 3
+    assert conn.execute("SELECT total FROM t14_inventory WHERE item_id = '100G'").fetchone()[0] == 3
+    assert not any(c[1] == "/v1/items/brand/2" for c in fake.calls)    # only the brands asked for
+
+
+def test_sema_load_syncs_turn14_right_after(conn, monkeypatch):
+    from semadata import sync as ss
+    from turn14 import client as t14c
+    import turn14.sync as t14s
+    ran, logs = [], []
+    monkeypatch.setattr(t14c, "configured", lambda: True)
+    monkeypatch.setattr(t14s, "run", lambda c, task, log=print: ran.append(task) or {})
+    ss.turn14_after_load(conn, ["kn", "bilstein"], logs.append)
+    assert ran == ["brand:kn,bilstein"]
+
+    def boom(c, task, log=print):
+        raise t14c.StopSync("Turn 14 answered 500")
+    monkeypatch.setattr(t14s, "run", boom)
+    ss.turn14_after_load(conn, ["kn"], logs.append)                    # logged, never fails the SEMA load
+    assert "didn't finish" in logs[-1]
+    monkeypatch.setattr(t14c, "configured", lambda: False)
+    ran.clear()
+    ss.turn14_after_load(conn, ["kn"], logs.append)
+    assert ran == []

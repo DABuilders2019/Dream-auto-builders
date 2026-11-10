@@ -308,11 +308,27 @@ def load(conn, c, codes, log, data_dir, photos=True):
                          (f"{e.__class__.__name__}: {e}"[:500], aaia))
             log(f"  FAILED: {e!r}")
             failed.append(aaia)
+    if done:
+        turn14_after_load(conn, [b for _, b, _ in done], log)
     if photos:
         for aaia, brand_id, name in done:
             log(f"\n--- {name}: photos ---")
             run_photos(conn, brand_id, log)
     return {"brands": len(rows), "loaded": len(done), "failed": len(failed)}
+
+
+def turn14_after_load(conn, brand_ids, log):
+    """Brands just loaded from SEMA: get their Turn 14 stock and cost now rather than at the nightly sync.
+    A Turn 14 problem is logged but never fails the SEMA load (the nightly sync tries again)."""
+    from turn14 import client as t14
+    if not t14.configured():
+        return
+    from turn14.sync import run as t14_run
+    log("\n--- Turn 14: stock and pricing for the brands just loaded ---")
+    try:
+        t14_run(getattr(conn, "raw", conn), "brand:" + ",".join(brand_ids), log=log)
+    except Exception as e:      # noqa: BLE001
+        log(f"  Turn 14 sync didn't finish ({e}); the nightly sync or the Sync with Turn 14 button will catch up")
 
 
 def disk_free_gb():

@@ -74,3 +74,11 @@ photos (`/v1/items/data/brand/{id}`), pricing and stock, writes them as a PIES f
   or by name if SEMA's code differs) and the same part numbers, so the products are upgraded in place with SEMA's
   data and fitment, and Turn 14 stops rebuilding the brand (it keeps supplying stock and pricing).
 - Before going live: confirm with the Turn 14 rep that dealers may use Turn 14's photos and descriptions on their site.
+
+## SEMA and Turn 14 in step
+
+- When a brand finishes loading on the SEMA Data page, the same job runs Turn 14 for that brand right away
+  (task `brand:<our brand id>`: items, part matching, pricing, stock) instead of waiting for the nightly sync.
+  A Turn 14 problem is written to the log and never fails the SEMA load.
+- The SEMA Data table has a Turn 14 column per loaded brand: parts matched, parts in stock and when stock was last read
+  (or "Not at Turn 14" / "Not approved at Turn 14"), and a **Sync with Turn 14** button for that one brand.

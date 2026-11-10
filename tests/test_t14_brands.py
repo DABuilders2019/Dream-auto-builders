@@ -52,3 +52,24 @@ def test_turn14_only_brand_offers_add_from_turn14(shop, monkeypatch):
     monkeypatch.setattr(turn14_schedule, "start", lambda st, task, label=None: started.append((task, label)) or True)
     r = c.post("/admin/turn14/add-from-turn14", data={"t14_id": "9"}, follow_redirects=False)
     assert r.status_code == 303 and started == [("catalog:9", "Add K&N from Turn 14")]
+
+
+def test_sema_page_turn14_column_and_sync_button(shop, monkeypatch):
+    c, conn = shop.c, shop.conn
+    conn.execute("INSERT INTO sema_brands (aaia, name, approved, wanted, status, brand_id) VALUES ('TEST', 'TestBrand', true, true, 'loaded', 'testbrand')")
+    conn.execute("INSERT INTO t14_brands (id, name, aaia, approved, brand_id) VALUES (1, 'TestBrand', '{TEST}', true, 'testbrand')")
+    pid = conn.execute("SELECT id FROM products WHERE brand_id = 'testbrand' LIMIT 1").fetchone()[0]
+    conn.execute("INSERT INTO t14_items (item_id, t14_brand_id, product_id) VALUES ('1G', 1, %s)", (pid,))
+    conn.execute("INSERT INTO t14_inventory (item_id, total) VALUES ('1G', 4)")
+    conn.execute("INSERT INTO sema_state (key, value) VALUES ('wishlist', '[\"TestBrand\"]'), ('matches', '{\"TestBrand\": {\"aaia\": \"TEST\", \"choices\": []}}') ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value")
+    conn.commit()
+    monkeypatch.setenv("TURN14_CLIENT_ID", "cid")
+    monkeypatch.setenv("TURN14_CLIENT_SECRET", "secret")
+    c.post("/admin/login", data={"password": "pw"})
+    page = html.unescape(c.get("/admin/sema").text)
+    assert "1 matched" in page and "1 in stock" in page and "Sync with Turn 14" in page
+    started = []
+    from store import turn14_schedule
+    monkeypatch.setattr(turn14_schedule, "start", lambda st, task, label=None: started.append((task, label)) or True)
+    r = c.post("/admin/sema/turn14/testbrand", follow_redirects=True)
+    assert started == [("brand:testbrand", "Sync TestBrand with Turn 14")] and "progress on the Turn 14 page" in r.text

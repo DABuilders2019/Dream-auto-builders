@@ -55,8 +55,9 @@
       <button class="linkbtn" type="button" id="picknew">Tick the ones not on the site yet</button>
       <button class="linkbtn" type="button" id="pickclear">Clear</button>
     </form>{% endif %}
+    {% if t14_on %}<p class="muted small">When a brand finishes loading, its Turn 14 stock and cost are synced right away (then every night). <b>Sync with Turn 14</b> does it again for one brand.</p>{% endif %}
     <div class="tblwrap stickyhead"><table class="tbl num">
-      <thead><tr><th class="pickc">{% if tested %}<input type="checkbox" id="pickall" aria-label="Tick every brand" form="pickload">{% endif %}</th><th>On our list</th><th>SEMA brand</th><th>Status</th><th>Parts</th><th>Fit vehicles</th><th>Photos</th><th>Calls to load</th><th></th></tr></thead>
+      <thead><tr><th class="pickc">{% if tested %}<input type="checkbox" id="pickall" aria-label="Tick every brand" form="pickload">{% endif %}</th><th>On our list</th><th>SEMA brand</th><th>Status</th><th>Parts</th><th>Fit vehicles</th><th>Photos</th><th>Turn 14</th><th>Calls to load</th><th></th></tr></thead>
       <tbody>{% for l in listed %}{% set b = l.brand %}
         <tr><td class="pickc">{% if b %}<input type="checkbox" name="pick" value="{{ b.aaia }}" form="pickload" data-new="{{ '0' if b.status == 'loaded' and b.sema_updated == b.loaded_updated else '1' }}" data-calls="{{ b.est_calls or 0 }}" aria-label="Load {{ b.name }}"{% if busy %} disabled{% endif %}>{% endif %}</td>
           <td><b>{{ l.wish }}</b></td>
@@ -77,6 +78,13 @@
           <td>{% if b and b.live %}{{ b.live|num }}{% elif b and b.est_parts is not none %}<span class="muted">{{ b.est_parts|num }}</span>{% endif %}</td>
           <td>{% if b and b.fitted is not none %}{{ b.fitted|num }}{% endif %}</td>
           <td>{% if b and b.live %}{{ b.with_photo|num }}{% endif %}</td>
+          <td class="t14c">{% if b and b.status == 'loaded' %}
+              {% if not b.t14_id %}<span class="muted small">Not at Turn 14{% if not b.t14_at %} (or not checked yet){% endif %}</span>
+              {% elif not b.t14_ok %}<span class="muted small">Not approved at Turn 14</span>
+              {% elif b.t14_at %}{{ b.t14_matched|num }} matched<br><span class="muted small">{{ b.t14_stock|num }} in stock · {{ b.t14_at.strftime('%b %d %H:%M') }}</span>
+              {% else %}<span class="muted small">Not synced yet</span>{% endif %}
+              {% if t14_on %}<form method="post" action="/admin/sema/turn14/{{ b.brand_id }}"><button class="linkbtn" type="submit"{% if t14_job and t14_job.status == 'running' %} disabled title="A Turn 14 task is running"{% endif %}>Sync with Turn 14</button></form>{% endif %}
+            {% endif %}</td>
           <td>{% if b and b.status != 'loaded' and b.est_calls %}{{ b.est_calls|num }}{% endif %}</td>
           <td>{% if b %}<form method="post" action="/admin/sema/run/load"><input type="hidden" name="aaia" value="{{ b.aaia }}"><button class="btn btn-ghost btn-sm" type="submit"{% if busy %} disabled{% endif %}>{{ 'Reload' if b.status == 'loaded' else 'Load now' }}</button></form>
               {% if l.picked %}<form method="post" action="/admin/sema/pick"><input type="hidden" name="wish" value="{{ l.wish }}"><input type="hidden" name="aaia" value=""><button class="linkbtn" type="submit">change</button></form>{% endif %}{% endif %}

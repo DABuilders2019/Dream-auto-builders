@@ -8,6 +8,8 @@
   changes     warehouses, plus stock that changed since the last run (Turn 14's inventory updates feed)
   full-items  all items for each brand again (Turn 14: 1-2 times a month); items no longer listed are
               marked inactive
+  brand:<our brand id>[,<id>...]  just these brands of ours: items, matching, pricing, stock (after a SEMA load,
+              or the Sync with Turn 14 button on the SEMA Data page)
   catalog:<id>  add a brand Turn 14 approves but SEMA doesn't, from Turn 14's own item data (turn14/catalog.py)
 
 Brands added from Turn 14 are rebuilt by daily (from the local copy) and full-items (descriptions and photos again).
@@ -258,6 +260,27 @@ class Sync:
 
 # ------------------------------------------------------------------ tasks
 
+def sync_brands(s, our_ids):
+    """Turn 14 for a few of our brands right away, instead of waiting for the nightly sync."""
+    s.brands()          # refreshes the links, so a brand just loaded from SEMA is matched by its code or name
+    rows = s.conn.execute("""SELECT b.id, b.name, t.id, t.approved FROM brands b
+                             LEFT JOIN t14_brands t ON t.brand_id = b.id WHERE b.id = ANY(%s) ORDER BY b.name""",
+                          (our_ids,)).fetchall()
+    for our, name, t14_id, approved in rows:
+        if t14_id is None:
+            s.log(f"  {name}: Turn 14 doesn't carry this brand")
+            s.stats["brands_not_at_turn14"] += 1
+        elif not approved:
+            s.log(f"  {name}: at Turn 14, but not approved for this account yet")
+            s.stats["brands_not_approved"] += 1
+        else:
+            s.items_for_brand(t14_id, name)
+            s.match(t14_id, our)
+            s.pricing_for_brand(t14_id, name)
+            s.inventory_for_brand(t14_id, name)
+            s.stats["brands_synced"] += 1
+
+
 def run(conn, task, log=print, client=None, log_conn=None):
     s = Sync(conn, client=client, log=log, task=task, log_conn=log_conn)
     conn.execute("DELETE FROM t14_requests WHERE at < now() - interval '3 days'")
@@ -268,6 +291,8 @@ def run(conn, task, log=print, client=None, log_conn=None):
         if task == "test":
             s.brands()
             s.locations()
+        elif task.startswith("brand:"):
+            sync_brands(s, [b for b in task.split(":", 1)[1].split(",") if b])
         elif task.startswith("catalog:"):
             from . import catalog
             s.brands()

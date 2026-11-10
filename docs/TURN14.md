@@ -26,7 +26,7 @@ coming from the brands' SEMA files.
 | Rule (source) | Here |
 |---|---|
 | Terminate on any non-200 response (email) | Any non-200 stops the task and is logged on the admin page |
-| On 429, pause and retry (Best Practices) | One retry after 60 seconds; a second 429 stops |
+| Stop on any non-200, 429 included (Mark Eder, Nov 2026) | Every non-200 answer stops the run, no retries |
 | Pagination, 1,000 per page; no single-item requests (email, Best Practices) | Only paged list endpoints are used |
 | 5 GET/second, 5,000/hour, 30,000/24 hours; 10 token requests/minute per IP (Acceptable Usage Policy) | At most 4/second; stops itself at 4,000/hour and 24,000/day (counted in the database across processes); at most 5 token requests/minute |
 | Reuse the token until it expires (Best Practices) | Token stored in the database, renewed 2 minutes before `expires_in` |

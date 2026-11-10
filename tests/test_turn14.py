@@ -120,14 +120,12 @@ def test_token_is_reused_between_runs(t14):
     assert len([c for c in fake.calls if c[1] == "/v1/token"]) == 1
 
 
-def test_429_waits_and_retries_once(t14):
+def test_429_stops_the_sync(t14):
     conn, fake, make, slept = t14
     fake.fail["/v1/brands"] = [429]
-    go(conn, make, "test")
-    assert 60 in slept
-    fake.fail["/v1/brands"] = [429, 429]
-    with pytest.raises(StopSync):
+    with pytest.raises(StopSync, match="429"):
         go(conn, make, "test")
+    assert 60 not in slept and len([c for c in fake.calls if c[1] == "/v1/brands"]) == 1     # no wait, no retry
 
 
 @pytest.mark.parametrize("code", [400, 401, 403, 404, 500, 503])

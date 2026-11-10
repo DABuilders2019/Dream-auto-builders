@@ -5,8 +5,8 @@
 - Speed: at most 4 requests a second (Turn 14 allows 5).
 - Usage: before every request the requests already made are counted; the sync stops itself at
   4,000 an hour and 24,000 a day (Turn 14 allows 5,000 and 30,000).
-- Errors: any answer other than 200 stops the sync. The one exception is 429 (too many requests):
-  wait a minute and try that request once more, as Turn 14's best practices describe; a second 429 stops.
+- Errors: any answer other than 200 stops the sync, 429 (too many requests) included, as Turn 14 asked
+  (Mark Eder, Nov 2026: "terminate any script that receives any non-200 status code (401, 403, 404, 429, 500 etc.)").
 - Paging: lists are read 1,000 items per page, never one item at a time.
 """
 import datetime as dt
@@ -21,7 +21,6 @@ MIN_INTERVAL = 0.25          # seconds between requests -> 4 per second
 HOURLY_CAP = 4000            # Turn 14 limit 5,000 per hour
 DAILY_CAP = 24000            # Turn 14 limit 30,000 per 24 hours
 TOKEN_PER_MINUTE_CAP = 5     # Turn 14 limit 10 token requests per minute per IP
-RETRY_WAIT_429 = 60
 
 
 class StopSync(Exception):
@@ -133,10 +132,6 @@ class Client:
                 return r.json()
             if r.status_code == 401:     # token no longer valid (e.g. secret reset): forget it so the next run signs in again
                 self.conn.execute("DELETE FROM t14_state WHERE key = 'token'")
-            if r.status_code == 429 and attempt == 1:
-                self.log(f"  Turn 14 asked us to slow down (429) on {path}; waiting {RETRY_WAIT_429} seconds, then trying once more")
-                self.sleep(RETRY_WAIT_429)
-                continue
             raise StopSync(f"Turn 14 answered {r.status_code} for {_show(path, params)}: {_message(r)}")
         raise StopSync("unreachable")
 

@@ -73,3 +73,20 @@ def test_sema_page_turn14_column_and_sync_button(shop, monkeypatch):
     monkeypatch.setattr(turn14_schedule, "start", lambda st, task, label=None: started.append((task, label)) or True)
     r = c.post("/admin/sema/turn14/testbrand", follow_redirects=True)
     assert started == [("brand:testbrand", "Sync TestBrand with Turn 14")] and "progress on the Turn 14 page" in r.text
+
+
+def test_brand_added_from_turn14_has_reload(shop, monkeypatch):
+    c, conn = shop.c, shop.conn
+    conn.execute("INSERT INTO brands (id, name) VALUES ('michelin', 'Michelin')")
+    conn.execute("INSERT INTO t14_brands (id, name, aaia, approved, brand_id, load_catalog) VALUES (428, 'Michelin', '{}', true, 'michelin', true)")
+    conn.commit()
+    c.post("/admin/login", data={"password": "pw"})
+    page = html.unescape(c.get("/admin/turn14").text)
+    assert "From Turn 14 (no fitment)" in page and "Reload from Turn 14" in page
+    started = []
+    from store import turn14_schedule
+    monkeypatch.setenv("TURN14_CLIENT_ID", "cid")
+    monkeypatch.setenv("TURN14_CLIENT_SECRET", "secret")
+    monkeypatch.setattr(turn14_schedule, "start", lambda st, task, label=None: started.append((task, label)) or True)
+    c.post("/admin/turn14/add-from-turn14", data={"t14_id": "428"})
+    assert started == [("catalog:428", "Reload Michelin from Turn 14")]

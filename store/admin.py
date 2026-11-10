@@ -727,9 +727,9 @@ def turn14_add_from_turn14(request: Request, t14_id: int = Form(...)):
         return back(error=f"{name} isn't approved for your account at Turn 14.")
     if brand_id and not from_t14:
         return back(error=f"{name} is already on your site from SEMA's data.")
-    if not turn14_schedule.start(st, f"catalog:{t14_id}", label=f"Add {name} from Turn 14"):
+    if not turn14_schedule.start(st, f"catalog:{t14_id}", label=f"{'Reload' if from_t14 else 'Add'} {name} from Turn 14"):
         return back(error="A Turn 14 task is already running. Try again when it finishes.")
-    return back(started=f"Adding {name} from Turn 14")
+    return back(started=f"{'Reloading' if from_t14 else 'Adding'} {name} from Turn 14")
 
 
 @router.post("/turn14/add-to-sema")

@@ -41,7 +41,7 @@
   <section class="acard">
     <h2>Your store's brands at Turn 14</h2>
     <p class="muted">The brands on your site (loaded from SEMA, which supplies photos, descriptions and vehicle fitment). For these, Turn 14 supplies your cost, stock and, later, ordering. To add more brands, see <a href="#t14brands">Turn 14's brands</a> below.</p>
-    <div class="tblwrap"><table class="tbl num">
+    <div class="tblwrap stickyhead"><table class="tbl num">
       <thead><tr><th>Our brand</th><th>Turn 14 brand</th><th>Approved</th><th>Our parts</th><th>Matched</th><th>Can buy</th><th>In stock</th><th></th></tr></thead>
       <tbody>{% for b in brands if b.t14_id %}
         <tr><td><b>{{ b.name }}</b><br><span class="muted">code {{ b.aaia or '-' }}</span></td>
@@ -67,8 +67,8 @@
     <div class="t14tools"><nav class="pmtabs">
       <a href="?t14=approved#t14brands" class="{{ 'on' if t14_show != 'all' }}">Approved for you ({{ t14_sum.approved }})</a>
       <a href="?t14=all#t14brands" class="{{ 'on' if t14_show == 'all' }}">All Turn 14 brands ({{ t14_sum.all }})</a></nav>
-      <input id="t14q" type="search" placeholder="Find a brand" oninput="var q=this.value.toLowerCase();document.querySelectorAll('#t14tbl tbody tr').forEach(function(r){r.style.display=r.dataset.n.indexOf(q)>-1?'':'none'})"></div>
-    <div class="tblwrap"><table class="tbl" id="t14tbl">
+      <input id="t14q" type="search" placeholder="Find a brand" oninput="var q=this.value.toLowerCase().replace(/[^a-z0-9]/g,'');document.querySelectorAll('#t14tbl tbody tr').forEach(function(r){r.style.display=(r.dataset.n||'').replace(/[^a-z0-9]/g,'').indexOf(q)>-1?'':'none'})"></div>
+    <div class="tblwrap stickyhead"><table class="tbl" id="t14tbl">
       <thead><tr><th>Turn 14 brand</th><th>Approved</th><th>Drop-ship</th><th>On your site</th></tr></thead>
       <tbody>{% for t in t14_brands %}<tr data-n="{{ t.name|lower }} {{ (t.sema_name or '')|lower }}">
         <td><b>{{ t.name }}</b><br><span class="muted small">Turn 14 id {{ t.id }}{% if t.aaia %} · code {{ t.aaia|join(', ') }}{% endif %}</span></td>

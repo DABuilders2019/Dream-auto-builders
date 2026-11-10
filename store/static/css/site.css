@@ -845,3 +845,4 @@ form.inline{display:inline}
 .lc-tick{display:flex;gap:8px;align-items:center;padding:10px 14px 14px 32px;flex-wrap:wrap}
 .lc-tick input{flex:1;min-width:200px;border:1px solid var(--line);border-radius:6px;padding:7px 9px}
 .lc-tick .btn{display:inline-flex;gap:6px;align-items:center}
+.lc-sw td{vertical-align:top}.lc-sw tr.warn td{background:#fffaf0}.lc-sw td:first-child{width:24px}

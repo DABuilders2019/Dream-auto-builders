@@ -10,6 +10,20 @@
     <p class="small num"><b>{{ done }} of {{ total }}</b> tests ticked off.</p>
   </section>
 
+  <section class="acard" id="golive">
+    <h2>Go-live switches</h2>
+    <p class="muted">Settings in Render &gt; Environment that are on "test" while the site is being built and must be switched to live before customers can really buy. Change them in Render (web service &gt; Environment); this list updates on its own.</p>
+    <p class="lc-sum num">{% if live_n == switches|length %}<span class="lc-dot ok"></span> All {{ live_n }} switched to live.{% else %}<span class="lc-dot warn"></span> {{ live_n }} of {{ switches|length }} switched to live.{% endif %}</p>
+    <div class="tblwrap"><table class="tbl lc-sw">
+      <thead><tr><th></th><th>Setting</th><th>Now</th><th>To go live</th></tr></thead>
+      <tbody>{% for x in switches %}<tr class="{{ 'ok' if x.live else 'warn' }}">
+        <td><span class="lc-dot {{ 'ok' if x.live else 'warn' }}"></span></td>
+        <td><b>{{ x.name }}</b><div class="muted small">{{ x.group }}</div></td>
+        <td>{{ x.now }}</td>
+        <td class="small">{{ 'Live.' if x.live else x.fix }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+
   <section class="acard" id="checks">
     <h2>1. Automatic checks</h2>
     <form method="post" action="/admin/launch/run" class="lc-run">

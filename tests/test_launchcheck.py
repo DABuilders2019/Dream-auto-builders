@@ -109,3 +109,24 @@ def test_domain_check():
     finally:
         lc._dns_transport = None
     assert items["dreamautobuilders.com (the website)"]["status"] == "ok" and items["www.dreamautobuilders.com"]["status"] == "ok"
+
+
+def test_go_live_switches(monkeypatch):
+    from store import launchcheck as lc
+    for k, v in {"STRIPE_SECRET_KEY": "sk_test_x", "STRIPE_WEBHOOK_SECRET": "whsec_x", "MAIL_FROM": "onboarding@resend.dev",
+                 "SITE_URL": "https://dream-auto-builders.onrender.com", "SITE_PASSWORD": "pw", "SITE_PREVIEW": "1",
+                 "UPS_ENV": "test", "TURN14_ENV": "test", "COOKIE_SECURE": "1"}.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.delenv("TURN14_AUTO", raising=False)
+    monkeypatch.delenv("SEMA_AUTO", raising=False)
+    sw = {x["name"]: x for x in lc.go_live()}
+    assert not sw["STRIPE_SECRET_KEY"]["live"] and "test key" in sw["STRIPE_SECRET_KEY"]["now"]
+    assert not sw["STRIPE_WEBHOOK_SECRET"]["live"] and not sw["MAIL_FROM"]["live"] and not sw["SITE_URL"]["live"]
+    assert not sw["SITE_PASSWORD"]["live"] and not sw["UPS_ENV"]["live"] and sw["COOKIE_SECURE"]["live"]
+    for k, v in {"STRIPE_SECRET_KEY": "sk_live_x", "MAIL_FROM": "Dream Auto Builders <admin@dreamautobuilders.com>",
+                 "SITE_URL": "https://dreamautobuilders.com", "SITE_PREVIEW": "0", "UPS_ENV": "production",
+                 "TURN14_ENV": "production", "TURN14_AUTO": "1", "SEMA_AUTO": "1"}.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.delenv("SITE_PASSWORD")
+    sw = {x["name"]: x for x in lc.go_live()}
+    assert all(x["live"] for n, x in sw.items() if n != "Ship-from ZIP")

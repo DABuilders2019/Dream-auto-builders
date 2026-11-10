@@ -34,6 +34,48 @@ def item(name, status, text, fix="", link=""):
     return {"name": name, "status": status, "text": text, "fix": fix, "link": link, "link_label": PAGES.get(link, "page")}
 
 
+# ------------------------------------------------------------------ go-live switches (read from Render > Environment)
+
+def go_live():
+    """Every setting that must move from test to live, with what it is now. Only reads settings: instant, no calls."""
+    from . import shipping, ups
+    key = _env("STRIPE_SECRET_KEY")
+    whsec = _env("STRIPE_WEBHOOK_SECRET")
+    sender = _env("MAIL_FROM")
+    site = _env("SITE_URL")
+    sh = shipping.settings()
+    t14 = "production" if (_env("TURN14_ENV") or "test").startswith("prod") else "test"
+    rows = [
+        ("Payments", "STRIPE_SECRET_KEY", key.startswith(("sk_live_", "rk_live_")),
+         "live key (sk_live_…)" if key.startswith(("sk_live_", "rk_live_")) else "test key (sk_test_…): no real charges" if key else "not set",
+         "Paste the live secret key from Stripe (Developers > API keys, live mode)."),
+        ("Payments", "STRIPE_WEBHOOK_SECRET", bool(whsec) and key.startswith(("sk_live_", "rk_live_")),
+         "set" if whsec else "not set",
+         "Use the signing secret of the LIVE-mode webhook (test and live webhooks have different secrets). "
+         "Run all checks: the Stripe section confirms the live webhook exists."),
+        ("Email", "MAIL_FROM", bool(sender) and "resend.dev" not in sender, sender or "not set",
+         "admin@dreamautobuilders.com, after the domain is verified in Resend (onboarding@resend.dev only emails you)."),
+        ("Website", "SITE_URL", site.startswith("https://") and "onrender.com" not in site, site or "not set",
+         "https://dreamautobuilders.com once the domain points to Render."),
+        ("Website", "SITE_PASSWORD", not _env("SITE_PASSWORD"), "on: visitors need a password" if _env("SITE_PASSWORD") else "removed",
+         "Delete it so customers can get in."),
+        ("Website", "SITE_PREVIEW", not web.is_preview(), '1: pink "Test site" banner showing' if web.is_preview() else "0: banner off",
+         "Set to 0."),
+        ("Shipping", "UPS_ENV", ups.settings()["env"] == "production", ups.settings()["env"] + (": sample prices" if ups.settings()["env"] != "production" else ""),
+         "Set to production for your real UPS prices."),
+        ("Shipping", "Ship-from ZIP", sh["from_zip"] not in ("", "11691"), sh["from_zip"] or "not set",
+         "11691 is a placeholder: tell Claude the supplier warehouse ZIP(s)."),
+        ("Suppliers", "TURN14_ENV", t14 == "production", t14 + (": Turn 14's testing server" if t14 != "production" else ""),
+         "Set to production once Turn 14 approves production access."),
+        ("Suppliers", "TURN14_AUTO", _env("TURN14_AUTO") == "1", "1: stock and prices update on schedule" if _env("TURN14_AUTO") == "1" else "off",
+         "Set to 1 after the first full Turn 14 load looks right."),
+        ("Suppliers", "SEMA_AUTO", _env("SEMA_AUTO") == "1", "1: brand updates nightly" if _env("SEMA_AUTO") == "1" else "off",
+         "Set to 1 so brands SEMA updates (e.g. new Brembo photos) reload automatically."),
+        ("Website", "COOKIE_SECURE", _env("COOKIE_SECURE") == "1", _env("COOKIE_SECURE") or "not set", "Set to 1."),
+    ]
+    return [{"group": g, "name": n, "live": ok, "now": now, "fix": fix} for g, n, ok, now, fix in rows]
+
+
 # ------------------------------------------------------------------ automatic checks
 
 def check_site(conn):
@@ -539,7 +581,9 @@ def _render(request, results=None, sent=None, to=""):
     if results:
         flat = [i["status"] for s in results for i in s["items"]]
         counts = {k: flat.count(k) for k in (OK, WARN, BAD)}
+    switches = go_live()
     return _page(request, "admin_launch.html", title="Launch Check", section="launch", results=results, counts=counts,
+                 switches=switches, live_n=sum(1 for x in switches if x["live"]),
                  tests=TESTS, ticks=ticks, total=total, done=done, samples=samples, sent=sent,
                  to=to or mailer.notify_address(), mail_on=mailer.configured())
 

@@ -7,9 +7,10 @@ it and creates:
 |---|---|---|---|
 | The shop (web service) | `dream-auto-builders` | Standard: 2 GB memory, 1 CPU | $25/month |
 | A 10 GB disk on the shop, for product photos and uploaded SEMA files | `data` | | $2.50/month |
-| The catalog database (Postgres 16) | `dab-db` | Basic-256mb, 5 GB storage | $6 + $1.50/month |
+| The catalog database (Postgres 16) | `dab-db` | 1 CPU / 4 GB memory (Pro-4gb, `1c-4g`), 5 GB storage | $55 + $1.50/month |
 
-That's about **$35/month**. The shop needs Standard rather than Starter ($7) because catalog
+That's about **$84/month**. (The database started on Basic-256mb at $6; it moved to 1 CPU / 4 GB in
+November 2026 once the catalog outgrew 256 MB of memory and pages slowed down.) The shop needs Standard rather than Starter ($7) because catalog
 imports run on it, and the largest file so far (MagnaFlow) uses about 400 MB of memory while
 loading. Both can be changed later in the Render dashboard.
 

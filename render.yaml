@@ -4,8 +4,9 @@
 # files) and its Postgres database. In Render: New > Blueprint > pick this repository > Apply.
 # Render asks for ADMIN_PASSWORD and SITE_PASSWORD while creating it (see docs/DEPLOY.md).
 #
-# Approximate monthly cost: web Standard $25 + Postgres Basic-256mb $6 + database storage 5 GB $1.50
-# + disk 10 GB $2.50 = about $35. The web service needs Standard (2 GB memory) because catalog
+# Approximate monthly cost: web Standard $25 + Postgres 1 CPU / 4 GB $55 + database storage 5 GB $1.50
+# + disk 10 GB $2.50 = about $84. (The database moved from Basic-256mb to 1 CPU / 4 GB in November 2026:
+# the catalog outgrew 256 MB of memory and pages slowed down.) The web service needs Standard (2 GB memory) because catalog
 # imports run on it: the largest catalog file so far (MagnaFlow) uses about 400 MB while loading, and
 # photo downloads up to about 700 MB (Mickey Thompson sends 4000 px photos).
 
@@ -13,7 +14,7 @@ databases:
   - name: dab-db
     databaseName: dab
     user: dab
-    plan: basic-256mb
+    plan: pro-4gb            # 1 CPU, 4 GB RAM ($55/month); Render's newer name for it is 1c-4g
     diskSizeGB: 5
     postgresMajorVersion: "16"
     region: ohio

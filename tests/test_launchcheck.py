@@ -68,3 +68,44 @@ def test_launch_check(shop, monkeypatch):
     assert "1 of" in page and "worked fine" in page
     c.post("/admin/launch/tick", data={"test": "nope", "done": "1"})       # unknown tests are ignored
     assert "1 of" in c.get("/admin/launch").text
+
+
+def test_domain_check():
+    """The Domain section reads the real DNS records (faked here) and says what points where."""
+    import httpx
+    from store import launchcheck as lc
+    records = {
+        ("dreamautobuilders.com", "NS"): ["ns1.a2hosting.com.", "ns2.a2hosting.com."],
+        ("dreamautobuilders.com", "A"): ["203.0.113.7"], ("dreamautobuilders.com", "AAAA"): ["2001:db8::7"],
+        ("www.dreamautobuilders.com", "CNAME"): ["dreamautobuilders.com."],
+        ("dreamautobuilders.com", "MX"): ["0 mail.dreamautobuilders.com."],
+        ("dreamautobuilders.com", "TXT"): ["v=spf1 a mx include:spf.a2hosting.com ~all", "google-site-verification=abc"],
+        ("mail.dreamautobuilders.com", "A"): ["203.0.113.7"], ("shop.dreamautobuilders.com", "A"): ["203.0.113.7"]}
+    types = {"A": 1, "NS": 2, "CNAME": 5, "MX": 15, "TXT": 16, "AAAA": 28}
+
+    def handler(req):
+        name, t = req.url.params["name"], req.url.params["type"]
+        return httpx.Response(200, json={"Answer": [{"type": types[t], "data": v} for v in records.get((name, t), [])]})
+    lc._dns_transport = httpx.MockTransport(handler)
+    try:
+        items = {i["name"]: i for i in lc.check_domain(None)}
+    finally:
+        lc._dns_transport = None
+    assert "a2hosting" in items["Who manages the DNS"]["text"]
+    assert items["dreamautobuilders.com (the website)"]["status"] == "warn" and "216.24.57.1" in items["dreamautobuilders.com (the website)"]["fix"]
+    assert "AAAA" in items["dreamautobuilders.com IPv6 (AAAA) record"]["name"]
+    assert "keep that hosting plan" in items["Email (MX records)"]["fix"]
+    assert "hosting.com (A2 Hosting)" in items["Allowed email senders (SPF)"]["fix"]
+    assert "Verification record" in items
+    assert "same server as the old website" in items["shop.dreamautobuilders.com"]["text"]
+    assert "Check what this is" in items["shop.dreamautobuilders.com"]["fix"]
+
+    records[("dreamautobuilders.com", "A")] = ["216.24.57.1"]
+    records[("dreamautobuilders.com", "AAAA")] = []
+    records[("www.dreamautobuilders.com", "CNAME")] = ["dream-auto-builders.onrender.com."]
+    lc._dns_transport = httpx.MockTransport(handler)
+    try:
+        items = {i["name"]: i for i in lc.check_domain(None)}
+    finally:
+        lc._dns_transport = None
+    assert items["dreamautobuilders.com (the website)"]["status"] == "ok" and items["www.dreamautobuilders.com"]["status"] == "ok"

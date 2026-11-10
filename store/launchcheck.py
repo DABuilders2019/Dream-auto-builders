@@ -245,10 +245,111 @@ def check_features(conn):
     return out
 
 
+# ------------------------------------------------------------------ the domain: where everything points
+
+RENDER_IP = "216.24.57.1"
+DNS_URL = "https://dns.google/resolve"
+_dns_transport = None          # tests swap in a fake
+SUBDOMAINS = ["www", "mail", "webmail", "cpanel", "ftp", "shop", "store", "blog", "autodiscover", "send"]
+KNOWN = [  # (piece of a hostname or SPF include, who it is)
+    ("google.com", "Google Workspace (Gmail)"), ("googlemail.com", "Google Workspace (Gmail)"),
+    ("outlook.com", "Microsoft 365 (Outlook)"), ("office365", "Microsoft 365 (Outlook)"),
+    ("zoho", "Zoho Mail"), ("a2hosting", "hosting.com (A2 Hosting)"), ("hosting.com", "hosting.com"),
+    ("amazonses", "Amazon SES (Resend uses it)"), ("resend", "Resend"), ("mailgun", "Mailgun"), ("sendgrid", "SendGrid"),
+    ("mcsv.net", "Mailchimp"), ("mailchimp", "Mailchimp"), ("klaviyo", "Klaviyo"), ("shopify", "Shopify"),
+    ("squarespace", "Squarespace"), ("wix", "Wix"), ("godaddy", "GoDaddy"), ("secureserver", "GoDaddy"),
+    ("onrender.com", "Render (the new site)"), ("cloudflare", "Cloudflare"), ("emailsrvr", "Rackspace email"),
+    ("titan", "Titan email"), ("protonmail", "Proton Mail"), ("hubspot", "HubSpot"), ("constantcontact", "Constant Contact")]
+
+
+def who(text):
+    t = (text or "").lower()
+    return next((name for key, name in KNOWN if key in t), "")
+
+
+def dns(name, rtype):
+    import httpx
+    with httpx.Client(timeout=8, transport=_dns_transport) as h:
+        r = h.get(DNS_URL, params={"name": name, "type": rtype})
+    r.raise_for_status()
+    want = {"A": 1, "NS": 2, "CNAME": 5, "MX": 15, "TXT": 16, "AAAA": 28}[rtype]
+    return [a["data"].strip('"').rstrip(".") for a in (r.json().get("Answer") or []) if a.get("type") == want]
+
+
+def domain_name():
+    from urllib.parse import urlsplit
+    host = (urlsplit(_env("SITE_URL")).hostname or "") if _env("SITE_URL") else ""
+    host = host.removeprefix("www.")
+    return _env("SHOP_DOMAIN") or (host if host and "onrender.com" not in host else "dreamautobuilders.com")
+
+
+def check_domain(conn):
+    d = domain_name()
+    out = []
+    ns = dns(d, "NS")
+    out.append(item("Who manages the DNS", INFO, ", ".join(ns) + (f" ({who(' '.join(ns))})" if who(" ".join(ns)) else "") if ns else "No nameservers found.",
+                    "Change records wherever these nameservers belong (hosting.com: my.hosting.com > DNS)."))
+    a, aaaa = dns(d, "A"), dns(d, "AAAA")
+    if a == [RENDER_IP]:
+        out.append(item(f"{d} (the website)", OK, f"Points to Render ({RENDER_IP})."))
+    else:
+        out.append(item(f"{d} (the website)", WARN, f"Points to {', '.join(a) or 'nothing'}: still the old server." if a else "No A record.",
+                        f"Moving day: change the A record for @ to {RENDER_IP} (and delete any other A records for @)."))
+    if aaaa:
+        out.append(item(f"{d} IPv6 (AAAA) record", BAD if a == [RENDER_IP] else WARN, f"Points to {', '.join(aaaa)}.",
+                        "Delete the AAAA record for @ on moving day, or Render can't issue the padlock certificate."))
+    www = dns("www." + d, "CNAME")
+    www_a = [] if www else dns("www." + d, "A")
+    if any("onrender.com" in x for x in www):
+        out.append(item(f"www.{d}", OK, f"Points to {www[0]} (Render)."))
+    else:
+        out.append(item(f"www.{d}", WARN, f"Points to {', '.join(www or www_a) or 'nothing'}.",
+                        "Moving day: make www a CNAME to dream-auto-builders.onrender.com."))
+    mx = dns(d, "MX")
+    if mx:
+        hosts = [m.split()[-1] for m in mx]
+        prov = sorted({who(h) for h in hosts if who(h)})
+        on_domain = [h for h in hosts if h.endswith(d)]
+        txt = f"Email is delivered to {', '.join(hosts)}" + (f" ({', '.join(prov)})" if prov else "") + "."
+        fix = ("Your mailboxes live on the old hosting server (" + ", ".join(on_domain) + "): keep that hosting plan, or move email "
+               "to another provider before cancelling it. Don't change or delete these MX records on moving day.") if on_domain else               "Leave these MX records exactly as they are on moving day."
+        out.append(item("Email (MX records)", INFO, txt, fix))
+    else:
+        out.append(item("Email (MX records)", WARN, f"No MX records: {d} can't receive email (admin@ won't work).",
+                        "Set up a mailbox provider before using admin@ for the store."))
+    for t in dns(d, "TXT"):
+        low = t.lower()
+        if low.startswith("v=spf1"):
+            inc = [x.split(":", 1)[1] for x in t.split() if x.startswith(("include:", "a:", "mx:"))]
+            names = sorted({who(x) for x in inc if who(x)})
+            out.append(item("Allowed email senders (SPF)", INFO, t, (("Senders: " + ", ".join(names) + ". ") if names else "")
+                            + "Resend gets its own record on a 'send' subdomain, so this one stays as is."))
+        elif "verification" in low or low.startswith(("ms=", "apple-domain", "atlassian")):
+            out.append(item("Verification record", INFO, t[:120], "Proves ownership to another service (" + (who(t) or t.split("=")[0]) +
+                            "). Harmless; keep it unless you no longer use that service."))
+    for sub in SUBDOMAINS:
+        if sub == "www":
+            continue
+        cname = dns(f"{sub}.{d}", "CNAME")
+        addr = [] if cname else dns(f"{sub}.{d}", "A")
+        target = ", ".join(cname or addr)
+        if not target:
+            continue
+        old = bool(addr) and set(addr) & set(a) and a != [RENDER_IP]
+        out.append(item(f"{sub}.{d}", INFO, f"Points to {target}" + (f" ({who(target)})" if who(target) else "") +
+                        (": the same server as the old website." if old else "."),
+                        {"mail": "Used for email: keep it.", "webmail": "The old host's webmail: keep it while email lives there.",
+                         "autodiscover": "Email apps use it to find settings: keep it.", "send": "Resend's sending records: keep it.",
+                         "cpanel": "The old host's control panel: harmless.", "ftp": "Old host file access: harmless."}.get(sub,
+                         "Check what this is before cancelling the old hosting: something may still use it.")))
+    return out
+
+
 SECTIONS = [("site", "Site settings", check_site), ("storage", "Database and disk", check_storage),
             ("email", "Email", check_email), ("stripe", "Payments (Stripe)", check_stripe),
             ("maps", "Google Maps", check_maps), ("shipping", "Shipping (UPS)", check_shipping),
-            ("feeds", "Catalog feeds", check_feeds), ("features", "Features", check_features)]
+            ("feeds", "Catalog feeds", check_feeds), ("features", "Features", check_features),
+            ("domain", "Domain (dreamautobuilders.com)", check_domain)]
 
 
 def run_checks(conn):
@@ -364,7 +465,30 @@ TESTS = [
         ("phone", "On a phone", ["Browse, search, add to cart and check out on your phone."], "Everything fits the screen and works."),
     ]),
     ("Launch day", [
-        ("domain", "Moving day steps", ["Work through Launch checklist > Moving day."], "Site loads at https://dreamautobuilders.com with the padlock."),
+        ("domain_check", "Before moving day: what's connected to the domain", [
+            "Run all checks above and read the Domain section: it lists where the website, www, email and other subdomains point today.",
+            "my.hosting.com > DNS (or Websites > the site > DNS records): screenshot every record, so you can put anything back.",
+            "For each MX, TXT and subdomain record, note which company it belongs to (the Domain section names most of them).",
+            "Ask yourself or your old web person: does anything else use this domain? (old store's email, a newsletter tool, "
+            "Google/Facebook verification, a booking tool). Those records stay; only the website records change."],
+         "You know which records are the website (they change) and which are email or other services (they stay)."),
+        ("domain", "Moving day: point the domain to Render", [
+            "Render > dream-auto-builders > Settings > Custom Domains > Add > dreamautobuilders.com (www is added for you).",
+            "my.hosting.com > DNS > dreamautobuilders.com > DNS Records: edit the A record for @ to 216.24.57.1; delete any other "
+            "A or AAAA records for @.",
+            "Edit (or add) www as a CNAME to dream-auto-builders.onrender.com; delete any other www records.",
+            "Don't touch MX, mail, webmail, autodiscover, TXT or other records.",
+            "Render > Custom Domains > Verify. Wait for both domains to show the certificate as issued (minutes, up to a few hours).",
+            "Render > Environment: SITE_URL = https://dreamautobuilders.com. Stripe webhook address to the new domain (Launch checklist).",
+            "Run all checks again: the Domain section should show both addresses on Render."],
+         "https://dreamautobuilders.com and https://www.dreamautobuilders.com open the new site with the padlock; email still arrives at admin@."),
+        ("domain_after", "After moving day: nothing left on the old server", [
+            "A week later, run the checks again and send a test email to admin@ from a personal Gmail.",
+            "In my.hosting.com, check the old hosting plan: if email lives there (the Domain section says so), keep the plan or move "
+            "email first. Turn off the old WooCommerce site so nobody can order there (or redirect it).",
+            "Stripe: delete the old WooCommerce webhook. Google Search Console: add the new site's sitemap.",
+            "Cancel the old hosting plan only when the Domain section shows nothing pointing to it except what you've moved."],
+         "Nothing customers use depends on the old server; the domain itself stays registered at hosting.com (keep auto-renew on)."),
         ("outside_email", "Email reaches outside addresses", [
             "After the domain is verified in Resend: Sample emails > send to a personal Gmail that isn't your Resend login."],
          "Arrives in the inbox (not spam), from admin@dreamautobuilders.com."),

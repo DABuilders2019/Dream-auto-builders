@@ -38,13 +38,17 @@ before launch day.
 - [ ] Check the shop at the new address on desktop and phone.
 
 ## Moving day: dreamautobuilders.com to the new site
-Do these in order. Email setup waits until the DNS is on its final provider, so the records are only added once.
-- [ ] Before switching DNS providers: write down every current record, especially the **MX records** (and any SPF/DKIM
-      TXT records for your inbox). Copy them to the new provider before switching, or admin@dreamautobuilders.com
-      stops receiving email.
-- [ ] Move the DNS (nameservers), if it's changing providers. Send a test email to admin@ afterwards to confirm it arrives.
-- [ ] Render: dream-auto-builders > Settings > Custom Domains > add dreamautobuilders.com (and www); add the DNS records
-      Render shows; wait for the certificate to show as issued.
+The domain stays registered at hosting.com (my.hosting.com) and its DNS stays there too: only the two website records
+change, so email and everything else keep working. Admin > Launch Check > Domain shows where every record points.
+- [ ] Before: Admin > Launch Check > Run all checks > read the Domain section. Screenshot every record in my.hosting.com
+      (DNS > dreamautobuilders.com > DNS Records, or Websites > the site > DNS records). If the domain was bought from
+      A2 Hosting before April 28, 2025 and the DNS page isn't there, open a ticket at my.hosting.com and ask them to change
+      the two records below.
+- [ ] Check which records belong to other companies (email, newsletter, verifications); they stay untouched.
+- [ ] Render: dream-auto-builders > Settings > Custom Domains > add dreamautobuilders.com (www is added automatically).
+- [ ] my.hosting.com DNS: A record for @ = 216.24.57.1 (delete other A and any AAAA records for @); www = CNAME to
+      dream-auto-builders.onrender.com (delete other www records). Don't touch MX, mail, webmail, autodiscover or TXT records.
+- [ ] Render: Verify, and wait for both domains to show the certificate as issued. Launch Check > Domain shows both on Render.
 - [ ] Resend (resend.com, sign up with admin@dreamautobuilders.com): Domains > Add Domain > dreamautobuilders.com
       (North America); add its DNS records; click Verify and wait for "Verified".
 - [ ] Resend: API Keys > Create API Key ("Sending access") and copy it (shown once).
@@ -60,6 +64,8 @@ Do these in order. Email setup waits until the DNS is on its final provider, so 
       https://dreamautobuilders.com/stripe/webhook (the signing secret stays the same). Then delete the old
       WooCommerce webhook (?wc-api=wc_stripe) once the old store is off.
 - [ ] Stripe: Settings > Business > Public details > support email admin@dreamautobuilders.com.
+- [ ] After: turn off (or redirect) the old WooCommerce site; keep the old hosting plan if email lives there (Launch
+      Check > Domain says), and cancel it only when nothing points to it. Keep the domain on auto-renew at hosting.com.
 - [ ] Test: Sign In > Email me a code (arrives?), then a test order (customer email + new-order alert to admin@,
       order Paid in Admin > Orders, Stripe webhook delivery "Succeeded").
 

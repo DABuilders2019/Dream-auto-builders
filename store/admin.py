@@ -492,7 +492,29 @@ def turn14_page(request: Request, error: str = "", started: str = ""):
                 "buyable", "in_stock"]
         brands = [dict(zip(cols, r)) for r in brands]
         recent = conn.execute("""SELECT at, method, path, status, ms, task FROM t14_requests ORDER BY id DESC LIMIT 25""").fetchall()
+        from semadata import sync as ss
+        wish = {ss.norm(w) for w in ss.wishlist(conn)}
+        cur = conn.execute("""
+            SELECT t.id, t.name, t.aaia, t.approved, t.restricted, t.dropship, t.brand_id, b.name AS our_name,
+                   s.name AS sema_name, s.wanted AS sema_wanted, s.status AS sema_status
+            FROM t14_brands t LEFT JOIN brands b ON b.id = t.brand_id
+            LEFT JOIN LATERAL (SELECT name, wanted, status FROM sema_brands s
+                               WHERE s.approved AND (s.aaia = ANY(t.aaia) OR lower(regexp_replace(s.name, '[^A-Za-z0-9]', '', 'g'))
+                                                                          = lower(regexp_replace(t.name, '[^A-Za-z0-9]', '', 'g')))
+                               ORDER BY s.aaia = ANY(t.aaia) DESC, s.wanted DESC LIMIT 1) s ON true
+            ORDER BY t.approved DESC, lower(t.name)""")
+        tcols = [c.name for c in cur.description]
+        t14_brands = [dict(zip(tcols, r)) for r in cur.fetchall()]
+        for t in t14_brands:
+            t["on_list"] = bool(t["sema_wanted"]) or (t["sema_name"] and ss.norm(t["sema_name"]) in wish)
+        t14_show = request.query_params.get("t14", "approved")
+        t14_sum = {"all": len(t14_brands), "approved": sum(1 for t in t14_brands if t["approved"]),
+                   "on_site": sum(1 for t in t14_brands if t["approved"] and t["brand_id"]),
+                   "can_add": sum(1 for t in t14_brands if t["approved"] and not t["brand_id"] and t["sema_name"] and not t["on_list"])}
+        if t14_show != "all":
+            t14_brands = [t for t in t14_brands if t["approved"]]
     return _page(request, "admin_turn14.html", title="Turn 14", section="turn14", env=t14.environment(),
+                 t14_brands=t14_brands, t14_show=t14_show, t14_sum=t14_sum, added=request.query_params.get("added", "")[:120],
                  configured=t14.configured(), auto=turn14_schedule.enabled(), hour=hour, day=day, runs=runs,
                  tasks=T14_TASKS, labels=turn14_schedule.LABELS, brands=brands, recent=recent, job=st.t14.current(),
                  error=error, started=started, caps=(t14.HOURLY_CAP, t14.DAILY_CAP))
@@ -645,6 +667,27 @@ def sema_list(request: Request, names: str = Form("")):
                      (Jsonb(sorted(ss._config_names())),))     # names removed here stay removed
         ss.match_wishlist(conn, log=lambda m: None)
     return _sema_back(saved=f"Brand list saved ({len(wish)} brands).")
+
+
+@router.post("/turn14/add-to-sema")
+def turn14_add_to_sema(request: Request, name: str = Form(...)):
+    """Put a Turn 14 brand (by its SEMA name) on the SEMA brand list, ready to load from the SEMA Data page."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    from psycopg.types.json import Jsonb
+    from semadata import sync as ss
+    from urllib.parse import quote
+    name = name.strip()[:120]
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        wish = ss.wishlist(conn)
+        if name and ss.norm(name) not in {ss.norm(w) for w in wish}:
+            wish.append(name)
+            conn.execute("""INSERT INTO sema_state (key, value, updated_at) VALUES ('wishlist', %s, now())
+                            ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()""", (Jsonb(wish),))
+            ss.match_wishlist(conn, log=lambda m: None)
+    return RedirectResponse(f"/admin/turn14?added={quote(name)}#t14brands", status_code=303)
 
 
 @router.post("/sema/pick")

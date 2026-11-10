@@ -39,10 +39,11 @@
   </section>
 
   <section class="acard">
-    <h2>Our brands at Turn 14</h2>
+    <h2>Your store's brands at Turn 14</h2>
+    <p class="muted">The brands on your site (loaded from SEMA, which supplies photos, descriptions and vehicle fitment). For these, Turn 14 supplies your cost, stock and, later, ordering. To add more brands, see <a href="#t14brands">Turn 14's brands</a> below.</p>
     <div class="tblwrap"><table class="tbl num">
       <thead><tr><th>Our brand</th><th>Turn 14 brand</th><th>Approved</th><th>Our parts</th><th>Matched</th><th>Can buy</th><th>In stock</th><th></th></tr></thead>
-      <tbody>{% for b in brands %}
+      <tbody>{% for b in brands if b.t14_id %}
         <tr><td><b>{{ b.name }}</b><br><span class="muted">code {{ b.aaia or '-' }}</span></td>
           <td>{% if b.t14_id %}{{ b.t14_name }}<br><span class="muted">id {{ b.t14_id }} · {{ b.t14_items|num }} items</span>{% else %}<span class="muted">Not found yet (run Test connection)</span>{% endif %}</td>
           <td>{% if b.t14_id %}{% if b.approved %}<span class="ost shipped">Yes</span>{% if b.restricted %}<br><span class="muted">some price groups not</span>{% endif %}{% else %}<span class="ost on_hold">No</span>{% endif %}{% endif %}</td>
@@ -51,8 +52,33 @@
           <td>{% if b.t14_id %}{{ b.buyable|num }}{% endif %}</td>
           <td>{% if b.t14_id %}{{ b.in_stock|num }}{% endif %}</td>
           <td>{% if b.t14_id %}<a class="btn btn-ghost btn-sm" href="/admin/turn14/unmatched/{{ b.id }}.csv">Unmatched (CSV)</a>{% endif %}</td></tr>
-      {% endfor %}</tbody></table></div>
+      {% else %}<tr><td colspan="8" class="muted">None matched yet: run Test connection.</td></tr>{% endfor %}</tbody></table></div>
+    {% set missing = brands|rejectattr('t14_id')|list %}
+    {% if missing %}<details class="t14miss"><summary>{{ missing|length }} of your brands aren't at Turn 14</summary>
+      <p class="muted small">These keep selling with SEMA's data; their stock and ordering come from another supplier.</p>
+      <p>{% for b in missing %}{{ b.name }}{{ ', ' if not loop.last }}{% endfor %}</p></details>{% endif %}
     <p class="muted" style="margin-top:8px">Parts are matched by brand code and manufacturer part number, then UPC, then alternate part number. Kits (Turn 14 item ids ending in “G”) are preferred.</p>
+  </section>
+
+  <section class="acard" id="t14brands">
+    <h2>Turn 14's brands</h2>
+    <p class="muted num"><b>{{ t14_sum.approved }}</b> of Turn 14's {{ t14_sum.all }} brands are approved for your account. <b>{{ t14_sum.on_site }}</b> {{ 'is' if t14_sum.on_site == 1 else 'are' }} on your site; <b>{{ t14_sum.can_add }}</b> more {{ 'is' if t14_sum.can_add == 1 else 'are' }} at SEMA and can be added. Brands not at SEMA would have no photos, descriptions or fitment, so they aren't offered.</p>
+    {% if added %}<div class="notice">{{ icon('checkc', 18) }} <span>{{ added }} is on your SEMA brand list. Load it from the <a href="/admin/sema">SEMA Data page</a> (tick it, then Load selected).</span></div>{% endif %}
+    <div class="t14tools"><nav class="pmtabs">
+      <a href="?t14=approved#t14brands" class="{{ 'on' if t14_show != 'all' }}">Approved for you ({{ t14_sum.approved }})</a>
+      <a href="?t14=all#t14brands" class="{{ 'on' if t14_show == 'all' }}">All Turn 14 brands ({{ t14_sum.all }})</a></nav>
+      <input id="t14q" type="search" placeholder="Find a brand" oninput="var q=this.value.toLowerCase();document.querySelectorAll('#t14tbl tbody tr').forEach(function(r){r.style.display=r.dataset.n.indexOf(q)>-1?'':'none'})"></div>
+    <div class="tblwrap"><table class="tbl" id="t14tbl">
+      <thead><tr><th>Turn 14 brand</th><th>Approved</th><th>Drop-ship</th><th>On your site</th></tr></thead>
+      <tbody>{% for t in t14_brands %}<tr data-n="{{ t.name|lower }} {{ (t.sema_name or '')|lower }}">
+        <td><b>{{ t.name }}</b><br><span class="muted small">Turn 14 id {{ t.id }}{% if t.aaia %} · code {{ t.aaia|join(', ') }}{% endif %}</span></td>
+        <td>{% if t.approved %}<span class="ost shipped">Yes</span>{% if t.restricted %}<br><span class="muted small">some price groups not</span>{% endif %}{% else %}<span class="muted">No</span>{% endif %}</td>
+        <td>{% if t.dropship %}Yes{% elif t.dropship is none %}<span class="muted">-</span>{% else %}No{% endif %}</td>
+        <td>{% if t.brand_id %}<a href="/brand/{{ t.brand_id }}">{{ t.our_name }}</a>
+          {% elif t.on_list %}<span class="muted">On your SEMA list{% if t.sema_status == 'loading' %}, loading{% else %}, not loaded yet{% endif %}</span> · <a href="/admin/sema">SEMA Data</a>
+          {% elif t.sema_name %}<form method="post" action="/admin/turn14/add-to-sema" style="display:inline"><input type="hidden" name="name" value="{{ t.sema_name }}"><button class="btn btn-ghost btn-sm" type="submit">Add to SEMA list</button></form> <span class="muted small">as {{ t.sema_name }}</span>
+          {% else %}<span class="muted small">Not at SEMA for you</span>{% endif %}</td></tr>
+      {% else %}<tr><td colspan="4" class="muted">No Turn 14 brands yet: run Test connection.</td></tr>{% endfor %}</tbody></table></div>
   </section>
 
   <section class="acard">

@@ -176,7 +176,8 @@ def _load(conn, brand, pies_path, aces_path, vehicles_path, stats, log):
         with cur.copy("COPY _img FROM STDIN") as cp:
             for w in wanted:
                 cp.write_row(w)
-        cur.execute("""DELETE FROM product_images i WHERE i.product_id = ANY(%s) AND NOT EXISTS
+        # (photos added from Turn 14 for parts the brand's data has none for, asset type T14, are kept)
+        cur.execute("""DELETE FROM product_images i WHERE i.product_id = ANY(%s) AND i.asset_type <> 'T14' AND NOT EXISTS
                        (SELECT 1 FROM _img n WHERE n.product_id = i.product_id AND n.source_url IS NOT DISTINCT FROM i.source_url
                         AND n.file_name IS NOT DISTINCT FROM i.file_name)""", (pids,))
         cur.execute("""INSERT INTO product_images (product_id, asset_type, file_name, source_url, sort)

@@ -10,6 +10,7 @@
               marked inactive
   brand:<our brand id>[,<id>...]  just these brands of ours: items, matching, pricing, stock (after a SEMA load,
               or the Sync with Turn 14 button on the SEMA Data page)
+  Each of these also gives Turn 14's photos to our parts that have none (turn14/photos.py).
   catalog:<id>  add a brand Turn 14 approves but SEMA doesn't, from Turn 14's own item data (turn14/catalog.py)
 
 Brands added from Turn 14 are rebuilt by daily (from the local copy) and full-items (descriptions and photos again).
@@ -260,6 +261,19 @@ class Sync:
 
 # ------------------------------------------------------------------ tasks
 
+def catalog_ids(conn):
+    """Our brands built from Turn 14's data (they already have Turn 14's photos)."""
+    return {r[0] for r in conn.execute("SELECT brand_id FROM t14_brands WHERE load_catalog AND brand_id IS NOT NULL").fetchall()}
+
+
+def fill_photos(s, brands):
+    from . import photos
+    skip = catalog_ids(s.conn)
+    for t14_id, ours, name in brands:
+        if ours not in skip:
+            photos.fill(s, t14_id, ours, name)
+
+
 def sync_brands(s, our_ids):
     """Turn 14 for a few of our brands right away, instead of waiting for the nightly sync."""
     s.brands()          # refreshes the links, so a brand just loaded from SEMA is matched by its code or name
@@ -279,6 +293,9 @@ def sync_brands(s, our_ids):
             s.pricing_for_brand(t14_id, name)
             s.inventory_for_brand(t14_id, name)
             s.stats["brands_synced"] += 1
+            if our not in catalog_ids(s.conn):
+                from . import photos
+                photos.fill(s, t14_id, our, name)
 
 
 def run(conn, task, log=print, client=None, log_conn=None):
@@ -310,6 +327,7 @@ def run(conn, task, log=print, client=None, log_conn=None):
                     s.inventory_for_brand(t14_id, name)
             from . import catalog
             catalog.refresh_all(s, fetch_data_too=True)
+            fill_photos(s, s.my_brands())
         elif task == "daily":
             prev = _state(conn, "last_daily", {}) or {}
             days = 1
@@ -324,6 +342,7 @@ def run(conn, task, log=print, client=None, log_conn=None):
                 s.inventory_for_brand(t14_id, name)
             from . import catalog
             catalog.refresh_all(s, fetch_data_too=False)
+            fill_photos(s, mine)
         elif task == "changes":
             s.locations()
             minutes = 60

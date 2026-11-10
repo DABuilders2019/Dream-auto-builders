@@ -50,6 +50,10 @@ class FakeTurn14:
                                                       {"id": "02", "type": "Location", "attributes": {"Name": "Turn 14 Texas", "City": "Flower Mound", "State": "TX"}}]})
         if path == "/v1/items/brand/1":
             return httpx.Response(200, json={"meta": {"total_pages": 2}, "data": self.items_pages[page - 1]})
+        if path == "/v1/items/data/brand/1":      # photos for our parts that have none
+            return httpx.Response(200, json={"meta": {"total_pages": 1}, "data": [
+                {"id": "100G", "type": "ProductData", "files": [{"type": "Image", "media_content": "Photo - Primary",
+                 "links": [{"url": "https://img.example/100g.jpg", "width": 800, "height": 800}]}]}]})
         if path == "/v1/pricing/brand/1":
             return httpx.Response(200, json={"meta": {"total_pages": 1}, "data": [
                 {"id": "100G", "type": "PricingItem", "attributes": {"purchase_cost": 700.0, "has_map": True, "can_purchase": True,
@@ -78,6 +82,7 @@ def t14(conn, tmp_path, monkeypatch):
     conn.execute("UPDATE products SET upc = '012345678905' WHERE part_number = 'LV-200'")
     monkeypatch.setenv("TURN14_CLIENT_ID", "cid")
     monkeypatch.setenv("TURN14_CLIENT_SECRET", "secret")
+    monkeypatch.setenv("T14_SKIP_PHOTOS", "1")         # photo links are added, not downloaded
     fake = FakeTurn14()
     slept = []
 

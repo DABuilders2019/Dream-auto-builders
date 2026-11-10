@@ -82,3 +82,11 @@ photos (`/v1/items/data/brand/{id}`), pricing and stock, writes them as a PIES f
   A Turn 14 problem is written to the log and never fails the SEMA load.
 - The SEMA Data table has a Turn 14 column per loaded brand: parts matched, parts in stock and when stock was last read
   (or "Not at Turn 14" / "Not approved at Turn 14"), and a **Sync with Turn 14** button for that one brand.
+
+## Photos from Turn 14 for parts that have none
+
+Some brands send SEMA no photos (Brembo). Whenever Turn 14 syncs a brand of ours (First full load, Daily sync,
+Full item check, a SEMA load, or Sync with Turn 14), parts matched to a Turn 14 item but with no photo get that
+item's Turn 14 photos (up to 4, Turn 14's primary first; asset type `T14`), then the normal photo download fetches,
+checks, trims and stores them. The brand's photo data is read only when some part needs a photo, and at most every
+14 days. A SEMA reload keeps the Turn 14 photos; the brand's own photos, when it sends some, come first.

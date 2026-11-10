@@ -172,3 +172,30 @@ def test_cost_plus_markup_never_below_map():
     from importer.catalog import choose_price
     assert choose_price({"CST": 70, "RMP": 99}, ["RET", "RMP", "LST"], None) == (99, "RMP")
     assert choose_price({"CST": 70}, ["RET", "RMP", "LST", "CST"], 30) == (91.0, "CST")
+
+
+def test_turn14_photos_for_sema_parts_without_any(kn):
+    """A brand from SEMA with no photos (like Brembo): its parts matched at Turn 14 get Turn 14's photos, and a later
+    SEMA reload keeps them."""
+    conn, fake, go = kn
+    conn.execute("INSERT INTO brands (id, name, aaia_id) VALUES ('semakn', 'K&N', 'BBBK')")
+    conn.execute("""INSERT INTO products (brand_id, part_number, slug, status, title, short_name, category_id, price)
+                    VALUES ('semakn', '33-2304', 'semakn-33-2304', 'active', 'K&N Filter', 'Filter', 'uncategorized', 60),
+                           ('semakn', 'E-0665', 'semakn-e-0665', 'active', 'K&N Oil Filter', 'Oil Filter', 'uncategorized', 9)""")
+    go("test")
+    stats = go("brand:semakn")
+    assert stats["parts_given_turn14_photos"] == 2
+    rows = conn.execute("""SELECT p.part_number, i.asset_type, i.source_url, i.sort FROM product_images i
+                           JOIN products p ON p.id = i.product_id ORDER BY p.part_number, i.sort""").fetchall()
+    assert rows[0] == ("33-2304", "T14", "https://img.example/primary.jpg", 100)          # primary photo first
+    assert ("E-0665", "T14", "https://img.example/thumb.jpg", 100) in rows                 # no photo data: thumbnail
+    data_calls = fake.calls.count(f"/v1/items/data/brand/{KN}")
+    go("brand:semakn")                                     # nothing new to do: photos waiting, no extra requests
+    assert fake.calls.count(f"/v1/items/data/brand/{KN}") == data_calls
+    # a SEMA reload of the brand (its data has no photos) keeps the Turn 14 photos
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        pies = make_pies(pathlib.Path(tmp) / "p.xml", [{"pn": "33-2304", "name": "Filter", "part_type": "Air Filter", "price": "60"},
+                                                      {"pn": "E-0665", "name": "Oil Filter", "part_type": "Oil Filter", "price": "9"}])
+        load.load_brand(conn, {"id": "semakn", "name": "K&N", "aaia_id": None}, str(pies), None, None, log=lambda *a: None)
+    assert conn.execute("SELECT count(*) FROM product_images WHERE asset_type = 'T14'").fetchone()[0] == len(rows)

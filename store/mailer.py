@@ -9,26 +9,40 @@ import email.message
 import logging
 import os
 import smtplib
+import collections
 import threading
+import time
 
 log = logging.getLogger("store.mail")
 sent = []          # (to, subject) of emails sent, newest last; used by the tests
+recent = collections.deque(maxlen=30)   # (time, to, subject, ok, error) for Admin > Email
+
+
+def _env(k, default=""):
+    return (os.environ.get(k) or default).strip().strip('"').strip()
+
+
+def _why(e):
+    if isinstance(e, smtplib.SMTPResponseException):
+        err = e.smtp_error.decode(errors="replace") if isinstance(e.smtp_error, bytes) else str(e.smtp_error)
+        return f"{e.smtp_code}: {err}"
+    return f"{e.__class__.__name__}: {e}"
 
 
 def configured():
-    return bool(os.environ.get("SMTP_HOST") and os.environ.get("MAIL_FROM"))
+    return bool(_env("SMTP_HOST") and _env("MAIL_FROM"))
 
 
 def notify_address():
-    return os.environ.get("ORDER_NOTIFY_EMAIL", "")
+    return _env("ORDER_NOTIFY_EMAIL")
 
 
 def send(to, subject, text, html=None, wait=False):
     if not to or not configured():
         return False
     msg = email.message.EmailMessage()
-    msg["From"] = os.environ["MAIL_FROM"]
-    msg["To"] = to
+    msg["From"] = _env("MAIL_FROM")
+    msg["To"] = to.strip()
     msg["Subject"] = subject
     msg.set_content(text)
     if html:
@@ -42,16 +56,18 @@ def send(to, subject, text, html=None, wait=False):
 
 def _deliver(msg):
     try:
-        port = int(os.environ.get("SMTP_PORT", "587"))
+        port = int(_env("SMTP_PORT", "587"))
         cls = smtplib.SMTP_SSL if port == 465 else smtplib.SMTP
-        with cls(os.environ["SMTP_HOST"], port, timeout=30) as s:
+        with cls(_env("SMTP_HOST"), port, timeout=30) as s:
             if port != 465:
                 s.starttls()
-            if os.environ.get("SMTP_USERNAME"):
-                s.login(os.environ["SMTP_USERNAME"], os.environ.get("SMTP_PASSWORD", ""))
+            if _env("SMTP_USERNAME"):
+                s.login(_env("SMTP_USERNAME"), _env("SMTP_PASSWORD"))
             s.send_message(msg)
         sent.append((msg["To"], msg["Subject"]))
-    except Exception:          # noqa: BLE001 - a mail problem must never break an order
+        recent.append((time.time(), msg["To"], msg["Subject"], True, ""))
+    except Exception as e:     # noqa: BLE001 - a mail problem must never break an order
+        recent.append((time.time(), msg["To"], msg["Subject"], False, _why(e)[:300]))
         log.exception("could not send email %r to %s", msg["Subject"], msg["To"])
 
 

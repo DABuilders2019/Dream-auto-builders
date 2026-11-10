@@ -21,6 +21,7 @@ from importer import brands as brand_lookup
 from importer import report
 from . import queries as Q
 from . import web
+from . import mailer
 
 router = APIRouter(prefix="/admin")
 IMAGE_EXT = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".gif", ".bmp", ".webp")
@@ -967,7 +968,10 @@ def _email_ctx():
     for k in keys:
         v = (os.environ.get(k) or "").strip()
         rows.append({"key": k, "set": bool(v), "value": v if k in shown else (f"{v[:3]}… ({len(v)} characters)" if v else "")})
-    return {"rows": rows, "to": os.environ.get("ORDER_NOTIFY_EMAIL", "")}
+    import datetime as _dt
+    recent = [{"at": _dt.datetime.fromtimestamp(t, _dt.timezone.utc).strftime("%b %-d, %-I:%M %p UTC"), "to": to, "subject": subj,
+               "ok": ok, "error": err} for t, to, subj, ok, err in reversed(mailer.recent)]
+    return {"rows": rows, "to": mailer.notify_address(), "recent": recent}
 
 
 @router.post("/email/test", response_class=HTMLResponse)
@@ -975,7 +979,6 @@ def email_test(request: Request, to: str = Form("")):
     stop = _guard(request)
     if stop:
         return stop
-    from . import mailer
     ctx = _email_ctx()
     to = to.strip()
     ctx["to"] = to

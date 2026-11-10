@@ -16,5 +16,16 @@
       <p class="muted small">While MAIL_FROM is onboarding@resend.dev, Resend only delivers to the email you signed up to Resend with.</p>
     </form>
   </section>
+  <section class="acard">
+    <h2>Recent emails</h2>
+    <p class="muted">The last emails the site tried to send since it last restarted (order emails, sign-in codes, price match), and whether the email service accepted them. "Sent" means the service took it; if it still doesn't arrive, check spam.</p>
+    {% if recent %}
+    <div class="tblwrap"><table class="tbl">
+      <thead><tr><th>When</th><th>To</th><th>Subject</th><th>Result</th></tr></thead>
+      <tbody>{% for m in recent %}<tr><td class="num">{{ m.at }}</td><td>{{ m.to }}</td><td>{{ m.subject }}</td>
+        <td>{% if m.ok %}{{ icon('checkc', 16) }} Sent{% else %}<span style="color:var(--red)"><b>Not sent</b>: {{ m.error }}</span>{% endif %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}<p class="muted">None yet since the last restart.</p>{% endif %}
+  </section>
 </main>
 </body></html>

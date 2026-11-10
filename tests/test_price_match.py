@@ -7,6 +7,7 @@ import re
 
 from PIL import Image
 
+from store.mailer import _deliver as REAL_DELIVER
 from test_checkout import paid_event, pid, post_webhook, shop  # noqa: F401
 
 
@@ -145,3 +146,41 @@ def test_free_shipping_line_mentions_oversized(shop):
     c.post("/admin/ups/free", data={"on": "1", "over": "149", "max_lb": "50", "service": "03", "lower48": "1", "oversize": "1"})
     slug, _ = slug_price(conn, pid(c, "LK-100"))
     assert "excludes oversized items" in c.get(f"/p/{slug}").text
+
+
+def test_admin_email_shows_recent_sends(shop, monkeypatch):
+    from store import mailer
+    import smtplib
+    c = shop.c
+    monkeypatch.setenv("SMTP_HOST", " smtp.example.com ")      # stray spaces from pasting are ignored
+    calls = []
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout=None):
+            calls.append(host)
+            self.fail = host != "smtp.example.com"
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def starttls(self):
+            pass
+
+        def login(self, u, p):
+            pass
+
+        def send_message(self, msg):
+            if msg["To"] == "blocked@example.com":
+                raise smtplib.SMTPResponseException(450, b"You can only send testing emails to your own email address")
+    monkeypatch.setattr(smtplib, "SMTP", FakeSMTP)
+    monkeypatch.setattr(mailer, "_deliver", REAL_DELIVER)
+    mailer.recent.clear()
+    mailer.send("ok@example.com", "Hello", "x", wait=True)
+    mailer.send("blocked@example.com", "Hello", "x", wait=True)
+    assert calls == ["smtp.example.com", "smtp.example.com"]
+    c.post("/admin/login", data={"password": "pw"})
+    page = c.get("/admin/email").text
+    assert "Recent emails" in page and "ok@example.com" in page and "only send testing emails" in page

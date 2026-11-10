@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "racesport": "racesport.png",
     "ebc": "ebc.png",
     "ebcbrakes": "ebc.png",
     "magnaflow": "magnaflow.png",
@@ -115,6 +116,7 @@
     "rubiconexpress": ["keep_holes"],
     "carr": ["keep_holes", "fill_inside"],
     "racesport": ["keep_holes"],
+    "racesportlighting": ["keep_holes"],
     "snowperformance": ["strong"],
     "realtruckbak": ["strong"],
     "usspeedo": ["strong"],

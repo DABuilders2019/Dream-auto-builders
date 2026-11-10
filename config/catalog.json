@@ -308,6 +308,10 @@
     [
      "gaskets-covers",
      "Gaskets, Covers & Oil Pans"
+    ],
+    [
+     "sensors",
+     "Sensors & Electrical"
     ]
    ]
   },
@@ -1161,6 +1165,22 @@
   },
   {
    "part_type_contains": [
+    "Oxygen Sensor",
+    "Replacement Sensor",
+    "Sensors",
+    "Sensor -",
+    "Knock Sensor",
+    "Temperature Sensor",
+    "Pressure Sensor",
+    "Position Sensor",
+    "Speed Sensor",
+    "MAF Sensor",
+    "Mass Air Flow"
+   ],
+   "category": "sensors"
+  },
+  {
+   "part_type_contains": [
     "Fitting",
     "Adapter",
     "Hose Clamp",
@@ -1189,7 +1209,8 @@
     "Tape",
     "Tool",
     "Bracket",
-    "Mount"
+    "Mount",
+    "Hardware"
    ],
    "category": "hardware"
   },

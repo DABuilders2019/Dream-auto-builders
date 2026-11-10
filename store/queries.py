@@ -232,9 +232,16 @@ def brand_logos(conn, searcher):
     out = {i: searcher.storage.url(k) for i, n, k in rows if k}
     # a chosen file is matched by brand id, or by the brand's name without spaces/punctuation
     # ("oraclelighting" matches "ORACLE Lighting" whatever id the brand got when it was loaded)
+    # or by the start of the name ("ebcbrakes" also matches "EBC Brakes USA"), the longest listed name winning
     import re
+    keys = {re.sub(r"[^a-z0-9]+", "", k.lower()): v for k, v in chosen.items()}
     for i, n, k in rows:
-        f = chosen.get(i) or chosen.get(re.sub(r"[^a-z0-9]+", "", (n or "").lower()))
+        nn = re.sub(r"[^a-z0-9]+", "", (n or "").lower())
+        ni = re.sub(r"[^a-z0-9]+", "", (i or "").lower())
+        f = chosen.get(i) or keys.get(nn) or keys.get(ni)
+        if not f:
+            best = max((key for key in keys if len(key) >= 3 and (nn.startswith(key) or ni.startswith(key))), key=len, default=None)
+            f = keys.get(best) if best else None
         if f:
             out[i] = f"/static/img/brands/{f}"
     return out

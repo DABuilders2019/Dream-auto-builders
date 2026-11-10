@@ -208,3 +208,19 @@ def test_box_logo_kept_whole():
     assert im.size == (361, 121)                                      # trimmed to the box
     assert im.getpixel((200, 118)) == (255, 255, 255, 255)            # the white letter at the edge stays white
     assert bn._tweaks("x", "Motul") == {"box"}
+
+
+def test_chosen_logo_matches_start_of_name(conn):
+    """A logo chosen in config/home.json for "ebcbrakes" also applies to "EBC Brakes USA" / id "ebc-brakes-usa"."""
+    from store import queries as Q
+
+    class S:
+        class storage:
+            @staticmethod
+            def url(k):
+                return "/photos/" + k
+    conn.execute("INSERT INTO brands (id, name, logo_key) VALUES ('ebc-brakes-usa', 'EBC Brakes USA', 'logos/greenstuff.png'), "
+                 "('ebcx', 'Green Stuff', 'logos/gs.png') ON CONFLICT DO NOTHING")
+    logos = Q.brand_logos(conn, S)
+    assert logos["ebc-brakes-usa"] == "/static/img/brands/ebc.png"
+    assert logos["ebcx"] == "/static/img/brands/ebc.png"            # id starts with "ebc"

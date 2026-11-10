@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "konig": "konig.png",
     "bbs": "bbs.png",
     "yokohama": "yokohama.png",
     "bosch": "bosch.png",
@@ -116,6 +117,7 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
+    "konig": ["keep_holes"],
     "bosch": ["box"],
     "royalpurple": ["keep_holes"],
     "michelin": ["keep_holes"],

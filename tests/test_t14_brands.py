@@ -35,4 +35,4 @@ def test_turn14_brand_matches_sema_by_name(shop):
     conn.commit()
     c.post("/admin/login", data={"password": "pw"})
     page = html.unescape(c.get("/admin/turn14").text)
-    assert "as NITTO TIRE" in page and "1 more is at SEMA" in page
+    assert "as NITTO TIRE" in page and "<b>1</b> more is at SEMA" in page

@@ -53,8 +53,9 @@ LABELS = {"test": "Connection test", "setup": "First full load", "daily": "Daily
           "changes": "Stock changes", "full-items": "Full item check"}
 
 
-def start(state, task):
-    return state.t14.start(f"Turn 14: {LABELS.get(task, task)}", [(LABELS.get(task, task), [task])])
+def start(state, task, label=None):
+    label = label or LABELS.get(task, task)
+    return state.t14.start(f"Turn 14: {label}", [(label, [task])])
 
 
 def loop(state, stop):

@@ -8,6 +8,9 @@
   changes     warehouses, plus stock that changed since the last run (Turn 14's inventory updates feed)
   full-items  all items for each brand again (Turn 14: 1-2 times a month); items no longer listed are
               marked inactive
+  catalog:<id>  add a brand Turn 14 approves but SEMA doesn't, from Turn 14's own item data (turn14/catalog.py)
+
+Brands added from Turn 14 are rebuilt by daily (from the local copy) and full-items (descriptions and photos again).
 
 Only brands we sell (matched by brand code) and that Turn 14 approves for this account are loaded.
 """
@@ -31,6 +34,13 @@ def norm(s):
 def upc(s):
     d = re.sub(r"\D", "", s or "")
     return d.lstrip("0") or None
+
+
+def _int(v):
+    try:
+        return int(v)
+    except (TypeError, ValueError):
+        return None
 
 
 def _state(conn, key, default=None):
@@ -109,20 +119,26 @@ class Sync:
         self.conn.execute("""
             INSERT INTO t14_items (item_id, t14_brand_id, part_number, mfr_part_number, mfr_norm, barcode, alternate_part_number,
                 product_name, active, regular_stock, not_carb_approved, carb_eo_number, ltl_freight_required,
-                air_freight_prohibited, clearance_item, prop_65, epa, seen_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+                air_freight_prohibited, clearance_item, prop_65, epa, part_description, category, subcategory, dimensions,
+                thumbnail, units_per_sku, seen_at, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
             ON CONFLICT (item_id) DO UPDATE SET t14_brand_id = EXCLUDED.t14_brand_id, part_number = EXCLUDED.part_number,
                 mfr_part_number = EXCLUDED.mfr_part_number, mfr_norm = EXCLUDED.mfr_norm, barcode = EXCLUDED.barcode,
                 alternate_part_number = EXCLUDED.alternate_part_number, product_name = EXCLUDED.product_name,
                 active = EXCLUDED.active, regular_stock = EXCLUDED.regular_stock, not_carb_approved = EXCLUDED.not_carb_approved,
                 carb_eo_number = EXCLUDED.carb_eo_number, ltl_freight_required = EXCLUDED.ltl_freight_required,
                 air_freight_prohibited = EXCLUDED.air_freight_prohibited, clearance_item = EXCLUDED.clearance_item,
-                prop_65 = EXCLUDED.prop_65, epa = EXCLUDED.epa, seen_at = EXCLUDED.seen_at, updated_at = now()""",
+                prop_65 = EXCLUDED.prop_65, epa = EXCLUDED.epa, part_description = EXCLUDED.part_description,
+                category = EXCLUDED.category, subcategory = EXCLUDED.subcategory, dimensions = EXCLUDED.dimensions,
+                thumbnail = EXCLUDED.thumbnail, units_per_sku = EXCLUDED.units_per_sku,
+                seen_at = EXCLUDED.seen_at, updated_at = now()""",
             (str(rec["id"]), int(a.get("brand_id") or 0), a.get("part_number"), a.get("mfr_part_number"),
              norm(a.get("mfr_part_number")), a.get("barcode"), a.get("alternate_part_number"), a.get("product_name"),
              a.get("active", True) is not False, a.get("regular_stock"), a.get("not_carb_approved"), a.get("carb_eo_number"),
              a.get("ltl_freight_required"), a.get("air_freight_prohibited"), a.get("clearance_item"), a.get("prop_65"),
-             a.get("epa"), t0))
+             a.get("epa"), a.get("part_description"), a.get("category"), a.get("subcategory"),
+             Jsonb(a["dimensions"]) if isinstance(a.get("dimensions"), list) else None, a.get("thumbnail"),
+             _int(a.get("units_per_sku")), t0))
 
     def items_for_brand(self, t14_id, name):
         t0 = utcnow()
@@ -252,6 +268,13 @@ def run(conn, task, log=print, client=None, log_conn=None):
         if task == "test":
             s.brands()
             s.locations()
+        elif task.startswith("catalog:"):
+            from . import catalog
+            s.brands()
+            try:
+                catalog.load(s, int(task.split(":", 1)[1]))
+            except catalog.CatalogError as e:
+                raise StopSync(str(e)) from None
         elif task in ("setup", "full-items"):
             s.locations()
             for t14_id, ours, name in s.brands():
@@ -260,6 +283,8 @@ def run(conn, task, log=print, client=None, log_conn=None):
                 if task == "setup":
                     s.pricing_for_brand(t14_id, name)
                     s.inventory_for_brand(t14_id, name)
+            from . import catalog
+            catalog.refresh_all(s, fetch_data_too=True)
         elif task == "daily":
             prev = _state(conn, "last_daily", {}) or {}
             days = 1
@@ -272,6 +297,8 @@ def run(conn, task, log=print, client=None, log_conn=None):
                 s.match(t14_id, ours)
                 s.pricing_for_brand(t14_id, name)
                 s.inventory_for_brand(t14_id, name)
+            from . import catalog
+            catalog.refresh_all(s, fetch_data_too=False)
         elif task == "changes":
             s.locations()
             minutes = 60

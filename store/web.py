@@ -452,6 +452,8 @@ def product_page(request: Request, slug: str):
         else:
             p["fit"] = None
         summary = Q.fit_summaries(conn, [p["id"]]).get(p["id"])
+        p["source"] = "Turn 14 Distribution" if conn.execute(
+            "SELECT 1 FROM t14_brands WHERE brand_id = %s AND load_catalog", (p["brand_id"],)).fetchone() else "SEMA Data"
         related = Q.related(conn, s, p, vid)
         in_cart = cart_dict(request).get(p["id"], 0)
         fit_info = {

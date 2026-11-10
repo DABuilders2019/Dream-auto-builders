@@ -84,7 +84,7 @@
     {% if p.features %}<ul class="features">{% for f in p.features %}<li>{{ icon('check', 18, 3) }}<span>{{ f|fixtext }}</span></li>{% endfor %}</ul>{% endif %}
     {% if p.documents %}<div class="docs">{% for d in p.documents %}<a href="{{ d.url }}" target="_blank" rel="noopener">{{ icon('doc', 16) }} Installation instructions{% if p.documents|length > 1 %} {{ loop.index }}{% endif %} (PDF)</a>{% endfor %}</div>{% endif %}
     {% if p.prop65_warning %}<div class="p65"><span aria-hidden="true">⚠</span><span><b>California Prop 65 warning:</b> {{ p.prop65_warning|replace('WARNING:', '')|trim }}</span></div>{% endif %}
-    <p class="datasrc">Description, photos and specifications supplied by {{ p.brand_name }} through SEMA Data.</p>
+    <p class="datasrc">Description, photos and specifications supplied by {{ p.brand_name }} through {{ p.source or 'SEMA Data' }}.</p>
   </div>
 
   {% if specs %}

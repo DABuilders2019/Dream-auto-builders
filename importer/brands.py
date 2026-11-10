@@ -31,6 +31,20 @@ def _from_db(conn, where, value):
             "price_markup": float(r[4]) if r[4] is not None else None} if r else None
 
 
+def _from_turn14(conn, aaia, name):
+    """A brand first added from Turn 14's data, now loaded from SEMA under a different brand code: same brand, so
+    the same products (matched by part number) are upgraded instead of duplicated. Its code becomes SEMA's."""
+    with conn.cursor() as cur:
+        cur.execute("""SELECT t.brand_id FROM t14_brands t WHERE t.load_catalog AND t.brand_id IS NOT NULL
+                         AND (%s = ANY(t.aaia) OR lower(regexp_replace(t.name, '[^A-Za-z0-9]', '', 'g')) = %s)
+                       ORDER BY (%s = ANY(t.aaia)) DESC LIMIT 1""", (aaia, re.sub(r"[^a-z0-9]", "", (name or "").lower()), aaia))
+        r = cur.fetchone()
+        if not r:
+            return None
+        cur.execute("UPDATE brands SET aaia_id = %s WHERE id = %s", (aaia, r[0]))
+    return _from_db(conn, "id", r[0])
+
+
 def resolve(conn, aaia, label="", name=None, brand_id=None):
     """Brand settings for a file with this AAIA brand ID. Raises ValueError if the file doesn't match brand_id."""
     cfg = config.brands()
@@ -44,6 +58,9 @@ def resolve(conn, aaia, label="", name=None, brand_id=None):
     if not aaia:
         raise ValueError("the PIES file has no BrandAAIAID, so its brand can't be identified")
     b = config.brand_by_aaia(aaia) or _from_db(conn, "aaia_id", aaia)
+    if b:
+        return b
+    b = _from_turn14(conn, aaia, name or label)
     if b:
         return b
     name = (name or label or aaia).strip()

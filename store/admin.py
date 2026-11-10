@@ -496,6 +496,7 @@ def turn14_page(request: Request, error: str = "", started: str = ""):
         wish = {ss.norm(w) for w in ss.wishlist(conn)}
         cur = conn.execute("""
             SELECT t.id, t.name, t.aaia, t.approved, t.restricted, t.dropship, t.brand_id, b.name AS our_name,
+                   t.load_catalog, t.catalog_loaded,
                    s.name AS sema_name, s.wanted AS sema_wanted, s.status AS sema_status
             FROM t14_brands t LEFT JOIN brands b ON b.id = t.brand_id
             LEFT JOIN LATERAL (SELECT name, wanted, status FROM sema_brands s
@@ -510,7 +511,9 @@ def turn14_page(request: Request, error: str = "", started: str = ""):
         t14_show = request.query_params.get("t14", "approved")
         t14_sum = {"all": len(t14_brands), "approved": sum(1 for t in t14_brands if t["approved"]),
                    "on_site": sum(1 for t in t14_brands if t["approved"] and t["brand_id"]),
-                   "can_add": sum(1 for t in t14_brands if t["approved"] and not t["brand_id"] and t["sema_name"] and not t["on_list"])}
+                   "can_add": sum(1 for t in t14_brands if t["approved"] and not t["brand_id"] and t["sema_name"] and not t["on_list"]),
+                   "t14_only": sum(1 for t in t14_brands if t["approved"] and not t["brand_id"] and not t["sema_name"]),
+                   "from_t14": sum(1 for t in t14_brands if t["load_catalog"])}
         if t14_show != "all":
             t14_brands = [t for t in t14_brands if t["approved"]]
     return _page(request, "admin_turn14.html", title="Turn 14", section="turn14", env=t14.environment(),
@@ -667,6 +670,33 @@ def sema_list(request: Request, names: str = Form("")):
                      (Jsonb(sorted(ss._config_names())),))     # names removed here stay removed
         ss.match_wishlist(conn, log=lambda m: None)
     return _sema_back(saved=f"Brand list saved ({len(wish)} brands).")
+
+
+@router.post("/turn14/add-from-turn14")
+def turn14_add_from_turn14(request: Request, t14_id: int = Form(...)):
+    """Build our products for a Turn 14 brand from Turn 14's own item data (no fitment). Runs as a Turn 14 task."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    from turn14 import client as t14
+    from . import turn14_schedule
+    from urllib.parse import urlencode
+    st = web._state(request)
+    back = lambda **q: RedirectResponse("/admin/turn14?" + urlencode(q), status_code=303)   # noqa: E731
+    if not t14.configured():
+        return back(error="Add TURN14_CLIENT_ID and TURN14_CLIENT_SECRET in Render's Environment settings first.")
+    with st.pool.connection() as conn:
+        r = conn.execute("SELECT name, approved, brand_id, load_catalog FROM t14_brands WHERE id = %s", (t14_id,)).fetchone()
+    if not r:
+        return back(error="Turn 14 doesn't list that brand. Run Test connection first.")
+    name, approved, brand_id, from_t14 = r
+    if not approved:
+        return back(error=f"{name} isn't approved for your account at Turn 14.")
+    if brand_id and not from_t14:
+        return back(error=f"{name} is already on your site from SEMA's data.")
+    if not turn14_schedule.start(st, f"catalog:{t14_id}", label=f"Add {name} from Turn 14"):
+        return back(error="A Turn 14 task is already running. Try again when it finishes.")
+    return back(started=f"Adding {name} from Turn 14")
 
 
 @router.post("/turn14/add-to-sema")

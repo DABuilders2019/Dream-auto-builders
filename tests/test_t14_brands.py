@@ -18,7 +18,7 @@ def test_turn14_brand_list(shop):
     page = html.unescape(c.get("/admin/turn14").text)
     assert "Turn 14's brands" in page and "Approved for you (3)" in page and "All Turn 14 brands (4)" in page
     assert "Not Approved Inc" not in page                       # hidden until "All"
-    assert "Add to SEMA list" in page and "Not at SEMA for you" in page
+    assert "Add to SEMA list" in page and "Add from Turn 14" in page
     assert f'href="/brand/{ours[0]}"' in page
     assert "Not Approved Inc" in c.get("/admin/turn14?t14=all").text
     r = c.post("/admin/turn14/add-to-sema", data={"name": "Zippy Parts"}, follow_redirects=True)
@@ -36,3 +36,19 @@ def test_turn14_brand_matches_sema_by_name(shop):
     c.post("/admin/login", data={"password": "pw"})
     page = html.unescape(c.get("/admin/turn14").text)
     assert "as NITTO TIRE" in page and "<b>1</b> more is at SEMA" in page
+
+
+def test_turn14_only_brand_offers_add_from_turn14(shop, monkeypatch):
+    c, conn = shop.c, shop.conn
+    conn.execute("INSERT INTO t14_brands (id, name, aaia, approved) VALUES (9, 'K&N', '{BBBK}', true)")
+    conn.commit()
+    c.post("/admin/login", data={"password": "pw"})
+    page = html.unescape(c.get("/admin/turn14").text)
+    assert "Add from Turn 14" in page and "only approved at Turn 14" in page
+    started = []
+    from store import turn14_schedule
+    monkeypatch.setenv("TURN14_CLIENT_ID", "cid")
+    monkeypatch.setenv("TURN14_CLIENT_SECRET", "secret")
+    monkeypatch.setattr(turn14_schedule, "start", lambda st, task, label=None: started.append((task, label)) or True)
+    r = c.post("/admin/turn14/add-from-turn14", data={"t14_id": "9"}, follow_redirects=False)
+    assert r.status_code == 303 and started == [("catalog:9", "Add K&N from Turn 14")]

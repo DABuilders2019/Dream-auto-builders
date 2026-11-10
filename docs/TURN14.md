@@ -53,3 +53,24 @@ coming from the brands' SEMA files.
 4. Run **Daily sync** and **Stock changes** once by hand; then set `TURN14_AUTO=1`.
 5. Send Turn 14 (your contact) a summary and screenshots of the admin page, and ask for production access.
 6. When approved: `TURN14_ENV=production`. Ordering (quote, then order from quote) is built after that.
+
+## Add from Turn 14 (brands not approved at SEMA)
+
+On the Turn 14 page, a brand Turn 14 approves for us but SEMA doesn't has an **Add from Turn 14** button
+(task `catalog:<turn 14 brand id>`, in `turn14/catalog.py`). It reads the brand's items, their descriptions and
+photos (`/v1/items/data/brand/{id}`), pricing and stock, writes them as a PIES file and loads it with the normal importer.
+
+- Name: Turn 14's product name (brand name removed). Description: Market Description (or the longest description).
+  Features: Features and Benefits, one per line. Part type: Turn 14 subcategory, used for the category.
+- Price: Turn 14 Retail, then MAP. No price: the product is hidden. Inactive items: discontinued.
+- Photos: the largest size of each image, Photo - Primary first. Installation PDFs become install documents.
+- Weight: all boxes added up. Size: only for single-box items.
+- No vehicle fitment: products show "Fitment not listed" and stay out of vehicle-filtered results.
+- The brand gets Turn 14's brand code (AAIA) and products use the manufacturer part number, so the web address is
+  the same one SEMA's data gives (`<brand>-<part number>`).
+- Kept current: Daily sync rebuilds these brands from the local copy (prices, new and dropped items);
+  Full item check also reads the descriptions and photos again.
+- When SEMA approves the brand: add it to the SEMA list and load it. The SEMA load finds the same brand (by code,
+  or by name if SEMA's code differs) and the same part numbers, so the products are upgraded in place with SEMA's
+  data and fitment, and Turn 14 stops rebuilding the brand (it keeps supplying stock and pricing).
+- Before going live: confirm with the Turn 14 rep that dealers may use Turn 14's photos and descriptions on their site.

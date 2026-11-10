@@ -288,6 +288,8 @@ def load(conn, c, codes, log, data_dir, photos=True):
                         raise
                     log("  The database dropped the connection during the import; reconnected, importing again")
                     conn.reconnect()
+            # A brand first added from Turn 14's data is SEMA's from now on: Turn 14 keeps only stock and pricing.
+            conn.execute("UPDATE t14_brands SET load_catalog = false WHERE brand_id = %s", (brand["id"],))
             find_logo(conn, c, aaia, brand["id"], log)
             conn.execute("""UPDATE sema_brands SET status = 'loaded', brand_id = %s, loaded_updated = %s, last_loaded = now(),
                             parts = %s, fitted_parts = %s, last_error = NULL, updated_at = now() WHERE aaia = %s""",

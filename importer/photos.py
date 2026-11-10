@@ -18,7 +18,7 @@ import urllib.parse
 import urllib.request
 import zipfile
 
-from PIL import Image, ImageChops
+from PIL import Image, ImageChops, ImageFilter
 from psycopg.types.json import Jsonb
 
 from .storage import get_storage
@@ -69,6 +69,33 @@ MAX_DOWNLOAD = 60 * 1024 * 1024
 MAX_SECONDS = 120          # one photo download, start to finish
 
 
+PHOTO_VERSION = "-t"     # in stored file names: photos processed with trimming (older ones have no suffix)
+TRIM_WHITE = 238         # a border pixel lighter than this in every colour counts as plain white background
+TRIM_MARGIN = 0.04       # margin put back around the part: 4% of its longer side
+
+
+def trim_white(im, thresh=TRIM_WHITE, margin=TRIM_MARGIN):
+    """Cut the plain white border off a product photo and put back the same small margin on every photo, so parts
+    fill their box about the same amount whatever spacing the brand used. Photos on grey or coloured backgrounds,
+    and photos that already fill the frame, are left as they are."""
+    im = im.convert("RGB")
+    darkest = ImageChops.darker(ImageChops.darker(*im.split()[:2]), im.split()[2])     # min of R, G, B per pixel
+    mask = darkest.point(lambda v: 255 if v < thresh else 0).filter(ImageFilter.MedianFilter(3))  # ignore stray specks
+    box = mask.getbbox()
+    W, H = im.size
+    if not box:
+        return im
+    w, h = box[2] - box[0], box[3] - box[1]
+    if w >= W * 0.97 and h >= H * 0.97:          # already fills the frame (or isn't on white)
+        return im
+    if w * h < W * H * 0.002:                   # only a speck: not a real photo of a part
+        return im
+    pad = int(max(w, h) * margin)
+    out = Image.new("RGB", (w + 2 * pad, h + 2 * pad), (255, 255, 255))
+    out.paste(im.crop(box), (pad, pad))
+    return out
+
+
 def _process(raw):
     with _DECODE:
         return _process_one(raw)
@@ -85,7 +112,7 @@ def _process_one(raw):
         im = im.convert("RGBA")
     if im.mode not in ("RGB", "RGBA", "LA", "L"):
         im = im.convert("RGB")
-    im.thumbnail((MAX_SIDE, MAX_SIDE))           # shrink first: the colour work below is then on a small image
+    im.thumbnail((MAX_SIDE * 2, MAX_SIDE * 2))   # shrink first: the colour work below is then on a smaller image
     if im.mode in ("RGBA", "LA"):
         im = im.convert("RGBA")
         bg = Image.new("RGB", im.size, (255, 255, 255))
@@ -93,6 +120,8 @@ def _process_one(raw):
         im = bg
     else:
         im = im.convert("RGB")
+    im = trim_white(im)                          # trimmed before the final shrink, so the part keeps its detail
+    im.thumbnail((MAX_SIDE, MAX_SIDE))
     out = io.BytesIO()
     im.save(out, "JPEG", quality=85, optimize=True, progressive=True)
     return out.getvalue(), im.size
@@ -201,7 +230,7 @@ def run(conn, brand_id, zip_path=None, max_per_product=4, limit_products=None, w
                     result = {"status": "blocked", "md5": md5, "note": f"{verdict[1]} [{kind_src}]"}
                     continue
                 data, (w, h) = _process(raw)
-                key = f"products/{brand_id}/{md5[:2]}/{md5}.jpg"
+                key = f"products/{brand_id}/{md5[:2]}/{md5}{PHOTO_VERSION}.jpg"
                 if not storage.exists(key):
                     storage.put(key, data)
                 kind = verdict[0] if verdict and verdict[0] in ("vehicle", "packaging") else "part"
@@ -273,6 +302,49 @@ def run(conn, brand_id, zip_path=None, max_per_product=4, limit_products=None, w
                         (repr(e), Jsonb(dict(stats)), run_id))
         conn.commit()
         raise
+
+
+def trim_existing(conn, log=print, storage=None):
+    """One time: trim the photos already on the site, from the stored copies (nothing is downloaded again)."""
+    storage = storage or get_storage()
+    with conn.cursor() as cur:
+        cur.execute(f"""SELECT i.id, i.storage_key, p.brand_id FROM product_images i JOIN products p ON p.id = i.product_id
+                        WHERE i.status = 'ok' AND i.storage_key IS NOT NULL AND i.storage_key NOT LIKE '%%{PHOTO_VERSION}.jpg'
+                        ORDER BY p.brand_id, i.id""")
+        rows = cur.fetchall()
+    log(f"  {len(rows)} photos to even out")
+    done, brands, changed = {}, set(), 0
+    for n, (img_id, key, brand_id) in enumerate(rows, 1):
+        new_key = key[:-4] + PHOTO_VERSION + ".jpg"
+        try:
+            if new_key not in done:
+                if not storage.exists(new_key):
+                    im = Image.open(io.BytesIO(storage.get(key)))
+                    im.load()
+                    im = trim_white(im)
+                    buf = io.BytesIO()
+                    im.save(buf, "JPEG", quality=88, optimize=True, progressive=True)
+                    storage.put(new_key, buf.getvalue())
+                    done[new_key] = im.size
+                else:
+                    done[new_key] = Image.open(io.BytesIO(storage.get(new_key))).size
+            w, h = done[new_key]
+            with conn.cursor() as cur:
+                cur.execute("UPDATE product_images SET storage_key = %s, width = %s, height = %s WHERE id = %s",
+                            (new_key, w, h, img_id))
+            brands.add(brand_id)
+            changed += 1
+        except Exception as e:      # noqa: BLE001 - a missing or unreadable file keeps its old photo
+            log(f"  skipped {key}: {e!r}"[:200])
+        if n % 500 == 0:
+            conn.commit()
+            log(f"    {n}/{len(rows)}")
+    conn.commit()
+    for b in sorted(brands):         # cards point at the trimmed main photo
+        refresh_main_images(conn, b)
+    conn.commit()
+    log(f"  done: {changed} photos evened out across {len(brands)} brands")
+    return changed
 
 
 def refresh_main_images(conn, brand_id):

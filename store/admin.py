@@ -121,8 +121,23 @@ def admin_home(request: Request, error: str = "", started: str = "", saved: str 
         b["price_from"] = extra[0] if extra else "retail"
         b["cost_types"] = sorted(t for t in (b["price_types"] or {}) if t not in RETAIL_TYPES)
     job = st.jobs.current()
+    with st.pool.connection() as conn:
+        untrimmed = 0 if conn.execute("SELECT 1 FROM app_state WHERE key = 'photos_trimmed'").fetchone() else \
+            conn.execute("SELECT count(*) FROM product_images WHERE status = 'ok' AND storage_key NOT LIKE '%-t.jpg'").fetchone()[0]
     return _page(request, "admin.html", title="Catalog admin", brands=brands, runs=runs, job=job, error=error, saved=saved,
-                 started=started, data_dir=str(st.data_dir), section="catalog", price_names=PRICE_NAMES)
+                 started=started, data_dir=str(st.data_dir), section="catalog", price_names=PRICE_NAMES, untrimmed=untrimmed)
+
+
+@router.post("/photos-trim")
+def photos_trim(request: Request):
+    """One time: even out the white margins of the photos already on the site (from the stored copies)."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    st = web._state(request)
+    if st.sema.running() or not st.jobs.start("Even out photo margins", [("Trim photos already on the site", ["trim-photos"])]):
+        return _back(error="Another job is running. Try again when it finishes.")
+    return _back(started="Evening out photo margins")
 
 
 PRICE_NAMES = {"RET": "Retail", "RMP": "MAP (minimum advertised)", "LST": "List", "JBR": "Jobber", "WD1": "Warehouse distributor",

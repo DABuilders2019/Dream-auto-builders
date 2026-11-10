@@ -39,6 +39,12 @@
     </form>
   </section>
 
+  {% if untrimmed %}<section class="acard">
+    <h2>Even out photo margins</h2>
+    <p class="muted">New photos are trimmed as they download, so every part fills its box about the same amount. <b>{{ untrimmed|num }}</b> photos downloaded before that can be trimmed now, from the copies already saved (nothing is downloaded again). It takes a few minutes; the site keeps working meanwhile.</p>
+    <form method="post" action="/admin/photos-trim"><button class="btn btn-red" type="submit"{% if job and job.status == 'running' %} disabled{% endif %}>Even out photo margins</button></form>
+  </section>{% endif %}
+
   <section class="acard">
     <h2>Brands on the site</h2>
     <div class="tblwrap stickyhead"><table class="tbl num">

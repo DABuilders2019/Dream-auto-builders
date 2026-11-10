@@ -15,6 +15,9 @@ class LocalStorage:
     def exists(self, key):
         return (self.root / key).exists()
 
+    def get(self, key):
+        return (self.root / key).read_bytes()
+
     def put(self, key, data, content_type="image/jpeg"):
         path = self.root / key
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -41,6 +44,9 @@ class S3Storage:
             return True
         except Exception:
             return False
+
+    def get(self, key):
+        return self.client.get_object(Bucket=self.bucket, Key=key)["Body"].read()
 
     def put(self, key, data, content_type="image/jpeg"):
         self.client.put_object(Bucket=self.bucket, Key=key, Body=data, ContentType=content_type,

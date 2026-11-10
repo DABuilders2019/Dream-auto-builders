@@ -51,6 +51,7 @@ def main(argv=None):
     p.add_argument("--limit-products", type=int)
     p.add_argument("--workers", type=int, default=12)
     p.add_argument("--retry-failed", action="store_true", help="also try again photos that failed for a temporary reason")
+    sub.add_parser("trim-photos", help="one time: trim the white border of photos already on the site")
     p = sub.add_parser("report", help="write the photo report spreadsheet")
     p.add_argument("--brand", required=True)
     p.add_argument("--out", required=True)
@@ -76,6 +77,13 @@ def main(argv=None):
         stats, summary = photos.run(conn, a.brand, a.zip, a.max_per_product, a.limit_products, a.workers,
                                     retry_failed=a.retry_failed)
         print(json.dumps({"files": stats, "products": summary["counts"], "possible_logos": len(summary["suspicious"])}, indent=2))
+    elif a.cmd == "trim-photos":
+        print("Evening out the margins of photos already on the site ...", flush=True)
+        n = photos.trim_existing(conn, log=lambda m: print(m, flush=True))
+        conn.execute("INSERT INTO app_state (key, value) VALUES ('photos_trimmed', 'true') "
+                     "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value")
+        conn.commit()
+        print(json.dumps({"photos_trimmed": n}))
     elif a.cmd == "report":
         path = report.photo_report(conn, a.brand, a.out)
         print("wrote", path)

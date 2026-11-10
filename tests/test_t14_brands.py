@@ -90,3 +90,20 @@ def test_brand_added_from_turn14_has_reload(shop, monkeypatch):
     monkeypatch.setattr(turn14_schedule, "start", lambda st, task, label=None: started.append((task, label)) or True)
     c.post("/admin/turn14/add-from-turn14", data={"t14_id": "428"})
     assert started == [("catalog:428", "Reload Michelin from Turn 14")]
+
+
+def test_catalog_page_offers_trimming_once(shop, monkeypatch):
+    c, conn = shop.c, shop.conn
+    pid = conn.execute("SELECT id FROM products LIMIT 1").fetchone()[0]
+    conn.execute("""INSERT INTO product_images (product_id, asset_type, file_name, source_url, sort, status, storage_key, kind)
+                    VALUES (%s, 'P04', 'a.jpg', 'https://x/a.jpg', 9, 'ok', 'products/x/ab/abc.jpg', 'part')""", (pid,))
+    conn.commit()
+    c.post("/admin/login", data={"password": "pw"})
+    assert "Even out photo margins" in c.get("/admin").text
+    started = []
+    c.app.state.shop.jobs.start = lambda title, steps, brand_id=None: started.append(steps) or True
+    c.post("/admin/photos-trim")
+    assert started == [[("Trim photos already on the site", ["trim-photos"])]]
+    conn.execute("INSERT INTO app_state (key, value) VALUES ('photos_trimmed', 'true')")
+    conn.commit()
+    assert "Even out photo margins" not in c.get("/admin").text

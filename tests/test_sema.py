@@ -415,3 +415,32 @@ def test_job_connection_reconnects_after_drop():
     with rc.cursor() as cur:                         # everything else goes to the live connection
         cur.execute("SELECT 2")
         assert cur.fetchone()[0] == 2
+
+
+def test_load_redoes_brand_when_database_drops_mid_import(conn, sema, monkeypatch):
+    """The database drops the connection during the big import: the job reconnects, imports the same files
+    again (no extra SEMA calls) and marks the brand loaded."""
+    import os
+    import psycopg
+    from importer import load as loader
+    from semadata.conn import ReconnectingConnection
+    fake, _, tmp = sema
+    url = conn.info.dsn
+    rc = ReconnectingConnection(url, connect=lambda: psycopg.connect(url, autocommit=True))
+    c = sc.Client(rc, task="t", transport=httpx.MockTransport(fake), sleep=lambda s: None, log=lambda *a: None)
+    ss.run(rc, "test", log=lambda *a: None, client=c)
+    real, calls = loader.load_brand, []
+
+    def flaky(cn, *a, **k):
+        calls.append(1)
+        if len(calls) == 1:
+            cn.raw.close()                       # the drop
+            raise psycopg.OperationalError("consuming input failed: SSL error: unexpected eof while reading")
+        return real(cn, *a, **k)
+    monkeypatch.setattr(loader, "load_brand", flaky)
+    lines = []
+    stats = ss.run(rc, "load", log=lines.append, client=c, data_dir=tmp, photos=False)
+    assert stats["loaded"] == 1 and stats["failed"] == 0 and len(calls) == 2 and rc.reconnects == 1
+    assert any("reconnected, importing again" in m for m in lines)
+    assert rc.execute("SELECT status FROM sema_brands WHERE aaia = 'TSTB'").fetchone()[0] == "loaded"
+    assert rc.execute("SELECT count(*) FROM products WHERE brand_id = 'testshocks'").fetchone()[0] == 3

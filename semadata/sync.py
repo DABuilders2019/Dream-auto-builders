@@ -24,6 +24,7 @@ import re
 import time
 import xml.sax.saxutils as su
 
+import psycopg
 from psycopg.types.json import Jsonb
 
 from . import client as sc
@@ -274,9 +275,19 @@ def load(conn, c, codes, log, data_dir, photos=True):
             log(f"  {len(parts):,} parts")
             pies_path = fetch_pies(c, aaia, parts, work / "pies.xml", log)
             veh_path, fitted = fetch_fitment(c, aaia, parts, work, log, refresh)
-            pies_aaia, label = brand_lookup.peek(str(pies_path))
-            brand = brand_lookup.resolve(conn, aaia, label or name, name)
-            st = loader.load_brand(conn, brand, str(pies_path), None, str(veh_path), log=log)
+            for attempt in (1, 2):
+                try:
+                    pies_aaia, label = brand_lookup.peek(str(pies_path))
+                    brand = brand_lookup.resolve(conn, aaia, label or name, name)
+                    st = loader.load_brand(conn, brand, str(pies_path), None, str(veh_path), log=log)
+                    break
+                except psycopg.OperationalError:
+                    # the database dropped the connection mid-import: the import runs in one transaction, so nothing
+                    # was half-saved. Reconnect and import the same files once more (no SEMA calls needed).
+                    if attempt == 2 or not hasattr(conn, "reconnect") or not (conn.closed or conn.broken):
+                        raise
+                    log("  The database dropped the connection during the import; reconnected, importing again")
+                    conn.reconnect()
             find_logo(conn, c, aaia, brand["id"], log)
             conn.execute("""UPDATE sema_brands SET status = 'loaded', brand_id = %s, loaded_updated = %s, last_loaded = now(),
                             parts = %s, fitted_parts = %s, last_error = NULL, updated_at = now() WHERE aaia = %s""",

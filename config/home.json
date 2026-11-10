@@ -133,6 +133,7 @@
     "motul": ["box"]
   },
   "banner_logo_clear": {
+    "yokohama": [[0.729, 0.495], [0.949, 0.496]],
     "oracle": [[0.4667, 0.3647]],
     "oraclelighting": [[0.4667, 0.3647]]
   },

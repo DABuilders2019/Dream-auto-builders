@@ -341,8 +341,14 @@ def test_jobber_only_brand_priced_with_markup(conn, sema, tmp_path, monkeypatch)
         tc.post("/admin/login", data={"password": "admin-pw"})
         page = tc.get("/admin").text
         assert "Jobber</b> (3)" in page and "hidden (no price)" in page
+        started = []
+        tc.app.state.shop.jobs.start = lambda title, steps, brand_id=None: started.append(steps) or True
         r = tc.post("/admin/pricing/testshocks", data={"price_from": "JBR", "markup": "40"})
         assert "3 of 3 parts now have a price" in r.text
+        pend = conn.execute("""SELECT count(DISTINCT i.product_id) FROM product_images i JOIN products p ON p.id = i.product_id
+                               WHERE p.brand_id = 'testshocks' AND i.status = 'pending'""").fetchone()[0]
+        assert pend      # parts that just appeared get their photos downloaded right away
+        assert "Downloading photos" in r.text and started and started[0][0][1][:3] == ["photos", "--brand", "testshocks"]
     prices = dict(conn.execute("SELECT part_number, price FROM products WHERE brand_id = 'testshocks'").fetchall())
     assert float(prices["985-24-002"]) == 14.0 and float(prices["985-24-001"]) == 15.0     # never below MAP
     # a reload keeps the rule

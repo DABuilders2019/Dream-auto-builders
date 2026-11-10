@@ -161,9 +161,19 @@ def brand_pricing(request: Request, brand_id: str, price_from: str = Form("retai
                          (pref, pct if price_from != "retail" else None, brand_id))
             with conn.cursor() as cur:
                 cur.executemany("UPDATE products SET price = %s, price_type = %s, status = %s, updated_at = now() WHERE id = %s", changed)
+        # parts that just appeared never had their photos downloaded (photos are fetched only for parts on the site)
+        pending = conn.execute("""SELECT count(DISTINCT i.product_id) FROM product_images i JOIN products p ON p.id = i.product_id
+                                  WHERE p.brand_id = %s AND p.status = 'active' AND i.status = 'pending'""", (brand_id,)).fetchone()[0]
     st.reset()
     rule = "retail prices only" if price_from == "retail" else f"retail price when given, otherwise {PRICE_NAMES.get(pref[-1], pref[-1])} + {pct:g}%"
-    return _back(saved=f"{name[0]} pricing saved ({rule}): {shown:,} of {len(rows):,} parts now have a price and show on the site.")
+    note = ""
+    if pending:
+        args = ["photos", "--brand", brand_id, "--workers", os.environ.get("PHOTO_WORKERS", "4")]
+        if not st.sema.running() and st.jobs.start(f"{name[0]} photos", [(f"Download {name[0]} photos", args)], brand_id):
+            note = f" Downloading photos for {pending:,} of them now."
+        else:
+            note = f" {pending:,} still need photos: press Retry photos when the running job finishes."
+    return _back(saved=f"{name[0]} pricing saved ({rule}): {shown:,} of {len(rows):,} parts now have a price and show on the site.{note}")
 
 
 # ------------------------------------------------------------------ uploads

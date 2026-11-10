@@ -148,18 +148,44 @@ async def send_request(request: Request, product_id: int = Form(...), url: str =
         conn.commit()
     request.session.pop("pm_form", None)
     base = _site(request)
-    mailer.send(addr, f"We got your price match request (#{pm_id})",
-                f"Thanks for sending us a lower price on:\n{title}\n\nOur price: ${price:,.2f}\nPrice you found: ${theirs:,.2f}"
-                f"{' (quantity ' + str(n) + ')' if n > 1 else ''}\n{'Link: ' + link if link else 'You sent a photo of the price.'}\n\n"
-                "We'll check the seller and the price and email you back, usually within one business day.\n\n"
-                f"Dream Auto Builders\n{base}")
+    mailer.send(addr, *mail_received(pm_id, title, price, theirs, n, link, base))
     to = mailer.notify_address()
     if to:
-        mailer.send(to, f"Price match request #{pm_id}: ${theirs:,.2f} vs our ${price:,.2f}",
-                    f"{title}\nOur price: ${price:,.2f}\nTheir price: ${theirs:,.2f} (qty {n})\n"
-                    f"{'Link: ' + link if link else 'Photo attached on the admin page.'}\nCustomer: {addr}\n\n"
-                    f"Review it: {base}/admin/price-match")
+        mailer.send(to, *mail_alert(pm_id, title, price, theirs, n, link, addr, base))
     return _back(slug, pm="sent", n=str(pm_id))
+
+
+# ------------------------------------------------------------------ the emails (also sent as samples from Admin > Launch Check)
+
+def mail_received(pm_id, title, price, theirs, n, link, base):
+    return (f"We got your price match request (#{pm_id})",
+            f"Thanks for sending us a lower price on:\n{title}\n\nOur price: ${price:,.2f}\nPrice you found: ${theirs:,.2f}"
+            f"{' (quantity ' + str(n) + ')' if n > 1 else ''}\n{'Link: ' + link if link else 'You sent a photo of the price.'}\n\n"
+            "We'll check the seller and the price and email you back, usually within one business day.\n\n"
+            f"Dream Auto Builders\n{base}")
+
+
+def mail_alert(pm_id, title, price, theirs, n, link, addr, base):
+    return (f"Price match request #{pm_id}: ${theirs:,.2f} vs our ${price:,.2f}",
+            f"{title}\nOur price: ${price:,.2f}\nTheir price: ${theirs:,.2f} (qty {n})\n"
+            f"{'Link: ' + link if link else 'Photo attached on the admin page.'}\nCustomer: {addr}\n\n"
+            f"Review it: {base}/admin/price-match")
+
+
+def mail_approved(title, price, n, ours, message, link, until):
+    return ("Your price match is approved",
+            f"Good news: we'll match the price on\n{title}\n\nYour price: ${price:,.2f}"
+            f"{' each, for up to ' + str(n) if n > 1 else ''} (was ${ours:,.2f})\n\n"
+            f"{message.strip() + chr(10) + chr(10) if message.strip() else ''}"
+            f"Use this link to put it in your cart at that price:\n{link}\n\n"
+            f"The matched price is saved for {HOURS} hours, until {until}.\n\nDream Auto Builders")
+
+
+def mail_declined(title, reason):
+    return ("About your price match request",
+            f"Thanks for sending us a lower price on\n{title}\n\nWe weren't able to match this one."
+            f"{chr(10) + chr(10) + 'Why: ' + reason.strip() if reason.strip() else ''}\n\n"
+            "If you find another lower price from an authorized seller, send it our way.\n\nDream Auto Builders")
 
 
 def _site(request):
@@ -308,12 +334,7 @@ def admin_approve(request: Request, pm_id: int, matched_price: str = Form(""), m
         email, n, expires, title, ours = r
         link = f"{_site(request)}/price-match/claim/{token}"
         until = expires.astimezone(ZoneInfo("America/New_York")).strftime("%b %-d at %-I:%M %p") + " Eastern"
-        mailer.send(email, "Your price match is approved",
-                    f"Good news: we'll match the price on\n{title}\n\nYour price: ${price:,.2f}"
-                    f"{' each, for up to ' + str(n) if n > 1 else ''} (was ${ours:,.2f})\n\n"
-                    f"{message.strip() + chr(10) + chr(10) if message.strip() else ''}"
-                    f"Use this link to put it in your cart at that price:\n{link}\n\n"
-                    f"The matched price is saved for {HOURS} hours, until {until}.\n\nDream Auto Builders")
+        mailer.send(email, *mail_approved(title, price, n, ours, message, link, until))
     return RedirectResponse("/admin/price-match?done=approved", status_code=303)
 
 
@@ -331,8 +352,5 @@ def admin_decline(request: Request, pm_id: int, reason: str = Form("")):
         conn.commit()
     if r:
         email, title = r
-        mailer.send(email, "About your price match request",
-                    f"Thanks for sending us a lower price on\n{title}\n\nWe weren't able to match this one."
-                    f"{chr(10) + chr(10) + 'Why: ' + reason.strip() if reason.strip() else ''}\n\n"
-                    "If you find another lower price from an authorized seller, send it our way.\n\nDream Auto Builders")
+        mailer.send(email, *mail_declined(title, reason))
     return RedirectResponse("/admin/price-match?done=declined", status_code=303)

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  <section class="acard">
+    <h2>Launch check</h2>
+    <p class="muted">Three parts: <b>automatic checks</b> that ask each service whether it really works, <b>sample emails</b> sent to you from the real email templates, and <b>try-it-yourself tests</b> for every feature, with tick boxes that save as you go. The full to-do list is in docs/LAUNCH_CHECKLIST.md.</p>
+    <div class="lc-progress"><div style="width:{{ (100 * done / total)|round|int }}%"></div></div>
+    <p class="small num"><b>{{ done }} of {{ total }}</b> tests ticked off.</p>
+  </section>
+
+  <section class="acard" id="checks">
+    <h2>1. Automatic checks</h2>
+    <form method="post" action="/admin/launch/run" class="lc-run">
+      <button class="btn btn-red" type="submit">{{ icon('sync', 18) }} Run all checks</button>
+      <span class="muted small">Takes a few seconds. Uses one Google Maps search and one UPS price request; nothing is charged or ordered.</span>
+    </form>
+    {% if results %}
+    <p class="lc-sum num"><span class="lc-dot ok"></span> {{ counts.ok }} OK <span class="lc-dot warn"></span> {{ counts.warn }} need attention <span class="lc-dot bad"></span> {{ counts.bad }} not working</p>
+    {% for s in results %}
+    <h3 class="lc-h">{{ s.title }}</h3>
+    <div class="lc-list">
+      {% for i in s['items'] %}
+      <div class="lc-item {{ i.status }}"><span class="lc-dot {{ i.status }}"></span>
+        <div><b>{{ i.name }}</b> <span>{{ i.text }}</span>
+          {% if i.fix %}<div class="lc-fix">{{ i.fix }}</div>{% endif %}
+          {% if i.link %}<a class="lc-link" href="{{ i.link }}">Open the {{ i.link_label }} →</a>{% endif %}</div></div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </section>
+
+  <section class="acard" id="emails">
+    <h2>2. Sample emails</h2>
+    <p class="muted">Sends the real templates, marked [SAMPLE], so you can see them in your inbox and confirm they arrive. While the sender is Resend's test address, only the email on your Resend account receives them.</p>
+    {% if sent %}<div class="lc-list" style="margin-bottom:12px">{% for label, ok, err in sent %}
+      <div class="lc-item {{ 'ok' if ok else 'bad' }}"><span class="lc-dot {{ 'ok' if ok else 'bad' }}"></span><div><b>{{ label or 'Not sent' }}</b> <span>{{ 'Accepted by the email service. Check the inbox (and spam).' if ok else err }}</span></div></div>
+    {% endfor %}</div>{% endif %}
+    <form method="post" action="/admin/launch/emails" class="lc-emails">
+      <div class="formrow"><label for="lcTo"><b>Send to</b></label><input id="lcTo" name="to" type="email" value="{{ to }}" required></div>
+      <div class="lc-kinds">{% for k, label in samples %}<label><input type="checkbox" name="kinds" value="{{ k }}" checked> {{ label }}</label>{% endfor %}</div>
+      <button class="btn btn-red" type="submit"{% if not mail_on %} disabled{% endif %}>Send the ticked samples</button>
+      {% if not mail_on %}<p class="small" style="color:var(--red)">Email isn't set up yet (SMTP_HOST and MAIL_FROM in Render).</p>{% endif %}
+    </form>
+  </section>
+
+  <section class="acard" id="tests">
+    <h2>3. Try-it-yourself tests</h2>
+    <p class="muted">Do these on the test site (Stripe test mode: card 4242 4242 4242 4242, any future date, any CVC). Tick each one when it works; add a note if something was off.</p>
+    {% for group, ts in tests %}
+    <h3 class="lc-h">{{ group }}</h3>
+    {% for id, title, steps, expect in ts %}{% set t = ticks.get(id) or {} %}
+    <details class="lc-test{{ ' done' if t.done }}" id="t-{{ id }}">
+      <summary><span class="lc-check">{{ icon('check', 14) if t.done }}</span><b>{{ title }}</b>{% if t.done %}<span class="muted small"> · ticked {{ t.at }}</span>{% endif %}{% if t.note %}<span class="lc-note">{{ t.note }}</span>{% endif %}</summary>
+      <ol>{% for s in steps %}<li>{{ s }}</li>{% endfor %}</ol>
+      <p class="lc-expect"><b>Should happen:</b> {{ expect }}</p>
+      <form method="post" action="/admin/launch/tick" class="lc-tick">
+        <input type="hidden" name="test" value="{{ id }}">
+        <input name="note" placeholder="Note (optional), e.g. what went wrong" value="{{ t.note or '' }}">
+        {% if t.done %}<button class="btn btn-ghost btn-sm" type="submit" name="done" value="0">Untick</button>
+        <button class="btn btn-ghost btn-sm" type="submit" name="done" value="1">Save note</button>
+        {% else %}<button class="btn btn-red btn-sm" type="submit" name="done" value="1">{{ icon('check', 14) }} It works</button>
+        <button class="btn btn-ghost btn-sm" type="submit" name="done" value="0">Save note</button>{% endif %}
+      </form>
+    </details>
+    {% endfor %}
+    {% endfor %}
+  </section>
+</main>
+</body></html>

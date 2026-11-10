@@ -197,6 +197,14 @@ def create(conn, email, name=None, password=None, source="signup", verified=Fals
 
 # ------------------------------------------------------------------ email codes
 
+def code_email(code, name):
+    """(subject, text, html) of the sign-in code email."""
+    return (f"{code} is your Dream Auto Builders sign-in code",
+            f"Your Dream Auto Builders sign-in code is {code}\n\nIt works for {CODE_MINUTES} minutes. "
+            "If you didn't ask for it, you can ignore this email; nobody can sign in without the code.",
+            web.templates.get_template("email_code.html").render(code=code, minutes=CODE_MINUTES, name=name))
+
+
 def send_code(request, conn, email):
     """Email a sign-in code. Returns (sent, message for the shopper)."""
     email = norm_email(email)
@@ -218,10 +226,7 @@ def send_code(request, conn, email):
     conn.execute("UPDATE account_codes SET used_at = now() WHERE email = %s AND used_at IS NULL", (email,))
     conn.execute("INSERT INTO account_codes (email, code_hash, expires_at, ip) VALUES (%s, %s, now() + %s * interval '1 minute', %s)",
                  (email, _code_hash(email, code), CODE_MINUTES, client_ip(request)))
-    mailer.send(email, f"{code} is your Dream Auto Builders sign-in code",
-                f"Your Dream Auto Builders sign-in code is {code}\n\nIt works for {CODE_MINUTES} minutes. "
-                "If you didn't ask for it, you can ignore this email; nobody can sign in without the code.",
-                web.templates.get_template("email_code.html").render(code=code, minutes=CODE_MINUTES, name=a["name"]))
+    mailer.send(email, *code_email(code, a["name"]))
     return True, None
 
 

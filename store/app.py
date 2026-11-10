@@ -46,7 +46,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import accounts, admin, banner_schedule, builds, checkout, installers, pricematch, sema_schedule, tracking, turn14_schedule
+from . import accounts, admin, banner_schedule, builds, checkout, installers, launchcheck, pricematch, sema_schedule, tracking, turn14_schedule
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -213,6 +213,7 @@ def create_app(dsn=None):
     app.include_router(builds.router)
     app.include_router(accounts.router)
     app.include_router(pricematch.router)
+    app.include_router(launchcheck.router)
     web.install(app)
     return app
 

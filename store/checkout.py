@@ -288,11 +288,7 @@ def on_paid(request, conn, o, s):
             a, made = accounts.save_at_checkout(conn, o, s)
             if made and a:
                 base = site_url(request)
-                mailer.send(a["email"], "Your Dream Auto Builders account is ready",
-                            f"Hi {(a['name'] or '').split(' ')[0] or 'there'},\n\nWe saved your name and email, so you have a "
-                            f"Dream Auto Builders account now. There's no password to remember: go to {base}/account, choose "
-                            "\"Email me a code\", and we'll send you a code to sign in.\n\nYour orders, garage and saved "
-                            "builds are all in your account.")
+                mailer.send(a["email"], *account_ready_email(a["name"], base))
         except Exception:       # noqa: BLE001 - never lose the payment over this
             log.warning("account at checkout not made", exc_info=True)
     v = (s.get("metadata") or {}).get("visitor") or o.get("visitor")
@@ -311,6 +307,26 @@ def unmatched_payment(request, s):
                     "but no matching order was found. Look it up in the Stripe dashboard.")
 
 
+def account_ready_email(name, base):
+    return ("Your Dream Auto Builders account is ready",
+            f"Hi {(name or '').split(' ')[0] or 'there'},\n\nWe saved your name and email, so you have a "
+            f"Dream Auto Builders account now. There's no password to remember: go to {base}/account, choose "
+            "\"Email me a code\", and we'll send you a code to sign in.\n\nYour orders, garage and saved "
+            "builds are all in your account.")
+
+
+def recovery_email(o, first, url, site):
+    """(subject, text, html) of the cart reminder email."""
+    items = "\n".join(f"- {it['qty']} x {it['brand_name']} {it['title']} ({web.money(it['line_total'])})" for it in o["items"])
+    text = (f"Hi {first},\n\n" if first else "Hi,\n\n") + \
+        "You left some parts in your cart at Dream Auto Builders:\n\n" + items + \
+        f"\n\nPick up where you left off (the link works for 30 days):\n{url}\n\n" \
+        "Questions about fitment? Just reply to this email.\n\n" \
+        "Don't want these reminders? Reply \"unsubscribe\" and we'll stop.\nDream Auto Builders"
+    html = web.templates.get_template("email_recovery.html").render(o=o, first=first, url=url, site=site, money=web.money)
+    return "You left something in your cart", text, html
+
+
 def abandoned(request, conn, o, s):
     """Save the abandoned checkout and, if the shopper agreed to marketing emails, email the link back to it."""
     cd = s.get("customer_details") or {}
@@ -325,15 +341,7 @@ def abandoned(request, conn, o, s):
     if not (cd.get("email") and rec.get("url") and consent == "opt_in" and recovery_cfg()["email"] and mailer.configured()):
         return
     first = (cd.get("name") or "").split(" ")[0]
-    items = "\n".join(f"- {it['qty']} x {it['brand_name']} {it['title']} ({web.money(it['line_total'])})" for it in o["items"])
-    text = (f"Hi {first},\n\n" if first else "Hi,\n\n") + \
-        "You left some parts in your cart at Dream Auto Builders:\n\n" + items + \
-        f"\n\nPick up where you left off (the link works for 30 days):\n{rec['url']}\n\n" \
-        "Questions about fitment? Just reply to this email.\n\n" \
-        "Don't want these reminders? Reply \"unsubscribe\" and we'll stop.\nDream Auto Builders"
-    html = web.templates.get_template("email_recovery.html").render(o=o, first=first, url=rec["url"],
-                                                                     site=site_url(request), money=web.money)
-    if mailer.send(cd["email"], "You left something in your cart", text, html):
+    if mailer.send(cd["email"], *recovery_email(o, first, rec["url"], site_url(request))):
         conn.execute("UPDATE checkout_recovery SET emailed_at = now() WHERE order_id = %s", (o["id"],))
         O.add_event(conn, o["id"], f"Cart reminder emailed to {cd['email']}")
 

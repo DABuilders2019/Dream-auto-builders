@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "michelin": "michelin.png",
     "knengineering": "kn.png",
     "racesport": "racesport.png",
     "ebc": "ebc.png",
@@ -111,6 +112,7 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
+    "michelin": ["keep_holes"],
     "knengineering": ["box"],
     "mickeythompson": ["darken_grey"],
     "coker": ["keep_holes"],

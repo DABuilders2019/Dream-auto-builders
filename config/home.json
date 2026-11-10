@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "chemicalguys": "chemicalguys.png",
     "brembooe": "brembooe.png",
     "bikemaster": "bikemaster.png",
     "konig": "konig.png",
@@ -119,6 +120,7 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
+    "chemicalguys": ["keep_holes"],
     "konig": ["keep_holes"],
     "bosch": ["box"],
     "royalpurple": ["keep_holes"],

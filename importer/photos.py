@@ -34,10 +34,22 @@ def _fetch(url, timeout=60, attempts=3):
     for attempt in range(attempts):
         req = urllib.request.Request(url, headers={"User-Agent": UA})
         try:
+            deadline = time.monotonic() + MAX_SECONDS
             with urllib.request.urlopen(req, timeout=timeout) as r:
-                data = r.read(MAX_DOWNLOAD + 1)
-            if len(data) > MAX_DOWNLOAD:
-                raise ValueError("file over 60 MB")
+                # read in pieces with an overall time limit: a server that sends a trickle of bytes would otherwise
+                # never hit the per-read timeout and could hold up the whole photo run
+                parts, size = [], 0
+                while True:
+                    chunk = r.read(256 * 1024)
+                    if not chunk:
+                        break
+                    parts.append(chunk)
+                    size += len(chunk)
+                    if size > MAX_DOWNLOAD:
+                        raise ValueError("file over 60 MB")
+                    if time.monotonic() > deadline:
+                        raise TimeoutError(f"download took over {MAX_SECONDS} seconds")
+                data = b"".join(parts)
             return data
         except urllib.error.HTTPError as e:
             if e.code not in (429, 500, 502, 503, 504) or attempt == attempts - 1:
@@ -54,6 +66,7 @@ def _fetch(url, timeout=60, attempts=3):
 _DECODE = threading.BoundedSemaphore(1)   # the server has one CPU, so decoding one at a time costs no speed
 Image.MAX_IMAGE_PIXELS = 60_000_000
 MAX_DOWNLOAD = 60 * 1024 * 1024
+MAX_SECONDS = 120          # one photo download, start to finish
 
 
 def _process(raw):

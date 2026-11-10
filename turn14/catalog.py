@@ -168,6 +168,59 @@ def _num(v):
         return None
 
 
+TIRE_NOT = re.compile(r"chain|valve|wheel|pressure|tpms|tool|cover|carrier|sealant|repair|gauge|inflat|stud|lug|spacer", re.I)
+
+
+def part_type_of(row):
+    """Turn 14's subcategory as the part type; tyres become "Tire" so they sort and size like SEMA's tyres."""
+    text = row.get("subcategory") or row.get("category") or ""
+    if re.search(r"\btires?\b", text, re.I) and not TIRE_NOT.search(text):
+        return "Tire"
+    return row.get("subcategory") or row.get("category")
+
+
+def price_types(row):
+    """{PIES price type: amount}: Retail (RET), MAP (RMP), Jobber (JBR) from Turn 14's price lists, and our cost (CST).
+    The cost never shows on the site; on the Catalog page a brand can be priced at cost + a markup (never below MAP)."""
+    out = {}
+    for pl in row.get("pricelists") or []:
+        if not isinstance(pl, dict):
+            continue
+        name, v = str(pl.get("name") or "").lower(), _num(pl.get("price"))
+        if not v:
+            continue
+        code = ("RMP" if re.search(r"\bmap\b", name) else "RET" if ("retail" in name or "msrp" in name)
+                else "JBR" if "jobber" in name else None)
+        if code:
+            out.setdefault(code, v)
+    for code, col in (("RET", "retail_price"), ("RMP", "map_price"), ("JBR", "jobber_price"), ("CST", "purchase_cost")):
+        if code not in out and _num(row.get(col)):
+            out[code] = _num(row[col])
+    if row.get("has_map") is False:
+        out.pop("RMP", None)
+    return out
+
+
+def price_gaps(rows):
+    """Why parts have no retail or MAP price: what Turn 14 does have for them."""
+    gaps = {"jobber": 0, "cost_only": 0, "nothing": 0, "cant_buy": 0}
+    for r in rows:
+        if not r["active"]:
+            continue
+        t = price_types(r)
+        if "RET" in t or "RMP" in t:
+            continue
+        if r.get("can_purchase") is False:
+            gaps["cant_buy"] += 1
+        elif "JBR" in t:
+            gaps["jobber"] += 1
+        elif "CST" in t:
+            gaps["cost_only"] += 1
+        else:
+            gaps["nothing"] += 1
+    return {k: v for k, v in gaps.items() if v}
+
+
 def item_xml(row, aaia, brand_name):
     pn = row["pn"]
     x = [f"<Item MaintenanceType={_a('A' if row['active'] else 'D')}>", f"<PartNumber>{_e(pn)}</PartNumber>",
@@ -176,7 +229,7 @@ def item_xml(row, aaia, brand_name):
     if len(bc) in (12, 13, 14):
         x.append(f"<ItemLevelGTIN>{_e(bc.zfill(14))}</ItemLevelGTIN>")
     d = descriptions(row)
-    part_type = row.get("subcategory") or row.get("category")
+    part_type = part_type_of(row)
     if part_type:
         d["DEF"] = [part_type]
     if row.get("part_description"):
@@ -186,9 +239,7 @@ def item_xml(row, aaia, brand_name):
         for t in texts:
             x.append(f"<Description DescriptionCode={_a(code)}>{_e(t)}</Description>")
     x.append("</Descriptions>")
-    prices = [("RET", row.get("retail_price")), ("RMP", row.get("map_price") if row.get("has_map") is not False else None),
-              ("JBR", row.get("jobber_price"))]
-    prices = [(t, _num(v)) for t, v in prices if _num(v)]
+    prices = sorted(price_types(row).items())
     if prices:
         x.append("<Prices>")
         for t, v in prices:
@@ -235,7 +286,8 @@ def rows_for_brand(conn, t14_id):
         SELECT i.item_id, coalesce(nullif(i.mfr_part_number, ''), i.part_number) AS pn, i.barcode, i.product_name,
                i.part_description, i.category, i.subcategory, i.dimensions, i.thumbnail, i.units_per_sku, i.active,
                i.regular_stock, i.carb_eo_number, i.prop_65, i.ltl_freight_required,
-               p.retail_price, p.map_price, p.has_map, p.jobber_price, d.descriptions, d.files
+               p.retail_price, p.map_price, p.has_map, p.jobber_price, p.purchase_cost, p.can_purchase, p.pricelists,
+               d.descriptions, d.files
         FROM t14_items i LEFT JOIN t14_pricing p ON p.item_id = i.item_id LEFT JOIN t14_item_data d ON d.item_id = i.item_id
         WHERE i.t14_brand_id = %s AND coalesce(nullif(i.mfr_part_number, ''), i.part_number) IS NOT NULL""", (t14_id,))
     cols = [c.name for c in cur.description]
@@ -264,7 +316,7 @@ def write_pies(conn, t14_id, aaia, brand_name, path):
             except Exception as e:      # noqa: BLE001 - one odd item shouldn't stop the brand
                 skipped.append(f"{row['pn']} ({e.__class__.__name__}: {e})")
         out.write("</Items>\n</PIES>\n")
-    return len(rows) - len(skipped), skipped
+    return len(rows) - len(skipped), skipped, price_gaps(rows)
 
 
 # ------------------------------------------------------------------ the load
@@ -308,7 +360,7 @@ def load(s, t14_id, fetch=True, photos=True):
         brand = brand_lookup.resolve(conn, aaia, t["name"], t["name"])
     with tempfile.TemporaryDirectory() as tmp:
         path = pathlib.Path(tmp) / "pies.xml"
-        n, skipped = write_pies(conn, t14_id, brand.get("aaia_id") or aaia, brand["name"], path)
+        n, skipped, gaps = write_pies(conn, t14_id, brand.get("aaia_id") or aaia, brand["name"], path)
         if skipped:
             s.stats["catalog_items_skipped"] += len(skipped)
             log(f"  Skipped {len(skipped)} item(s) with data we couldn't read: " + "; ".join(skipped[:10])
@@ -327,6 +379,13 @@ def load(s, t14_id, fetch=True, photos=True):
         log(f"  Not sorted into a category yet: {st['uncategorized_part_types']}")
     log(f"  {t['name']}: {st.get('products_active', 0)} products on the site"
         + (f", {st['products_hidden']} hidden (no price)" if st.get("products_hidden") else ""))
+    if gaps:
+        words = {"jobber": "have a jobber price", "cost_only": "have only your cost",
+                 "nothing": "have no pricing at all", "cant_buy": "Turn 14 says you can't buy yet"}
+        log(f"  No retail or MAP price from Turn 14 for {sum(gaps.values())} parts: "
+            + ", ".join(f"{n} {words[k]}" for k, n in gaps.items())
+            + ". To show those with a price, set this brand's pricing rule on the Catalog page (jobber or cost + markup).")
+        s.stats.update({f"no_retail_price_{k}": v for k, v in gaps.items()})
     if photos and os.environ.get("T14_SKIP_PHOTOS") != "1":
         from semadata.sync import run_photos
         log(f"--- {t['name']}: photos ---")

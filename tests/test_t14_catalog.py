@@ -92,6 +92,7 @@ def test_add_from_turn14_builds_products(kn):
     go("test")
     stats = go(f"catalog:{KN}")
     assert stats["catalog_products"] == 3 and stats["catalog_active"] == 1
+    assert stats["no_retail_price_cost_only"] == 1               # the oil filter: Turn 14 gives only our cost
     b = conn.execute("SELECT id, name, aaia_id FROM brands WHERE aaia_id = 'BBBK'").fetchone()
     assert b == ("kn", "K&N", "BBBK")
     assert conn.execute(f"SELECT brand_id, load_catalog FROM t14_brands WHERE id = {KN}").fetchone() == ("kn", True)
@@ -151,3 +152,23 @@ def test_daily_rebuilds_then_sema_takes_over(kn, tmp_path):
     assert conn.execute("SELECT count(*) FROM products WHERE brand_id = 'kn'").fetchone()[0] == 3
     assert catalog.catalog_brands(conn) == []                    # Turn 14 no longer rebuilds it
 
+
+
+def test_turn14_prices_and_tires():
+    row = {"pricelists": [{"name": "Suggested Retail", "price": "120.00"}, {"name": "MAP", "price": 99},
+                          {"name": "Jobber", "price": 90}], "purchase_cost": "70", "has_map": True}
+    assert catalog.price_types(row) == {"RET": 120.0, "RMP": 99.0, "JBR": 90.0, "CST": 70.0}
+    assert "RMP" not in catalog.price_types({**row, "has_map": False})
+    assert catalog.part_type_of({"category": "Wheels and Tires", "subcategory": "Automotive/UTV Tires - On Road"}) == "Tire"
+    assert catalog.part_type_of({"category": "Wheels and Tires", "subcategory": "Tire Pressure Monitoring"}) == "Tire Pressure Monitoring"
+    gaps = catalog.price_gaps([{"active": True, "pricelists": [], "purchase_cost": 5},
+                               {"active": True, "pricelists": [{"name": "Jobber", "price": 9}]},
+                               {"active": True, "pricelists": [], "can_purchase": False},
+                               {"active": True, "pricelists": []}, {"active": False, "pricelists": []}])
+    assert gaps == {"cost_only": 1, "jobber": 1, "cant_buy": 1, "nothing": 1}
+
+
+def test_cost_plus_markup_never_below_map():
+    from importer.catalog import choose_price
+    assert choose_price({"CST": 70, "RMP": 99}, ["RET", "RMP", "LST"], None) == (99, "RMP")
+    assert choose_price({"CST": 70}, ["RET", "RMP", "LST", "CST"], 30) == (91.0, "CST")

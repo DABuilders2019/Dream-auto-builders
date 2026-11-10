@@ -45,6 +45,8 @@ def test_turn14_only_brand_offers_add_from_turn14(shop, monkeypatch):
     c.post("/admin/login", data={"password": "pw"})
     page = html.unescape(c.get("/admin/turn14").text)
     assert "Add from Turn 14" in page and "only approved at Turn 14" in page
+    assert "Ready for Turn 14 review: not yet" in page and "TURN14_AUTO isn" in page
+    assert "Turn 14 data integration, last 3 days" in c.get("/admin/turn14/review.txt").text
     started = []
     from store import turn14_schedule
     monkeypatch.setenv("TURN14_CLIENT_ID", "cid")

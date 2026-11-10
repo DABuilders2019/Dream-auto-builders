@@ -541,7 +541,10 @@ def turn14_page(request: Request, error: str = "", started: str = ""):
                    "from_t14": sum(1 for t in t14_brands if t["load_catalog"])}
         if t14_show != "all":
             t14_brands = [t for t in t14_brands if t["approved"]]
-    return _page(request, "admin_turn14.html", title="Turn 14", section="turn14", env=t14.environment(),
+        from turn14 import review as t14review
+        review = t14review.checks(conn)
+        review["sent"] = conn.execute("SELECT value FROM app_state WHERE key = %s", (t14review.NOTIFY_KEY,)).fetchone()
+    return _page(request, "admin_turn14.html", review=review, title="Turn 14", section="turn14", env=t14.environment(),
                  t14_brands=t14_brands, t14_show=t14_show, t14_sum=t14_sum, added=request.query_params.get("added", "")[:120],
                  configured=t14.configured(), auto=turn14_schedule.enabled(), hour=hour, day=day, runs=runs,
                  tasks=T14_TASKS, labels=turn14_schedule.LABELS, brands=brands, recent=recent, job=st.t14.current(),
@@ -728,6 +731,18 @@ def sema_list(request: Request, names: str = Form("")):
                      (Jsonb(sorted(ss._config_names())),))     # names removed here stay removed
         ss.match_wishlist(conn, log=lambda m: None)
     return _sema_back(saved=f"Brand list saved ({len(wish)} brands).")
+
+
+@router.get("/turn14/review.txt")
+def turn14_review_text(request: Request):
+    """The review checks as plain text, to paste into the email to Turn 14."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    from fastapi.responses import PlainTextResponse
+    from turn14 import review as t14review
+    with web._state(request).pool.connection() as conn:
+        return PlainTextResponse(t14review.summary(conn))
 
 
 @router.post("/turn14/add-from-turn14")

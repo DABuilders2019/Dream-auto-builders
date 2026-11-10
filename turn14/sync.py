@@ -300,7 +300,8 @@ def sync_brands(s, our_ids):
 
 def run(conn, task, log=print, client=None, log_conn=None):
     s = Sync(conn, client=client, log=log, task=task, log_conn=log_conn)
-    conn.execute("DELETE FROM t14_requests WHERE at < now() - interval '3 days'")
+    conn.execute("DELETE FROM t14_requests WHERE at < now() - interval '8 days'")    # the review card looks back 3 days
+    conn.execute("DELETE FROM t14_runs WHERE started < now() - interval '30 days'")
     started = time.time()
     last = _state(conn, f"last_{task}", {}) or {}
     record = {"started": utcnow().isoformat(timespec="seconds"), "env": s.c.env}
@@ -364,4 +365,13 @@ def run(conn, task, log=print, client=None, log_conn=None):
         record.update(finished=utcnow().isoformat(timespec="seconds"), seconds=round(time.time() - started),
                       requests=s.c.requests, stats=dict(s.stats))
         _set_state(conn, f"last_{task}", record)
+        conn.execute("""INSERT INTO t14_runs (task, started, finished, status, error, requests) VALUES (%s, %s, %s, %s, %s, %s)""",
+                     (task, record["started"], record["finished"], record.get("status", "failed"), record.get("error"),
+                      record.get("requests")))
         s.c.close()
+        if task in ("changes", "daily") and record.get("status") == "ok":
+            try:
+                from . import review
+                review.maybe_notify(conn, log)
+            except Exception as e:      # noqa: BLE001 - the review email must never break a sync
+                log(f"  (review check skipped: {e!r})")

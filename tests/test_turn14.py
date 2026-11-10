@@ -210,6 +210,7 @@ def test_sync_one_brand_now(t14):
     conn.execute("INSERT INTO brands (id, name) VALUES ('nobody', 'Nobody Carries This')")
     stats = go(conn, make, "brand:testbrand,nobody")
     assert stats["brands_synced"] == 1 and stats["brands_not_at_turn14"] == 1
+    assert conn.execute("SELECT task, status FROM t14_runs ORDER BY id DESC LIMIT 1").fetchone() == ("brand:testbrand,nobody", "ok")
     assert conn.execute("SELECT count(*) FROM t14_items WHERE product_id IS NOT NULL").fetchone()[0] == 3
     assert conn.execute("SELECT total FROM t14_inventory WHERE item_id = '100G'").fetchone()[0] == 3
     assert not any(c[1] == "/v1/items/brand/2" for c in fake.calls)    # only the brands asked for

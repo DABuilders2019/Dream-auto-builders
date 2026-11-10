@@ -6,6 +6,19 @@
   {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
   {% if started %}<div class="notice">{{ icon('checkc', 18) }} <span>Started: <b>{{ started }}</b>. This page refreshes while it runs.</span></div>{% endif %}
 
+  <section class="acard t14review {{ 'ready' if review.ready else '' }}">
+    <h2>{% if review.ready %}{{ icon('checkc', 22) }} Ready for Turn 14 review{% else %}Ready for Turn 14 review: not yet{% endif %}</h2>
+    {% set passed = review['items']|selectattr('status', 'equalto', 'ok')|list|length %}
+    <p class="muted">{% if review.ready %}Every check passed over the last 3 days: send Mark the email asking him to verify the data integration.{% if review.sent %} An email about this went to admin@dreamautobuilders.com.{% endif %}{% else %}<b>{{ passed }} of {{ review['items']|length }}</b> checks pass. The day-to-day schedule has to run cleanly for 3 days in a row; when every check passes, this card turns green and an email goes to admin@dreamautobuilders.com.{% endif %}</p>
+    <div class="lc-list">
+      {% for i in review['items'] %}
+      <div class="lc-item {{ i.status }}"><span class="lc-dot {{ i.status }}"></span>
+        <div><b>{{ i.name }}</b> <span>{{ i.text }}</span>{% if i.fix %}<div class="lc-fix">{{ i.fix }}</div>{% endif %}</div></div>
+      {% endfor %}
+    </div>
+    <p style="margin-top:12px"><a class="btn btn-ghost btn-sm" href="/admin/turn14/review.txt" target="_blank">Summary to paste into the email</a></p>
+  </section>
+
   <section class="acard">
     <h2>Turn 14 feed</h2>
     <div class="t14status">

@@ -90,3 +90,13 @@ Full item check, a SEMA load, or Sync with Turn 14), parts matched to a Turn 14 
 item's Turn 14 photos (up to 4, Turn 14's primary first; asset type `T14`), then the normal photo download fetches,
 checks, trims and stores them. The brand's photo data is read only when some part needs a photo, and at most every
 14 days. A SEMA reload keeps the Turn 14 photos; the brand's own photos, when it sends some, come first.
+
+## Ready for Turn 14 review (card at the top of the Turn 14 page)
+
+Turn 14 verifies the data integration after it has run day-to-day on the testing server. The card checks the last
+3 days (`turn14/review.py`): automatic schedule on; First full load finished; Daily sync every night after 1:30 AM
+Eastern; stock changes about hourly (no gap over 2 hours); no scheduled run stopped; every request answered 200;
+busiest hour/day under 5,000/30,000; paged requests only; no quote or order calls. Every run is kept in `t14_runs`
+(30 days) and every request in `t14_requests` (8 days). The first time everything passes, an email goes to
+`TURN14_REVIEW_EMAIL` (default admin@dreamautobuilders.com), once. "Summary to paste into the email" gives the
+checks as text.

@@ -850,3 +850,7 @@ form.inline{display:inline}
 .lc-sw td{vertical-align:top}.lc-sw tr.warn td{background:#fffaf0}.lc-sw td:first-child{width:24px}
 .t14tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 10px}.t14tools input{border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:220px}
 .t14miss{margin-top:12px}.t14miss summary{cursor:pointer;font-weight:600}
+
+/* Turn 14 page: Ready for Turn 14 review */
+.t14review.ready{border-color:var(--ok);background:#f2fbf4}
+.t14review.ready h2{color:var(--ok);display:flex;gap:8px;align-items:center}

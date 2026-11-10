@@ -59,7 +59,7 @@ def clean(text):
 
 
 def desc_code(kind):
-    k = (kind or "").lower()
+    k = str(kind or "").lower()
     if "market" in k:
         return "MKT"
     if "feature" in k or "benefit" in k:
@@ -100,14 +100,14 @@ SIZE_ORDER = {"O": 5, "XL": 4, "L": 3, "M": 2, "S": 1, "T": 0}
 def best_link(f):
     links = [x for x in (f.get("links") or []) if isinstance(x, dict) and x.get("url")]
     if not links:
-        return f.get("url")
-    links.sort(key=lambda x: ((x.get("width") or 0) * (x.get("height") or 0),
+        return str(f["url"]) if f.get("url") else None
+    links.sort(key=lambda x: ((_num(x.get("width")) or 0) * (_num(x.get("height")) or 0),
                               SIZE_ORDER.get(str(x.get("size") or x.get("asset_size") or "").upper(), 0)), reverse=True)
-    return links[0]["url"]
+    return str(links[0]["url"])
 
 
 def _ext(url, f):
-    e = (f.get("file_extension") or f.get("extension") or "").strip(".").upper()
+    e = str(f.get("file_extension") or f.get("extension") or "").strip(".").upper()
     if e:
         return e
     m = re.search(r"\.([A-Za-z0-9]{2,4})(?:$|\?)", url or "")
@@ -253,14 +253,18 @@ def rows_for_brand(conn, t14_id):
 
 def write_pies(conn, t14_id, aaia, brand_name, path):
     rows = rows_for_brand(conn, t14_id)
+    skipped = []
     with open(path, "w", encoding="utf-8") as out:
         out.write('<?xml version="1.0" encoding="utf-8"?>\n<PIES xmlns="http://www.aftermarket.org">\n'
                   '<Header><SubmissionType>FULL</SubmissionType>'
                   f'<BlanketEffectiveDate>{dt.date.today().isoformat()}</BlanketEffectiveDate></Header>\n<Items>\n')
         for row in rows:
-            out.write(item_xml(row, aaia, brand_name))
+            try:
+                out.write(item_xml(row, aaia, brand_name))
+            except Exception as e:      # noqa: BLE001 - one odd item shouldn't stop the brand
+                skipped.append(f"{row['pn']} ({e.__class__.__name__}: {e})")
         out.write("</Items>\n</PIES>\n")
-    return len(rows)
+    return len(rows) - len(skipped), skipped
 
 
 # ------------------------------------------------------------------ the load
@@ -304,7 +308,11 @@ def load(s, t14_id, fetch=True, photos=True):
         brand = brand_lookup.resolve(conn, aaia, t["name"], t["name"])
     with tempfile.TemporaryDirectory() as tmp:
         path = pathlib.Path(tmp) / "pies.xml"
-        n = write_pies(conn, t14_id, brand.get("aaia_id") or aaia, brand["name"], path)
+        n, skipped = write_pies(conn, t14_id, brand.get("aaia_id") or aaia, brand["name"], path)
+        if skipped:
+            s.stats["catalog_items_skipped"] += len(skipped)
+            log(f"  Skipped {len(skipped)} item(s) with data we couldn't read: " + "; ".join(skipped[:10])
+                + (" ..." if len(skipped) > 10 else ""))
         if not n:
             raise CatalogError(f"Turn 14 lists no items for {t['name']}.")
         log(f"  {n} parts written for the importer")

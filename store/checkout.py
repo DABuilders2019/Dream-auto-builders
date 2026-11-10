@@ -16,7 +16,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import accounts, installers, mailer, shipping, tracking, ups, web
+from . import accounts, installers, mailer, pricematch, shipping, tracking, ups, web
 from . import orders as O
 
 router = APIRouter()
@@ -98,7 +98,12 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
         if q:
             note = (f"UPS prices quoted to ZIP {ship_zip}" if q["live"]
                     else f"UPS didn't answer ({q['error']}); standard shipping offered to ZIP {ship_zip}")
+        pm_ids = pricematch.ids_in(prods)
         order_id, number = O.create(conn, lines, vehicle, note=note)
+        for pid, p in prods.items():
+            if p.get("pm_id"):
+                O.add_event(conn, order_id, f"Price match #{p['pm_id']}: {p['brand_name']} {p['part_number']} at "
+                                            f"${p['price']:,.2f} (regular ${p['was_price']:,.2f})")
         acct = accounts.current(request, conn)
         if acct:
             conn.execute("UPDATE orders SET account_id = %s WHERE id = %s", (acct["id"], order_id))
@@ -133,6 +138,7 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
             "client_reference_id": number,
             "metadata": {"order_id": str(order_id), "order_number": number, **({"visitor": vid} if vid else {}),
                          **({"ship_zip": ship_zip} if q else {}),
+                         **({"price_matches": ",".join(map(str, pm_ids))} if pm_ids else {}),
                          **({"save_account": "1"} if save_account and not acct else {})},
             **_customer_params(conn, acct),
             **({"consent_collection": {"promotions": "auto"},
@@ -268,6 +274,8 @@ def _customer_params(conn, acct):
 
 
 def on_paid(request, conn, o, s):
+    pm = (s.get("metadata") or {}).get("price_matches") or ""
+    pricematch.mark_used(conn, [int(x) for x in pm.split(",") if x.strip().isdigit()], o["id"])
     quoted = (s.get("metadata") or {}).get("ship_zip")
     if quoted:
         _, addr = O._shipping_details(s)

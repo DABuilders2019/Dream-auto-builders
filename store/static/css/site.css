@@ -460,8 +460,8 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .btn-ghost:disabled{opacity:.45;cursor:not-allowed}
 .notice > span{flex:1;min-width:220px}
 /* checkout and orders */
-.anav{display:flex;gap:4px}
-.anav a{font-family:var(--display);text-transform:uppercase;font-weight:800;font-size:18px;letter-spacing:.03em;padding:6px 12px;border-radius:var(--radius);color:var(--muted)}
+.anav{display:flex;gap:2px;flex-wrap:wrap;min-width:0}
+.anav a{font-family:var(--display);text-transform:uppercase;font-weight:800;font-size:16px;letter-spacing:.02em;padding:6px 9px;white-space:nowrap;border-radius:var(--radius);color:var(--muted)}
 .anav a.on,.anav a:hover{color:var(--text);background:var(--panel)}
 .chips a.on{border-color:var(--red);color:var(--red);font-weight:700}
 .ost{display:inline-block;font-family:var(--body);text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:700;border-radius:4px;padding:3px 8px;background:var(--panel-2);color:var(--muted);vertical-align:middle}
@@ -762,3 +762,56 @@ form.inline{display:inline}
 .shipnote{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border-radius:10px;background:#fff6e5;border:1px solid #f1d9a6;font-size:13.5px;line-height:1.45;color:#4a3a14}
 .shipnote svg{flex:none;margin-top:2px}
 .shipnote.ok{background:#eef7f0;border-color:#cfe6d5;color:#1d5a2e}
+/* price match card (product page) */
+.pmB{margin-top:14px;border:1.5px solid #c4c4cc;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.pmB-head{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer;list-style:none;background:#fff}
+.pmB-head::-webkit-details-marker{display:none}
+.pmB-head .ic{width:38px;height:38px;border-radius:10px;background:var(--red);color:#fff;display:grid;place-items:center;flex:none}
+.pmB-t b{font-size:15.5px;display:block;line-height:1.3}
+.pmB-t small{color:var(--muted);font-size:13px}
+.pmB-head .chev{margin-left:auto;display:grid;transition:transform .15s}
+.pmB[open] .pmB-head .chev{transform:rotate(180deg)}
+.pmB[open] .pmB-head{border-bottom:1px solid var(--line)}
+.pmB-body{padding:12px 16px 16px}
+.pmB-body .notice{margin:0 0 10px}
+.pmB-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pmB-steps div{background:var(--panel);border-radius:10px;padding:10px;font-size:12.5px;line-height:1.35}
+.pmB-steps b{display:block;font-family:var(--display);text-transform:uppercase;font-size:15px;color:var(--red)}
+.pmB-tabs{display:flex;gap:6px;margin-top:12px}
+.pmB-tabs label{flex:1;text-align:center;padding:8px;border-radius:8px;border:1px solid var(--line);font-weight:600;font-size:13.5px;display:flex;gap:6px;justify-content:center;align-items:center;cursor:pointer;background:#fff}
+.pmB-tabs input{position:absolute;opacity:0;pointer-events:none}
+.pmB-tabs label:has(input:checked){border-color:var(--text);background:var(--text);color:#fff}
+.pmB-tabs label:has(input:focus-visible){outline:2px solid var(--red);outline-offset:2px}
+.pmB-form:has(input[value=link]:checked) .pm-photo{display:none}
+.pmB-form:has(input[value=photo]:checked) .pm-link{display:none}
+.pm-field{display:grid;gap:5px;margin-top:12px}
+.pm-field label{font-weight:600;font-size:13.5px}
+.pm-field input{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;font-size:14.5px}
+.pm-field input[type=file]{padding:8px;background:#fafafb;border-style:dashed}
+.pm-field small{font-size:12px}
+.pm-row{display:grid;grid-template-columns:1fr 70px 1.3fr;gap:10px}
+.pm-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.pm-send{width:100%;margin-top:14px;background:var(--red);color:#fff;border:0;border-radius:8px;padding:12px;font-family:var(--display);text-transform:uppercase;font-size:17px;letter-spacing:.04em}
+.pm-send:hover{background:var(--red-deep)}
+.pm-fine{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.45}
+@media (max-width:560px){.pmB-steps{grid-template-columns:1fr}.pm-row{grid-template-columns:1fr 70px}.pm-row .pm-field:last-child{grid-column:1/-1}}
+.shipnote .excl{color:#3d6b4a;font-weight:400}
+/* cart: price-matched line */
+.cart .was{color:var(--muted);margin-left:4px}
+.pmtag{display:inline-flex;gap:5px;align-items:center;margin-top:5px;font-size:12.5px;font-weight:600;color:#1d5a2e;background:#eef7f0;border:1px solid #cfe6d5;border-radius:999px;padding:2px 9px}
+.qty button[disabled]{opacity:.35;cursor:not-allowed}
+/* admin: price match */
+.pmrow{display:grid;grid-template-columns:72px 1fr 300px;gap:16px;padding:16px 0;border-top:1px solid var(--line)}
+.pmrow:first-child{border-top:0}
+.pmrow img.thumb{width:72px;height:72px;object-fit:contain;border:1px solid var(--line);border-radius:8px;background:#fff}
+.pmrow .shot{display:block;margin-top:8px;max-width:260px;border:1px solid var(--line);border-radius:8px}
+.pmrow .prices{display:flex;gap:16px;margin-top:6px;flex-wrap:wrap}
+.pmrow .prices b{font-size:18px}
+.pmrow .link{display:inline-flex;gap:6px;align-items:center;margin-top:6px;font-weight:600;color:#1f5fa8;word-break:break-all}
+.pmrow form{display:grid;gap:6px;margin-bottom:10px}
+.pmrow form input,.pmrow form textarea{border:1px solid var(--line);border-radius:6px;padding:7px 9px;font:inherit}
+.pmrow form textarea{min-height:52px}
+.pmtabs{display:flex;gap:6px;margin-bottom:6px}
+.pmtabs a{padding:6px 12px;border-radius:999px;border:1px solid var(--line);font-weight:600;font-size:13.5px}
+.pmtabs a.on{background:var(--text);color:#fff;border-color:var(--text)}
+@media (max-width:900px){.pmrow{grid-template-columns:60px 1fr}.pmrow > :last-child{grid-column:1/-1}}

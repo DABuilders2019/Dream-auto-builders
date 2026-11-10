@@ -1,0 +1,33 @@
+{# Price match card (product page). Closed: one row under the price. Open: the steps and the form. #}
+<details class="pmB" id="pricematch"{% if pm.sent or pm.error %} open{% endif %}>
+  <summary class="pmB-head"><span class="ic">{{ icon('tag', 20) }}</span>
+    <span class="pmB-t"><b>Found it for less? We'll price match.</b><small>Show us a lower price from an authorized seller.</small></span>
+    <span class="chev">{{ icon('chevD', 18) }}</span></summary>
+  <div class="pmB-body">
+    {% if pm.sent %}
+    <div class="notice" role="status">{{ icon('checkc', 18) }} <span><b>Thanks, we got your request{% if pm.number %} (#{{ pm.number }}){% endif %}.</b> We'll check it and email you, usually within one business day. If we approve it, the part goes in your cart at the matched price for {{ pm.hours }} hours.</span></div>
+    {% else %}
+    {% if pm.error %}<div class="notice warn" role="alert">{{ icon('info', 18) }} <span>{{ pm.error }}</span></div>{% endif %}
+    <div class="pmB-steps"><div><b>1. Show us</b>A link or photo of the lower price</div><div><b>2. We check</b>We verify the seller and the price</div><div><b>3. You save</b>We email you the matched price</div></div>
+    <form class="pmB-form" method="post" action="/price-match" enctype="multipart/form-data">
+      <input type="hidden" name="product_id" value="{{ p.id }}">
+      <div class="pmB-tabs" role="radiogroup" aria-label="How you'll show us the price">
+        <label><input type="radio" name="pm_how" value="link" checked> {{ icon('globe', 15) }} Paste a link</label>
+        <label><input type="radio" name="pm_how" value="photo"> {{ icon('photo', 15) }} Upload a photo</label>
+      </div>
+      <div class="pm-field pm-link"><label for="pmUrl">Link to the listing</label>
+        <input id="pmUrl" name="url" inputmode="url" autocomplete="off" placeholder="https://www.example-store.com/part/..." value="{{ pm.form.url }}"></div>
+      <div class="pm-field pm-photo"><label for="pmPhoto">Photo or screenshot of the price</label>
+        <input id="pmPhoto" name="photo" type="file" accept="image/*"><small class="muted">JPG or PNG, up to 10 MB. A screenshot of the other store's page works best.</small></div>
+      <div class="pm-row">
+        <div class="pm-field"><label for="pmPrice">Their price{% if pm.form.qty and pm.form.qty != '1' %} (each){% endif %}</label><input id="pmPrice" name="their_price" inputmode="decimal" placeholder="$0.00" value="{{ pm.form.their_price }}" required></div>
+        <div class="pm-field pm-qty"><label for="pmQty">Qty</label><input id="pmQty" name="qty" inputmode="numeric" value="{{ pm.form.qty or '1' }}"></div>
+        <div class="pm-field"><label for="pmEmail">Your email</label><input id="pmEmail" name="email" type="email" autocomplete="email" placeholder="you@email.com" value="{{ pm.form.email }}" required></div>
+      </div>
+      <div class="pm-hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+      <button class="pm-send" type="submit">Send price match request</button>
+      <p class="pm-fine">Authorized U.S. sellers only, same new part, in stock. Marketplace and auction listings don't qualify. We reply by email within one business day.</p>
+    </form>
+    {% endif %}
+  </div>
+</details>

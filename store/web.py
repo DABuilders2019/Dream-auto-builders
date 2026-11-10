@@ -127,6 +127,8 @@ def save_cart(request, cart):
 def cart_summary(conn, searcher, request):
     cart = cart_dict(request)
     prods = Q.cart_products(conn, searcher, cart.keys())
+    from . import pricematch
+    pricematch.apply(conn, request, cart, prods)       # approved price matches the visitor claimed
     count = sum(q for pid, q in cart.items() if pid in prods)
     subtotal = sum(prods[pid]["price"] * q for pid, q in cart.items() if pid in prods)
     return cart, prods, count, subtotal
@@ -464,10 +466,12 @@ def product_page(request: Request, slug: str):
         dims = conn.execute("SELECT package_dims FROM products WHERE id = %s", (p["id"],)).fetchone()[0]
         ship_note = {"kind": shipping.ship_class(p.get("weight_lb"), dims, rule), "over": rule["over"],
                      "cap": float(rule.get("cap") or 0), "service": shipping.FREE_SERVICES.get(rule["service"], "UPS Ground"),
-                     "free_on": bool(rule["on"])}
+                     "free_on": bool(rule["on"]), "excludes": bool(rule.get("oversize") or rule.get("max_lb"))}
+        from . import pricematch
+        pm = pricematch.form_context(request, conn, p)
         return render(request, conn, s, "product.html", p=p, v=v, fit_info=fit_info, summary=summary, related=related,
                       in_cart=in_cart, specs=specs, size=size, title=p["short_name"], t14_on=_t14_has_data(conn),
-                      ship_note=ship_note)
+                      ship_note=ship_note, pm=pm)
 
 
 def _t14_has_data(conn):
@@ -550,6 +554,7 @@ def cart_page(request: Request):
                       restricted_names=", ".join(O.US_STATES[c] for c in restricted[:-1]) + (" or " if len(restricted) > 1 else "")
                       + (O.US_STATES[restricted[-1]] if restricted else ""),
                       error=request.query_params.get("error", "")[:300], cancelled=request.query_params.get("cancelled") == "1",
+                      pm_added=request.query_params.get("pm") == "1",
                       ship_state=request.query_params.get("state", ""))
 
 

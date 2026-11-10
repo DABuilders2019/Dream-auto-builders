@@ -24,12 +24,13 @@
       <h1>{{ p.title }}</h1>
       <div class="meta num"><span>Part # <b>{{ p.part_number }}</b></span>{% if p.category_name %}<span>Category <b>{{ p.category_name }}</b></span>{% endif %}{% if p.weight_lb %}<span>Weight <b>{{ '%g'|format(p.weight_lb|float) }} lb</b></span>{% endif %}</div>
       <div class="pricebox"><span class="price num">{{ p.price|money }}</span></div>
+      {% include "_price_match.html" %}
       {% if ship_note.kind == 'freight' %}
       <div class="shipnote">{{ icon('truck', 16) }} <span><b>Ships by truck freight.</b> Too big for UPS, so <a href="/contact">contact us</a> for a freight quote before ordering.</span></div>
       {% elif ship_note.kind == 'oversized' %}
       <div class="shipnote">{{ icon('truck', 16) }} <span><b>Oversized: shipping extra.</b> Free shipping doesn't cover this part; it pays its own {{ ship_note.service }} price{% if ship_note.cap %}, never more than {{ ship_note.cap|money }}{% endif %}. You'll see the exact price in the cart.</span></div>
       {% elif ship_note.free_on %}
-      <div class="shipnote ok">{{ icon('truck', 16) }} <span>Free {{ ship_note.service }} on orders over {{ ship_note.over|money }}.</span></div>
+      <div class="shipnote ok">{{ icon('truck', 16) }} <span>Free {{ ship_note.service }} on orders over {{ ship_note.over|money }}{% if ship_note.excludes %}<span class="excl"> · excludes oversized items</span>{% endif %}.</span></div>
       {% endif %}
 
       {# ---- does it fit? ---- #}

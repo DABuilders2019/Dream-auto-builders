@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head>{% include "_admin_head.html" %}</head>
+<body>
+{% include "_admin_header.html" %}
+<main class="wrap admin">
+  <section class="acard">
+    <h2>Price match requests</h2>
+    <p class="muted">Customers send these from the price match box on product pages. Open the link or photo, check that it's an authorized seller with the same new part in stock, then approve or decline. Either way the customer gets an email. An approved match is held in their cart for {{ hours }} hours.</p>
+    {% if not mail_on %}<div class="notice warn">{{ icon('info', 18) }} <span>Email isn't set up, so customers won't get your answer automatically. After approving, copy the cart link shown on the request and send it to them yourself.</span></div>{% endif %}
+    {% if done == 'approved' %}<div class="notice">{{ icon('checkc', 18) }} <span>Approved{% if mail_on %} and emailed{% endif %}.</span></div>
+    {% elif done == 'declined' %}<div class="notice">{{ icon('checkc', 18) }} <span>Declined{% if mail_on %} and emailed{% endif %}.</span></div>
+    {% elif done == 'badprice' %}<div class="notice warn">{{ icon('info', 18) }} <span>Enter the matched price as a number, for example 589.99.</span></div>{% endif %}
+    <nav class="pmtabs">
+      <a href="?show=pending" class="{{ 'on' if show == 'pending' }}">Waiting ({{ counts.get('pending', 0) }})</a>
+      <a href="?show=approved" class="{{ 'on' if show == 'approved' }}">Approved ({{ counts.get('approved', 0) }})</a>
+      <a href="?show=declined" class="{{ 'on' if show == 'declined' }}">Declined ({{ counts.get('declined', 0) }})</a>
+    </nav>
+    {% if not rows %}<p class="muted" style="padding:16px 0">Nothing here{% if show == 'pending' %}: no requests waiting{% endif %}.</p>{% endif %}
+    <div>
+    {% for r in rows %}
+      <div class="pmrow">
+        <div>{% if r.image_url %}<img class="thumb" src="{{ r.image_url }}" alt="">{% endif %}</div>
+        <div>
+          <div class="muted small num">#{{ r.id }} · {{ r.created_at.strftime('%b %-d, %-I:%M %p') }} UTC · {{ r.email }}</div>
+          {% if r.slug %}<a href="/p/{{ r.slug }}" target="_blank" rel="noopener"><b>{{ r.brand_name }} {{ r.part_number }}</b> · {{ r.title }}</a>{% else %}<b>Part no longer in the catalog</b>{% endif %}
+          <div class="prices num"><span>Ours <b>{{ r.our_price|money }}</b></span><span>Theirs <b style="color:var(--red)">{{ r.their_price|money }}</b></span>
+            {% if r.diff is defined %}<span class="muted">{{ r.diff|money }} less ({{ '%.0f'|format(r.pct) }}%)</span>{% endif %}
+            {% if r.qty > 1 %}<span>Qty <b>{{ r.qty }}</b></span>{% endif %}</div>
+          {% if r.url %}<a class="link" href="{{ r.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ icon('globe', 15) }} {{ r.host }}</a>
+            <div class="muted small" style="word-break:break-all">{{ r.url }}</div>{% endif %}
+          {% if r.photo_key %}<a href="/admin/price-match/{{ r.id }}/photo" target="_blank" rel="noopener"><img class="shot" src="/admin/price-match/{{ r.id }}/photo" alt="Customer's photo of the price"></a>{% endif %}
+        </div>
+        <div>
+          {% if r.status == 'pending' %}
+          <form method="post" action="/admin/price-match/{{ r.id }}/approve">
+            <label><b>Approve at</b> (each)</label>
+            <input name="matched_price" value="{{ '%.2f'|format(r.their_price) }}" inputmode="decimal">
+            <textarea name="message" placeholder="Optional note to the customer"></textarea>
+            <button class="btn btn-red btn-sm" type="submit">Approve and email</button>
+          </form>
+          <form method="post" action="/admin/price-match/{{ r.id }}/decline">
+            <textarea name="reason" placeholder="Reason, e.g. that seller isn't authorized, or the part is out of stock there"></textarea>
+            <button class="btn btn-ghost btn-sm" type="submit">Decline and email</button>
+          </form>
+          {% elif r.status == 'approved' %}
+          <div><b class="num">Matched at {{ r.matched_price|money }}</b></div>
+          <div class="muted small">{% if r.used_order_id %}Used on order <a href="/admin/orders/{{ r.order_number }}">{{ r.order_number }}</a>{% elif r.expired %}Expired unused{% else %}In the customer's cart until {{ r.expires_at.strftime('%b %-d, %-I:%M %p') }} UTC{% endif %}</div>
+          {% if not r.used_order_id and not r.expired %}<div class="small" style="margin-top:6px;word-break:break-all"><span class="muted">Cart link:</span> {{ r.claim_url }}</div>{% endif %}
+          {% if r.reply %}<div class="small" style="margin-top:6px">Note: {{ r.reply }}</div>{% endif %}
+          {% else %}
+          <div><b>Declined</b></div>{% if r.reply %}<div class="small">{{ r.reply }}</div>{% endif %}
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+  </section>
+</main>
+</body></html>

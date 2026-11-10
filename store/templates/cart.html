@@ -8,16 +8,18 @@
   {% else %}
   <div class="shop-h"><div><h1>Your cart</h1><div class="count num">{{ cart_count }} item{{ 's' if cart_count != 1 }}</div></div></div>
   {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
+  {% if pm_added %}<div class="notice">{{ icon('checkc', 18) }} <span>Your price match is in your cart at the matched price.</span></div>{% endif %}
   {% if cancelled %}<div class="notice">{{ icon('info', 18) }} <span>Checkout was cancelled. Your cart is still here.</span></div>{% endif %}
   <div class="cart"><div>
     {% for l in lines %}
     <div class="line"><a href="/p/{{ l.slug }}" aria-hidden="true" tabindex="-1">{{ pimg(l, 40) }}</a>
-      <div><a class="t" href="/p/{{ l.slug }}">{{ l.title }}</a><div class="sub num">{{ l.brand_name }} · Part # {{ l.part_number }} · {{ l.price|money }} each</div><div style="margin-top:6px">{{ fit_badge(l, active) }} {{ emissions(l) }}</div></div>
+      <div><a class="t" href="/p/{{ l.slug }}">{{ l.title }}</a><div class="sub num">{{ l.brand_name }} · Part # {{ l.part_number }} · {{ l.price|money }} each{% if l.pm_id %} <s class="was">{{ l.was_price|money }}</s>{% endif %}</div>
+        {% if l.pm_id %}<div class="pmtag num">{{ icon('tag', 14) }} Price matched{% if l.pm_qty > 1 %} for up to {{ l.pm_qty }}{% endif %} · until {{ l.pm_until }}</div>{% endif %}<div style="margin-top:6px">{{ fit_badge(l, active) }} {{ emissions(l) }}</div></div>
       <div class="r">
         <div class="qty">
           <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="{{ l.qty - 1 }}"><button type="submit" aria-label="Decrease quantity">−</button></form>
           <input value="{{ l.qty }}" class="num" aria-label="Quantity" readonly>
-          <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="{{ l.qty + 1 }}"><button type="submit" aria-label="Increase quantity">+</button></form>
+          <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="{{ l.qty + 1 }}"><button type="submit" aria-label="Increase quantity"{% if l.pm_id and l.qty >= l.pm_qty %} disabled title="The matched price covers {{ l.pm_qty }}"{% endif %}>+</button></form>
         </div>
         <b class="num">{{ l.line_total|money }}</b>
         <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="0"><button class="linkbtn" type="submit">Remove</button></form>

@@ -116,3 +116,10 @@ Off until these are done: checkout works without them, but the reminder emails w
       Admin > UPS and a test cart.
 - [ ] Compare a few UPS quotes with what suppliers actually charge for drop-shipping, and adjust if needed.
 - [ ] Decide how freight-only parts (over UPS limits) are quoted and sold.
+
+
+## Price match
+
+- [ ] `ORDER_NOTIFY_EMAIL` is set (admin@dreamautobuilders.com), so new price match requests reach you.
+- [ ] Check the rules line under the price match form matches your actual policy (authorized U.S. sellers, same new part, in stock, no marketplace or auction listings).
+- [ ] Send a test request, approve it, and open the emailed link to see the matched price in the cart.

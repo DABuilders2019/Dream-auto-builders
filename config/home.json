@@ -90,6 +90,8 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "ohlins": "ohlins.png",
+    "enkei": "enkei.png",
     "kyb": "kyb.png",
     "advancedclutch": "act.png",
     "bullydog": "bullydog.png",
@@ -128,6 +130,7 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
+    "enkei": ["strong"],
     "bullydog": ["keep_holes"],
     "flowmaster": ["box"],
     "chemicalguys": ["keep_holes"],

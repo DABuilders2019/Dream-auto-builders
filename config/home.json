@@ -141,8 +141,8 @@
     "cokertire": ["keep_holes"],
     "rubiconexpress": ["keep_holes"],
     "carr": ["keep_holes", "fill_inside"],
-    "racesport": ["keep_holes"],
-    "racesportlighting": ["keep_holes"],
+    "racesport": ["box"],
+    "racesportlighting": ["box"],
     "snowperformance": ["strong"],
     "realtruckbak": ["strong"],
     "usspeedo": ["strong"],
@@ -150,6 +150,7 @@
     "motul": ["box"]
   },
   "banner_logos": {
+    "racesport": "racesport-banner.png",
     "kyb": "kyb-banner.png",
     "advancedclutch": "act-banner.png"
   },

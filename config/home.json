@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "moog": "moog.png",
     "hella": "hella.png",
     "griots": "griots.png",
     "iconvehicledynamics": "icon.png",
@@ -133,6 +134,7 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
+    "moog": ["box"],
     "iconvehicledynamics": ["keep_holes"],
     "enkei": ["strong"],
     "bullydog": ["keep_holes"],

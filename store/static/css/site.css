@@ -38,12 +38,19 @@ h1,h2,h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.01e
 header.top{background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
 .hdr{display:flex;align-items:center;gap:20px;height:76px}
 .logo img{height:60px;width:auto}
-.search{flex:1;position:relative;max-width:none;min-width:0}
-.search form{display:flex;background:#fff;border-radius:var(--radius);overflow:hidden;border:2px solid #111}
-.search input{flex:1;border:0;background:#fff;color:#111;padding:11px 14px;font-size:15px;outline:none;min-width:0}
+.search{flex:1;position:relative;max-width:520px;min-width:0;margin:0 auto}
+/* minimal search bar: light grey rounded box, magnifier inside on the left, Enter or the magnifier to search */
+.search form{display:flex;align-items:center;height:40px;background:#f5f5f7;border:1px solid #d9d9de;border-radius:10px;overflow:hidden;transition:background .15s,border-color .15s}
+.search form:focus-within{background:#fff;border-color:#999}
+.search input{flex:1;border:0;background:transparent;color:#111;padding:0 10px 0 4px;font-size:14px;outline:none;min-width:0;height:100%}
 .search input::placeholder{color:#777}
-.search button{background:var(--red);border:0;padding:0 18px;display:flex;align-items:center;gap:6px;font-weight:700;color:#fff;font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.03em}
-.search button:hover{background:var(--red-deep)}
+.search button{order:-1;background:transparent;border:0;padding:0 4px 0 14px;height:100%;display:flex;align-items:center;color:#555;cursor:pointer}
+.search button:hover{color:var(--red)}
+.search button span:last-child{display:none}
+/* the browser's "clear search" x, in grey (red when hovered) instead of blue */
+.search input::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;width:14px;height:14px;cursor:pointer;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 2l10 10M12 2L2 12' stroke='%23888' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center/14px no-repeat}
+.search input::-webkit-search-cancel-button:hover{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M2 2l10 10M12 2L2 12' stroke='%23a8131a' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E")}
 .ac{position:absolute;left:0;right:0;top:calc(100% + 6px);background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:0 18px 40px rgba(0,0,0,.14);display:none;max-height:70vh;overflow:auto;z-index:60}
 .ac.open{display:block}
 .ac h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 14px 4px;font-weight:600}
@@ -355,8 +362,7 @@ footer{background:var(--panel);border-top:1px solid var(--line);margin-top:20px}
   .hdr{flex-wrap:wrap;height:auto;padding:10px 16px;gap:10px}
   .logo img{height:46px}
   .search{order:3;flex:1 1 100%;max-width:none}
-  .search button span:last-child{display:none}
-  .search button{padding:0 14px}
+  .search button{padding:0 4px 0 12px}
   .vbar .vsel{flex:1 1 100%}
   .hbtn .lbl{display:none}
   .hdr-actions{gap:2px}

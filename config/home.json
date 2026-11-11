@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "iconvehicledynamics": "icon.png",
     "ohlins": "ohlins.png",
     "enkei": "enkei.png",
     "kyb": "kyb.png",
@@ -130,6 +131,7 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
+    "iconvehicledynamics": ["keep_holes"],
     "enkei": ["strong"],
     "bullydog": ["keep_holes"],
     "flowmaster": ["box"],
@@ -158,6 +160,7 @@
     "advancedclutch": "act-banner.png"
   },
   "banner_logo_clear": {
+    "iconvehicledynamics": [[0.7477, 0.4082], [0.6763, 0.8544], [0.8134, 0.8418]],
     "bullydog": [[0.5324, 0.2774], [0.7204, 0.5274], [0.6176, 0.5457]],
     "vossen": [[0.295, 0.3571]],
     "akrapovic": [[0.3258, 0.3209], [0.4958, 0.5597], [0.58, 0.3694], [0.67, 0.3172], [0.7392, 0.6231]],

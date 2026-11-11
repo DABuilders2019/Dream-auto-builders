@@ -262,8 +262,13 @@ def search_page(request: Request, q: str = ""):
     return _results(request, kind="search", q=q.strip()[:200])
 
 
+RENAMED_CATEGORIES = {"pads-rotors": "brake-pads"}     # old links keep working (Pads & Rotors was split, Nov 2026)
+
+
 @router.get("/c/{cat_id}", response_class=HTMLResponse)
 def category_page(request: Request, cat_id: str):
+    if cat_id in RENAMED_CATEGORIES:
+        return RedirectResponse(f"/c/{RENAMED_CATEGORIES[cat_id]}", status_code=301)
     return _results(request, kind="category", category=cat_id)
 
 

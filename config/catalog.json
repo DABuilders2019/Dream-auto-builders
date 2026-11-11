@@ -92,6 +92,10 @@
     [
      "throttle-bodies",
      "Throttle Bodies & Intake Manifolds"
+    ],
+    [
+     "intake-accessories",
+     "Filter Care & Intake Accessories"
     ]
    ]
   },
@@ -224,12 +228,38 @@
      "Floor Liners"
     ],
     [
+     "cargo-liners",
+     "Cargo Liners & Storage"
+    ],
+    [
      "seat-covers",
      "Seat Covers"
     ],
     [
      "interior-accessories",
      "Interior Accessories"
+    ]
+   ]
+  },
+  {
+   "id": "detailing",
+   "name": "Detailing",
+   "subs": [
+    [
+     "wash-wax",
+     "Wash & Wax"
+    ],
+    [
+     "polish-coatings",
+     "Polish & Coatings"
+    ],
+    [
+     "interior-care",
+     "Interior Care"
+    ],
+    [
+     "detailing-tools",
+     "Towels & Tools"
     ]
    ]
   },
@@ -276,8 +306,12 @@
      "Big Brake Kits"
     ],
     [
-     "pads-rotors",
-     "Pads & Rotors"
+     "brake-pads",
+     "Brake Pads"
+    ],
+    [
+     "brake-rotors",
+     "Rotors"
     ],
     [
      "brake-components",
@@ -366,6 +400,94 @@
   }
  ],
  "rules": [
+  {
+   "part_type_contains": [
+    "Air Filter Cleaner",
+    "Filter Cleaner",
+    "Filter Oil",
+    "Recharger",
+    "Filter Cleaning",
+    "Air Filter Oil",
+    "Intake Coupler",
+    "Intake Elbow",
+    "Intake Hose",
+    "Velocity Stack",
+    "Air Intake Coupler"
+   ],
+   "category": "intake-accessories"
+  },
+  {
+   "part_type_contains": [
+    "Car Wash",
+    "Wash Soap",
+    "Vehicle Wash",
+    "Wax",
+    "Spray Detailer",
+    "Quick Detailer",
+    "Detail Spray",
+    "Waterless Wash",
+    "Rinseless",
+    "Paint Sealant",
+    "Tire Shine",
+    "Tire Dressing",
+    "Wheel Cleaner",
+    "Bug Remover",
+    "Tar Remover",
+    "Glass Cleaner",
+    "Exterior Cleaner"
+   ],
+   "category": "wash-wax"
+  },
+  {
+   "part_type_contains": [
+    "Polish",
+    "Polishing Compound",
+    "Rubbing Compound",
+    "Ceramic Coating",
+    "Paint Coating",
+    "Clay Bar",
+    "Swirl Remover",
+    "Scratch Remover",
+    "Paint Correction"
+   ],
+   "category": "polish-coatings"
+  },
+  {
+   "part_type_contains": [
+    "Leather Cleaner",
+    "Leather Conditioner",
+    "Upholstery Cleaner",
+    "Carpet Cleaner",
+    "Interior Cleaner",
+    "Interior Detailer",
+    "Dash Cleaner",
+    "Vinyl Cleaner",
+    "Odor Eliminator",
+    "Air Freshener",
+    "Fabric Protectant"
+   ],
+   "category": "interior-care"
+  },
+  {
+   "part_type_contains": [
+    "Towel",
+    "Microfiber",
+    "Wash Mitt",
+    "Applicator",
+    "Buffing Pad",
+    "Polishing Pad",
+    "Foam Pad",
+    "Polisher",
+    "Detailing Brush",
+    "Wheel Brush",
+    "Wash Bucket",
+    "Foam Cannon",
+    "Foam Gun",
+    "Detailing Kit",
+    "Detailing"
+   ],
+   "category": "detailing-tools"
+  },
   {
    "part_type": [
     "Tire"
@@ -660,6 +782,55 @@
   },
   {
    "part_type_contains": [
+    "Cleaner",
+    "Protectant",
+    "Degreaser",
+    "Dressing",
+    "Shampoo",
+    "Detailer",
+    "Conditioner"
+   ],
+   "text_contains": [
+    "leather",
+    "upholstery",
+    "carpet",
+    "interior",
+    "dashboard",
+    "vinyl",
+    "fabric",
+    "seat"
+   ],
+   "category": "interior-care"
+  },
+  {
+   "part_type_contains": [
+    "Cleaner",
+    "Protectant",
+    "Degreaser",
+    "Dressing",
+    "Shampoo",
+    "Detailer",
+    "Conditioner"
+   ],
+   "text_contains": [
+    "car wash",
+    "paint",
+    "wheel cleaner",
+    "tire",
+    "glass",
+    "exterior",
+    "trim",
+    "detail",
+    "wax",
+    "clear coat",
+    "clearcoat",
+    "bug",
+    "tar"
+   ],
+   "category": "wash-wax"
+  },
+  {
+   "part_type_contains": [
     "Additive",
     "Cleaner",
     "Treatment",
@@ -771,11 +942,22 @@
   },
   {
    "part_type_contains": [
-    "Floor Mat",
-    "Floor Liner",
     "Cargo Liner",
     "Cargo Mat",
-    "Trunk Mat"
+    "Trunk Mat",
+    "Cargo Tray",
+    "Cargo Organizer",
+    "Cargo Net",
+    "Cargo Management",
+    "Trunk Organizer",
+    "Bed Mat"
+   ],
+   "category": "cargo-liners"
+  },
+  {
+   "part_type_contains": [
+    "Floor Mat",
+    "Floor Liner"
    ],
    "category": "floor-liners"
   },
@@ -876,14 +1058,21 @@
   },
   {
    "part_type_contains": [
-    "Brake Pad",
     "Brake Rotor",
     "Disc Brake Rotor",
     "Rotor",
-    "Brake Shoe",
+    "Brake Drum",
     "Pad and Rotor"
    ],
-   "category": "pads-rotors"
+   "category": "brake-rotors"
+  },
+  {
+   "part_type_contains": [
+    "Brake Pad",
+    "Brake Shoe",
+    "Pad Set"
+   ],
+   "category": "brake-pads"
   },
   {
    "part_type_contains": [
@@ -1275,10 +1464,15 @@
   },
   {
    "text_contains": [
-    "brake pad",
+    "brake pad"
+   ],
+   "category": "brake-pads"
+  },
+  {
+   "text_contains": [
     "rotor"
    ],
-   "category": "pads-rotors"
+   "category": "brake-rotors"
   },
   {
    "text_contains": [
@@ -1321,6 +1515,15 @@
   },
   {
    "text_contains": [
+    "cargo liner",
+    "cargo mat",
+    "trunk liner",
+    "trunk mat"
+   ],
+   "category": "cargo-liners"
+  },
+  {
+   "text_contains": [
     "floor mat",
     "floor liner"
    ],
@@ -1353,6 +1556,29 @@
     "clamp"
    ],
    "category": "hardware"
+  },
+  {
+   "text_contains": [
+    "recharger kit",
+    "filter cleaning kit",
+    "air filter cleaner",
+    "air filter oil"
+   ],
+   "category": "intake-accessories"
+  },
+  {
+   "text_contains": [
+    "car wash",
+    "wash soap",
+    "ceramic coating",
+    "spray wax",
+    "quick detailer",
+    "microfiber towel",
+    "wash mitt",
+    "tire shine",
+    "leather cleaner"
+   ],
+   "category": "wash-wax"
   }
  ],
  "_universal_comment": "Part types in these categories fit any vehicle by nature (weld-in mufflers, tips, pipes and clamps), so they count as universal even without vehicle data.",

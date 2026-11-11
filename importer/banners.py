@@ -579,6 +579,11 @@ def logo_for(conn, brand_id, logo_url, storage=None):
         tw = (tw | {"keep_holes"}) - {"strong"} if r[4] else (tw - {"keep_holes"}) | {"strong"}
     pts = _points(brand_id, r[3])
     src = f"{logo_url}#v{LOGO_VERSION}" + "".join(f"+{x}" for x in sorted(tw)) + (f"+p{pts}" if pts else "")
+    if logo_url.startswith("/static/"):     # a replaced logo file under the same name is noticed too
+        try:
+            src += "+" + hashlib.md5((STATIC / logo_url[len("/static/"):].split("?")[0]).read_bytes()).hexdigest()[:8]
+        except OSError:
+            pass
     if r[0] and r[1] == src:
         return storage.url(r[0])
     try:

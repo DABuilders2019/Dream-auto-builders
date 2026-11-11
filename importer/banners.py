@@ -453,7 +453,10 @@ def ensure(conn, brand_id=None, storage=None, log=log.info):
 # ------------------------------------------------------------------ the summary text
 
 def norm(s):
-    return re.sub(r"[^a-z0-9]+", "", (s or "").lower())
+    """Lower-case letters and digits only; accents folded ("Öhlins" -> "ohlins")."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", s or "").encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", "", s.lower())
 
 
 _blurbs = {"mtime": None, "data": {}}

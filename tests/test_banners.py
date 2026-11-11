@@ -232,3 +232,8 @@ def test_banner_only_logo():
     assert bn._banner_file("advancedclutch", "Advanced Clutch Technology") == "act-banner.png"
     assert bn._banner_file("bilstein", "Bilstein") is None
     assert bn._banner_file("kybamericas", "KYB Americas") == "kyb-banner.png"
+
+
+def test_accented_brand_names_match_logos():
+    from importer import banners as bn
+    assert bn.norm("Öhlins") == "ohlins" and bn.norm("Öhlins USA") == "ohlinsusa"

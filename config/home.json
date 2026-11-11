@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "kyb": "kyb.png",
     "advancedclutch": "act.png",
     "bullydog": "bullydog.png",
     "americantruxx": "americantruxx.png",
@@ -149,6 +150,7 @@
     "motul": ["box"]
   },
   "banner_logos": {
+    "kyb": "kyb-banner.png",
     "advancedclutch": "act-banner.png"
   },
   "banner_logo_clear": {

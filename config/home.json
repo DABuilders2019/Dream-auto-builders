@@ -92,7 +92,7 @@
   "brand_logos": {
     "diodedynamics": "diodedynamics.png",
     "moog": "moog.png",
-    "hella": "hella.png",
+    "hella": "hella-dark.png",
     "griots": "griots.png",
     "iconvehicledynamics": "icon.png",
     "ohlins": "ohlins.png",
@@ -160,6 +160,7 @@
     "motul": ["box"]
   },
   "banner_logos": {
+    "hella": "hella-banner.png",
     "diodedynamics": "diodedynamics-banner.png",
     "racesport": "racesport-banner.png",
     "kyb": "kyb-banner.png",

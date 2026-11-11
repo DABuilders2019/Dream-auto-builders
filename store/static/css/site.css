@@ -194,8 +194,9 @@ section.blk{padding:40px 0}
 .stock{font-size:12.5px;display:flex;align-items:center;gap:6px;color:var(--muted)}
 .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
 .dot.bo{background:var(--warn)}
-.addbtn{background:var(--red);border:0;border-radius:var(--radius);height:40px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;color:#fff;flex:none;font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer}
-.card .foot{flex-wrap:wrap}
+.addbtn{background:var(--red);border:0;border-radius:6px;height:28px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;color:#fff;flex:none;font-weight:700;font-size:13px;line-height:1;white-space:nowrap;cursor:pointer}
+.card .foot{flex-wrap:wrap;align-items:center}          /* the button is the price's height and lines up with it */
+@media (max-width:760px){.addbtn{height:26px}}
 .addbtn:hover{background:var(--red-deep)}
 
 .fit{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;border-radius:4px;padding:3px 8px;width:fit-content}

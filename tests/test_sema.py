@@ -30,6 +30,7 @@ class FakeSema:
         self.batch_ok = False
         self.limit = 10
         self.max_query = 100000
+        self.broken = set()
         self.parts = {"985-24-001": product("985-24-001", "Front Shock 0-2 in. Lift", 129.95),
                       "985-24-002": product("985-24-002", "Rear Shock 0-1 in. Lift", 119.95),
                       "UNI-1": product("UNI-1", "Shock Boot", 19.95)}
@@ -74,6 +75,8 @@ class FakeSema:
         if path == "/lookup/vehiclesbyproduct":
             multi = urllib.parse.parse_qs(request.content.decode())
             pns = multi.get("partNumber") or multi.get("partNumbers") or []
+            if any(p in self.broken for p in pns):          # SEMA's server fails on this part every time
+                return httpx.Response(500, json={"Success": False, "Message": "An unexpected error occurred. Log Id: 1"})
             if not self.batch_ok or "partNumber" not in multi:
                 pns = pns[:1]
             if len(pns) > self.limit:
@@ -172,8 +175,8 @@ def test_429_waits_and_retries_once_then_stops(conn, sema):
     fake.fail["/export/branddatasets"] = [429, 429]
     with pytest.raises(sc.StopSync):
         ss.run(conn, "test", log=lambda *a: None, client=c)
-    fake.fail["/export/branddatasets"] = [500]
-    with pytest.raises(sc.StopSync, match="500"):
+    fake.fail["/export/branddatasets"] = [500]      # SEMA's own server failed: reported, not retried here
+    with pytest.raises(sc.ServerError, match="500"):
         ss.run(conn, "test", log=lambda *a: None, client=c)
 
 
@@ -450,3 +453,31 @@ def test_load_redoes_brand_when_database_drops_mid_import(conn, sema, monkeypatc
     assert any("reconnected, importing again" in m for m in lines)
     assert rc.execute("SELECT status FROM sema_brands WHERE aaia = 'TSTB'").fetchone()[0] == "loaded"
     assert rc.execute("SELECT count(*) FROM products WHERE brand_id = 'testshocks'").fetchone()[0] == 3
+
+
+def test_sema_server_error_on_fitment_is_retried(conn, sema):
+    """SEMA answered 500 once: asked again, and the brand loads with all its fitment."""
+    fake, c, tmp = sema
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    c.set_state(ss.FIT_MODE_KEY, "single")          # no probe call first: the 500 lands on a real lookup
+    fake.fail["/lookup/vehiclesbyproduct"] = [500]
+    logs = []
+    ss.run(conn, "load", log=logs.append, client=c, data_dir=tmp, photos=False)
+    assert conn.execute("SELECT status FROM sema_brands WHERE aaia = 'TSTB'").fetchone()[0] == "loaded"
+    assert conn.execute("SELECT count(*) FROM fitment").fetchone()[0] == 3
+    assert any("trying again" in m for m in logs)
+
+
+def test_part_sema_keeps_failing_on_is_skipped(conn, sema):
+    """SEMA's server fails on one part every time: that part loads without fitment, the rest of the brand loads,
+    and the part is asked about again on the next load."""
+    fake, c, tmp = sema
+    fake.broken = {"985-24-002"}
+    ss.run(conn, "test", log=lambda *a: None, client=c)
+    logs = []
+    ss.run(conn, "load", log=logs.append, client=c, data_dir=tmp, photos=False)
+    assert conn.execute("SELECT status FROM sema_brands WHERE aaia = 'TSTB'").fetchone()[0] == "loaded"
+    assert conn.execute("SELECT count(*) FROM products WHERE brand_id IS NOT NULL").fetchone()[0] >= 3
+    assert conn.execute("""SELECT count(*) FROM fitment f JOIN products p ON p.id = f.product_id
+                           WHERE p.part_number = '985-24-001'""").fetchone()[0] == 2
+    assert any("failed on 1 part" in m and "985-24-002" in m for m in logs)

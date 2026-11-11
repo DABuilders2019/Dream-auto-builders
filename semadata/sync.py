@@ -453,6 +453,8 @@ def fetch_pies(c, aaia, parts, path, log):
 
 
 FIT_BATCH = 10        # SEMA: "Part Numbers parameter is limited to 10"
+FIT_RETRY_WAIT = 10   # seconds before asking again after SEMA's server failed on a fitment lookup
+FIT_MAX_SKIPPED = 50  # parts SEMA's server keeps failing on before the brand is given up for this run
 FIT_MODE_KEY = "fit_mode_v2"
 CACHE_VERSION = 2     # fitment answers read by an older version of the parser are asked again
 
@@ -550,27 +552,12 @@ def fetch_fitment(c, aaia, parts, work, log, refresh=False):
     size = FIT_BATCH if mode != "single" else 1
     sampled, written = False, 0
     errors = 0
+    skipped = []
     with open(cache, "a", encoding="utf-8") as out:
         i, n_calls = 0, 0
-        while i < len(todo):
-            batch = todo[i:i + size]
-            fields = [("aaia_brandid", aaia)] + [(FIT_KEYS.get(mode, "partNumber"), pn) for pn in batch]
-            try:
-                body = c.call("POST", "/lookup/vehiclesbyproduct", fields)
-            except sc.BrandError as e:
-                m = re.search(r"limited to (\d+)", str(e))
-                if m and 0 < int(m.group(1)) < size:       # SEMA tells us its limit: use it and ask again
-                    size = int(m.group(1))
-                    log(f"  SEMA takes {size} parts per fitment call")
-                    continue
-                log(f"  {', '.join(batch[:3])}{'…' if len(batch) > 3 else ''}: {e}")
-                errors += 1
-                if errors >= 20 and written == 0:
-                    raise sc.BrandError(f"fitment lookups keep failing ({e})")
-                i += size
-                continue
-            i += size
-            n_calls += 1
+
+        def keep(body, batch):
+            nonlocal sampled, written
             if not sampled:
                 (work / "fitment_sample.json").write_text(json.dumps(body, indent=1)[:20000])
                 log("  first fitment answer from SEMA: " + json.dumps(body)[:700])
@@ -589,8 +576,55 @@ def fetch_fitment(c, aaia, parts, work, log, refresh=False):
             for pn in batch:
                 out.write(json.dumps({"sku": pn, "done": True, "v": CACHE_VERSION}) + "\n")
             out.flush()
+
+        def ask(batch):
+            return c.call("POST", "/lookup/vehiclesbyproduct",
+                          [("aaia_brandid", aaia)] + [(FIT_KEYS.get(mode, "partNumber"), pn) for pn in batch])
+
+        while i < len(todo):
+            batch = todo[i:i + size]
+            try:
+                body = ask(batch)
+            except sc.ServerError as e:
+                # SEMA's server failed on this batch: try again shortly, then one part at a time; a part that
+                # still fails is skipped (no fitment yet) and asked again on the next load
+                log(f"  SEMA's server failed on a fitment lookup ({str(e)[:120]}); trying again")
+                c.sleep(FIT_RETRY_WAIT)
+                try:
+                    keep(ask(batch), batch)
+                    n_calls += 1
+                except sc.ServerError:
+                    for pn in batch:
+                        try:
+                            keep(ask([pn]), [pn])
+                            n_calls += 1
+                        except sc.ServerError:
+                            skipped.append(pn)
+                    if len(skipped) >= FIT_MAX_SKIPPED:
+                        raise sc.BrandError(f"SEMA's server keeps failing on fitment lookups ({len(skipped)} parts); "
+                                            "try loading this brand again later") from None
+                i += size
+                continue
+            except sc.BrandError as e:
+                m = re.search(r"limited to (\d+)", str(e))
+                if m and 0 < int(m.group(1)) < size:       # SEMA tells us its limit: use it and ask again
+                    size = int(m.group(1))
+                    log(f"  SEMA takes {size} parts per fitment call")
+                    continue
+                log(f"  {', '.join(batch[:3])}{'…' if len(batch) > 3 else ''}: {e}")
+                errors += 1
+                if errors >= 20 and written == 0:
+                    raise sc.BrandError(f"fitment lookups keep failing ({e})")
+                i += size
+                continue
+            i += size
+            n_calls += 1
+            keep(body, batch)
             if n_calls % 250 == 0:
                 log(f"  fitment: {min(i, len(todo)):,} of {len(todo):,} looked up")
+    if skipped:
+        log(f"  SEMA's server failed on {len(skipped)} part(s), loaded without fitment for now and asked again on "
+            f"the next load: {', '.join(skipped[:10])}{' …' if len(skipped) > 10 else ''}")
     if todo:
         log(f"  fitment: {written:,} vehicle rows from SEMA")
     current = set(parts)

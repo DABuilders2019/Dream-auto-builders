@@ -33,6 +33,10 @@ class BrandError(Exception):
     """A problem with one brand only: record it and carry on with the next brand."""
 
 
+class ServerError(BrandError):
+    """SEMA's own server failed (a 5xx answer, e.g. "An unexpected error occurred"): usually a passing hiccup."""
+
+
 class _TokenRejected(Exception):
     pass
 
@@ -227,6 +231,8 @@ class Client:
                 raise _TokenRejected()
             if r.status_code == 414 or (r.status_code == 404 and "404.15" in r.text):
                 raise RequestTooLong()
+            if r.status_code >= 500:          # SEMA's server failed: that brand fails, the job carries on
+                raise ServerError(f"SEMA answered {r.status_code} on {path}: {_short(r.text)}")
             if r.status_code != 200:
                 raise StopSync(f"SEMA answered {r.status_code} on {path}: {_short(r.text)}")
             try:

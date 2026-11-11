@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "flowmaster": "flowmaster.png",
     "chemicalguys": "chemicalguys.png",
     "brembooe": "brembooe.png",
     "bikemaster": "bikemaster.png",
@@ -120,6 +121,7 @@
     "lucas": "lucas.png"
   },
   "banner_logo_tweaks": {
+    "flowmaster": ["box"],
     "chemicalguys": ["keep_holes"],
     "konig": ["keep_holes"],
     "bosch": ["box"],

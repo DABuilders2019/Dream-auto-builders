@@ -90,6 +90,8 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "vossen": "vossen.png",
+    "akrapovic": "akrapovic.png",
     "corsa": "corsa.png",
     "flowmaster": "flowmaster.png",
     "chemicalguys": "chemicalguys.png",
@@ -143,6 +145,8 @@
     "motul": ["box"]
   },
   "banner_logo_clear": {
+    "vossen": [[0.295, 0.3571]],
+    "akrapovic": [[0.3258, 0.3209], [0.4958, 0.5597], [0.58, 0.3694], [0.67, 0.3172], [0.7392, 0.6231]],
     "corsa": [[0.5719, 0.1909]],
     "brembooe": [[0.0992, 0.7786], [0.3375, 0.6571], [0.5267, 0.5214], [0.8267, 0.5036], [0.9483, 0.55]],
     "yokohama": [[0.729, 0.495], [0.949, 0.496]],

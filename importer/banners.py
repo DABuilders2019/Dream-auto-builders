@@ -529,7 +529,13 @@ def _banner_file(brand_id, brand_name=None):
     except (OSError, ValueError):
         return None
     t = {norm(k): v for k, v in (cfg.get("banner_logos") or {}).items() if isinstance(v, str)}
-    return _match(t, brand_id, brand_name)
+    hit = _match(t, brand_id, brand_name)
+    if hit:
+        return hit
+    # same rule as the logos on white pages: a listed name of 3+ letters the brand's name starts with ("kyb" -> "KYB Americas")
+    keys = [k for k in (norm(brand_id), norm(brand_name)) if k]
+    best = max((k2 for k2 in t for k in keys if len(k2) >= 3 and k.startswith(k2)), key=len, default=None)
+    return t[best] if best else None
 
 
 def _match(table, brand_id, brand_name):

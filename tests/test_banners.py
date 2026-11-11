@@ -231,3 +231,4 @@ def test_banner_only_logo():
     from importer import banners as bn
     assert bn._banner_file("advancedclutch", "Advanced Clutch Technology") == "act-banner.png"
     assert bn._banner_file("bilstein", "Bilstein") is None
+    assert bn._banner_file("kybamericas", "KYB Americas") == "kyb-banner.png"

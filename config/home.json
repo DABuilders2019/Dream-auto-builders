@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "advancedclutch": "act.png",
     "bullydog": "bullydog.png",
     "americantruxx": "americantruxx.png",
     "vossen": "vossen.png",
@@ -146,6 +147,9 @@
     "usspeedo": ["strong"],
     "rigidindustries": ["strong"],
     "motul": ["box"]
+  },
+  "banner_logos": {
+    "advancedclutch": "act-banner.png"
   },
   "banner_logo_clear": {
     "bullydog": [[0.5324, 0.2774], [0.7204, 0.5274], [0.6176, 0.5457]],

@@ -521,6 +521,17 @@ def _tweaks(brand_id, brand_name=None):
     return _match(t, brand_id, brand_name) or set()
 
 
+def _banner_file(brand_id, brand_name=None):
+    """A logo used only on the brand's banner, from config/home.json "banner_logos": {"<brand>": "<file>"}, for a
+    logo whose banner version differs from the one on white pages (white lettering, say)."""
+    try:
+        cfg = json.loads((pathlib.Path(__file__).resolve().parent.parent / "config" / "home.json").read_text())
+    except (OSError, ValueError):
+        return None
+    t = {norm(k): v for k, v in (cfg.get("banner_logos") or {}).items() if isinstance(v, str)}
+    return _match(t, brand_id, brand_name)
+
+
 def _match(table, brand_id, brand_name):
     """A per-brand setting: by brand id or name, or the longest listed name the brand's name starts with
     ("carr" for "CARR Running Boards")."""
@@ -552,6 +563,9 @@ def logo_for(conn, brand_id, logo_url, storage=None):
         return None
     if r[5]:                                # uploaded on Admin > Logos: used exactly as it is
         return storage.url(r[5])
+    own = _banner_file(brand_id, r[3])
+    if own:                                 # a banner-only logo chosen in config/home.json
+        logo_url = f"/static/img/brands/{own}"
     if not logo_url:
         return None
     tw = _tweaks(brand_id, r[3])

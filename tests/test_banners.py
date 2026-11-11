@@ -224,3 +224,10 @@ def test_chosen_logo_matches_start_of_name(conn):
     logos = Q.brand_logos(conn, S)
     assert logos["ebc-brakes-usa"] == "/static/img/brands/ebc.png"
     assert logos["ebcx"] == "/static/img/brands/ebc.png"            # id starts with "ebc"
+
+
+def test_banner_only_logo():
+    """ACT's logo has white lettering: the banner uses that file, white pages a dark-lettered copy."""
+    from importer import banners as bn
+    assert bn._banner_file("advancedclutch", "Advanced Clutch Technology") == "act-banner.png"
+    assert bn._banner_file("bilstein", "Bilstein") is None

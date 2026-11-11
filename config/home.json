@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "corsa": "corsa.png",
     "flowmaster": "flowmaster.png",
     "chemicalguys": "chemicalguys.png",
     "brembooe": "brembooe.png",
@@ -142,6 +143,7 @@
     "motul": ["box"]
   },
   "banner_logo_clear": {
+    "corsa": [[0.5719, 0.1909]],
     "brembooe": [[0.0992, 0.7786], [0.3375, 0.6571], [0.5267, 0.5214], [0.8267, 0.5036], [0.9483, 0.55]],
     "yokohama": [[0.729, 0.495], [0.949, 0.496]],
     "oracle": [[0.4667, 0.3647]],

@@ -90,6 +90,7 @@
     "readylift-66-1920"
   ],
   "brand_logos": {
+    "baer": "baer.png",
     "diodedynamics": "diodedynamics.png",
     "moog": "moog.png",
     "hella": "hella-dark.png",
@@ -160,6 +161,7 @@
     "motul": ["box"]
   },
   "banner_logos": {
+    "baer": "baer-banner.png",
     "hella": "hella-banner.png",
     "diodedynamics": "diodedynamics-banner.png",
     "racesport": "racesport-banner.png",

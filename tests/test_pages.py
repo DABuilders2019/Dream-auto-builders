@@ -146,3 +146,8 @@ def test_home_video_hero(client):
         assert (static / f).stat().st_size > 1000, f
     r = client.get("/static/video/hero-720.mp4", headers={"Range": "bytes=0-99"})
     assert r.status_code == 206 and len(r.content) == 100   # iPhones need byte ranges to play video
+
+
+def test_video_replaces_slideshow(client):
+    home = client.get("/").text
+    assert 'id="heroVideo"' in home and 'id="pView"' not in home    # no slideshow under the video

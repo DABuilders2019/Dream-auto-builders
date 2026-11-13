@@ -289,12 +289,14 @@
         hp.setAttribute('aria-label', vPaused ? 'Play background video' : 'Pause background video');
       };
       var tryPlay = function () { if (vPaused) return; var p = vid.play(); if (p && p.catch) p.catch(function () { vPaused = true; showBtn(); }); };
-      if (!vPaused) { vid.preload = 'auto'; tryPlay(); }
+      /* start the video only after the rest of the page has loaded, so it never holds up the page */
+      var startVid = function () { if (!vPaused) { vid.preload = 'auto'; tryPlay(); } };
+      if (document.readyState === 'complete') startVid(); else window.addEventListener('load', startVid);
       showBtn();
       if (hp) hp.addEventListener('click', function () { vPaused = !vPaused; if (vPaused) vid.pause(); else tryPlay(); showBtn(); });
       /* stop decoding while the video is scrolled out of view */
       if (window.IntersectionObserver) new IntersectionObserver(function (es) {
-        es.forEach(function (e) { if (e.isIntersecting) tryPlay(); else vid.pause(); });
+        es.forEach(function (e) { if (e.isIntersecting) { if (vid.preload === 'auto') tryPlay(); } else vid.pause(); });
       }, { threshold: 0.05 }).observe(hero);
     }
   }

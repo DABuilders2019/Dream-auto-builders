@@ -203,7 +203,7 @@ def home(request: Request):
         s = st.get_searcher(conn)
         cfg = Q.home_config()
         vid = active_id(request)
-        slides = _slides(conn, s, cfg)
+        slides = [] if cfg.get("hero_video") else _slides(conn, s, cfg)   # the video replaces the slideshow
         counts = Q.category_counts(conn, vid)
         subs = cached(request, "sub_counts", lambda: Q.sub_counts(conn))
         cards = []

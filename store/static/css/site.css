@@ -934,7 +934,7 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 
 /* ---- Shops near you (order page) ---- */
 .installers{margin:26px 0 6px;border:1px solid #cdcfd4;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(17,17,19,.07);scroll-margin-top:170px}
-.inst-head{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;color:#fff;background:#111113;border-bottom:3px solid var(--red);position:relative}
+.inst-head{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;color:#fff;background:#000;border-bottom:3px solid var(--red);position:relative}
 .inst-badge{width:52px;height:52px;border-radius:50%;background:var(--red);display:grid;place-items:center;flex:none;position:relative}
 .inst-badge::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(227,38,46,.55);animation:instring 2.2s ease-out infinite}
 @keyframes instring{0%{transform:scale(.85);opacity:1}100%{transform:scale(1.35);opacity:0}}
@@ -990,7 +990,7 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 
 /* trust badges under the cart lines */
 .cotrust{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.cotrust li{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius);background:var(--panel);border:1px solid var(--line);color:var(--text);position:relative;overflow:hidden}
+.cotrust li{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius);background:#e9eaed;border:1.5px solid #c3c6cc;color:var(--text);box-shadow:0 3px 10px rgba(17,17,19,.07);position:relative;overflow:hidden}
 .cotrust svg{color:var(--red);flex:none;margin-top:1px}
 .cotrust b{display:block;font-family:var(--display);text-transform:uppercase;letter-spacing:.04em;font-size:16px}
 .cotrust span{display:block;color:var(--muted);font-size:13px;line-height:1.4;margin-top:2px}
@@ -1002,10 +1002,10 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 .inst-head p{color:rgba(255,255,255,.8)}
 .inst-head p b{color:#fff}
 .inst-head .inst-note{color:rgba(255,255,255,.9)}
-.installers{border-color:#111113}
+.installers{border-color:#000;box-shadow:0 12px 28px rgba(0,0,0,.14)}
 
 /* black order summary (cart and order pages) */
-.cart .summary{background:#111113;border-color:#111113;color:#fff}
+.cart .summary{background:#000;border:1px solid #000;border-top:4px solid var(--red);color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.22)}
 .cart .summary h2,.cart .summary h3,.cart .summary b,.cart .summary label{color:#fff}
 .cart .summary .row.total{border-top-color:rgba(255,255,255,.22)}
 .cart .summary .addr,.cart .summary .muted,.cart .summary small,.cart .summary .secure,.cart .summary .freenote,.cart .summary p{color:rgba(255,255,255,.75)}

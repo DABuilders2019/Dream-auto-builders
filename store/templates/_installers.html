@@ -7,6 +7,7 @@
       <span class="inst-kicker">Next step</span>
       <h2>Need it installed? Shops near you</h2>
       <p>{{ open_count }} repair shop{{ 's' if open_count != 1 }}{% if install.near %} near <b>{{ install.near }}</b>{% endif %}{% if install.has_miles %}, nearest first{% endif %}. Pick the one you'll use and we'll check in after the install.</p>
+      <p class="inst-note">{{ icon('info', 14) }} We don't book the appointment, so call the shop to schedule your install.</p>
     </div>
   </div>
   {% if picked %}<p class="inst-saved">{{ icon('checkc', 18) }} <span>Saved. Thanks for letting us know where you're taking it.</span></p>{% endif %}
@@ -14,16 +15,17 @@
     {% for x in install.shops %}
     {% set mine = install.picked == x.id %}
     <li class="{{ 'on' if mine }}{{ ' closed' if x.closed }}">
-      <span class="inst-pin" aria-hidden="true">{{ icon('pin', 15, 2.4) if not x.closed else icon('xc', 15, 2.4) }}<b>{{ loop.index }}</b></span>
       <div class="inst-info">
-        <div class="inst-name"><b>{{ x.name }}</b>
+        <div class="inst-name"><span class="inst-num num">{{ loop.index }}</span><b>{{ x.name }}</b>
+          {% if x.rating %}<span class="inst-stars num" title="Google rating {{ '%.1f'|format(x.rating) }} out of 5 from {{ '{:,}'.format(x.reviews or 0) }} reviews"><span class="inst-star" aria-hidden="true">★</span> {{ '%.1f'|format(x.rating) }}{% if x.reviews %} <small>({{ '{:,}'.format(x.reviews) }})</small>{% endif %}</span>{% endif %}
           {% if x.miles is not none %}<span class="inst-mi num">{{ '%g'|format(x.miles) }} mi</span>{% endif %}
           {% if mine %}<span class="inst-tag ok">{{ icon('check', 13, 3) }} Your shop</span>{% endif %}
           {% if x.closed %}<span class="inst-tag no">{{ x.closed }}</span>{% endif %}</div>
         <span class="inst-addr">{{ x.address }}</span>
+        <a class="inst-maplink" href="{{ x.url }}" target="_blank" rel="noopener" data-track="installer: directions">{{ icon('pin', 14, 2.2) }} Map, Phone &amp; Hours</a>
         {% if x.closed %}<span class="inst-why">{{ x.why }}</span>{% endif %}
       </div>
-      <div class="inst-acts"><a class="btn btn-ghost btn-sm" data-track="installer: directions" href="{{ x.url }}" target="_blank" rel="noopener">Directions and phone</a>
+      <div class="inst-acts">
         {% if mine %}<span class="inst-chosen">{{ icon('checkc', 16) }} Chosen</span>
         {% elif x.closed %}<button class="btn btn-ghost btn-sm" type="button" disabled title="{{ x.why }}">Unavailable</button>
         {% else %}<form method="post" action="/order/{{ o.number }}/installer"><input type="hidden" name="place_id" value="{{ x.id }}">
@@ -31,6 +33,6 @@
     </li>
     {% endfor %}
   </ol>
-  <p class="inst-disc">{{ icon('info', 15) }} <span>{{ install.disclaimer }}{% if install.has_miles %} Distances are straight-line from your shipping ZIP code.{% endif %}</span></p>
+  <p class="inst-disc">{{ icon('info', 15) }} <span>{{ install.disclaimer }}{% if install.has_miles %} Distances are straight-line from your shipping ZIP code.{% endif %} Ratings are from Google reviews.</span></p>
   <p class="gmaps-attr">Google Maps</p>
 </section>

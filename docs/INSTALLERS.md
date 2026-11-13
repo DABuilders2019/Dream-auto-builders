@@ -24,9 +24,11 @@ up to 5 repair shops near the shipping address, found with Google's Places API.
 
 ## Cost
 
-One Text Search call (Pro tier: name, address, map link only) each time a list is shown: the order page,
-the confirmation email and the install page. Google's free allowance is 5,000 Pro calls a month, then
-about $32 per 1,000. The admin Installers page makes one Place Details call per shop listed.
+One Text Search call each time a list is shown: the order page, the confirmation email and the install page.
+Because the list shows each shop's Google star rating, the call is in Google's Enterprise tier: 1,000 free a
+month, then about $35 per 1,000 (about 350-500 install-type orders a month before any charge). Removing
+places.rating and places.userRatingCount from FIELDS in store/installers.py drops it back to the Pro tier
+(5,000 free, then about $32 per 1,000). Shop distances come from the bundled zipcodes package (no API call). The admin Installers page makes one Place Details call per shop listed.
 
 ## Google's terms
 

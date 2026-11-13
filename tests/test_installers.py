@@ -57,8 +57,8 @@ def test_lift_kit_order_lists_nearby_shops_and_saves_pick(shop, google):  # noqa
     page = html.unescape(c.get(f"/order/{number}", params={"session_id": "cs_test_1"}).text)
     assert "Need it installed?" in page and "Smith's Off-Road" in page and "10 Oak St, Austin, TX" in page
     assert "not affiliated with" in page and "Google Maps" in page
-    # only the Pro fields are asked for (keeps it in the cheaper Google tier)
-    assert all("rating" not in (fm or "") and "phone" not in (fm or "") for _, _, fm in google.calls)
+    # phone numbers are never asked for (the map link has them)
+    assert all("phone" not in (fm or "").lower() for _, _, fm in google.calls)
 
     r = c.post(f"/order/{number}/installer", data={"place_id": "pl_1"}, follow_redirects=True)
     assert "Your shop" in html.unescape(r.text)
@@ -143,7 +143,7 @@ def test_shops_show_distance_open_first_and_closed_with_reason(shop, monkeypatch
                  "location": {"latitude": 30.27, "longitude": -97.74}, "businessStatus": "CLOSED_TEMPORARILY"},
                 {"id": "gone", "displayName": {"text": "Gone Garage"}, "formattedAddress": "Austin, TX",
                  "location": {"latitude": 30.27, "longitude": -97.74}, "businessStatus": "CLOSED_PERMANENTLY"},
-                {"id": "near", "displayName": {"text": "Near Garage"}, "formattedAddress": "Austin, TX",
+                {"id": "near", "displayName": {"text": "Near Garage"}, "formattedAddress": "Austin, TX", "rating": 4.7, "userRatingCount": 1212,
                  "location": {"latitude": 30.2711, "longitude": -97.7437}, "businessStatus": "OPERATIONAL"}]})
         return httpx.Response(404)
     monkeypatch.setenv("GOOGLE_MAPS_API_KEY", "gkey")
@@ -159,6 +159,7 @@ def test_shops_show_distance_open_first_and_closed_with_reason(shop, monkeypatch
     page = html.unescape(c.get(f"/order/{number}", params={"session_id": "cs_test_7"}).text)
     assert "Near Garage" in page and " mi<" in page and "Temporarily closed" in page and "Unavailable" in page
     assert "Gone Garage" not in page
+    assert "4.7" in page and "(1,212)" in page and "Map, Phone &amp; Hours" in c.get(f"/order/{number}", params={"session_id": "cs_test_7"}).text
     assert page.index("Need it installed?") < page.index("Summary")      # shops sit right under the items
 
 

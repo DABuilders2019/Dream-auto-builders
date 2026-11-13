@@ -160,7 +160,7 @@ def check_maps(conn):
     shops = installers.nearby({"ship_address": {"postal_code": "10001", "city": "New York", "state": "NY"}})
     if shops:
         return [item("Google Maps (installer finder)", OK,
-                     f"Found {len(shops)} repair shops near ZIP 10001, e.g. {shops[0]['name']}. (Uses 1 of the 5,000 free searches a month.)")]
+                     f"Found {len(shops)} repair shops near ZIP 10001, e.g. {shops[0]['name']}. (Uses 1 of the 1,000 free searches a month.)")]
     return [item("Google Maps (installer finder)", BAD, "Google didn't return any shops for a test address.",
                  "Check that Places API (New) is enabled for the key and billing is on (Render logs show Google's answer).")]
 

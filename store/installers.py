@@ -11,7 +11,8 @@ Google's rules followed here (Places API policies):
   * the site's Terms of Use and Privacy Policy must mention Google's (see docs/INSTALLERS.md).
 
 Setup: GOOGLE_MAPS_API_KEY in Render (Places API (New) enabled). Without it, nothing is shown.
-Cost: one Text Search (Pro) call per list shown; Google's free allowance covers 5,000 a month.
+Cost: one Text Search (Enterprise, because of star ratings) call per list shown; Google's free allowance
+covers 1,000 a month, then about $35 per 1,000.
 """
 import datetime as dt
 import functools
@@ -33,8 +34,10 @@ log = logging.getLogger("store.installers")
 
 SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 DETAILS_URL = "https://places.googleapis.com/v1/places/{}"
-FIELDS = ("places.id,places.displayName,places.formattedAddress,places.googleMapsUri,"     # Pro fields only
-          "places.location,places.businessStatus")
+# rating and userRatingCount put the search in Google's Enterprise tier (1,000 free a month, then about $35 per
+# 1,000); the rest are Pro fields. Phone numbers are deliberately not asked for (the map link has them).
+FIELDS = ("places.id,places.displayName,places.formattedAddress,places.googleMapsUri,"
+          "places.location,places.businessStatus,places.rating,places.userRatingCount")
 DETAIL_FIELDS = "id,displayName,formattedAddress,googleMapsUri"
 DEFAULT_CATEGORIES = ["suspension", "exhaust", "brakes", "tires", "wheels", "intake", "engine", "drivetrain",
                       "exterior", "lighting", "performance"]
@@ -102,6 +105,7 @@ def _shop(p, origin=None):
             "address": p.get("formattedAddress") or "", "url": p.get("googleMapsUri") or
             f"https://www.google.com/maps/search/?api=1&query=Google&query_place_id={p.get('id')}",
             "miles": dist, "closed": closed,
+            "rating": p.get("rating"), "reviews": p.get("userRatingCount"),
             "why": f"Google Maps lists this shop as {closed.lower()}, so it can't take your install right now." if closed else None}
 
 

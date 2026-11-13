@@ -934,6 +934,8 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 
 /* ---- Shops near you (order page) ---- */
 .installers{margin:26px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(17,17,19,.07);scroll-margin-top:170px}
+.inst-head{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;color:#fff;background:#111113;position:relative}
+.inst-head::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--red)}
 .inst-badge{width:52px;height:52px;border-radius:50%;background:var(--red);display:grid;place-items:center;flex:none;position:relative}
 .inst-badge::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(227,38,46,.55);animation:instring 2.2s ease-out infinite}
 @keyframes instring{0%{transform:scale(.85);opacity:1}100%{transform:scale(1.35);opacity:0}}
@@ -995,26 +997,3 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 .cotrust b{display:block;font-family:var(--display);text-transform:uppercase;letter-spacing:.04em;font-size:16px}
 .cotrust span{display:block;color:rgba(255,255,255,.7);font-size:13px;line-height:1.4;margin-top:2px}
 @media (max-width:720px){.cotrust{grid-template-columns:1fr}}
-
-/* "Need it installed?" header in the brand-banner style: red-to-light gradient, light stripes, tools behind the words */
-.inst-head{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:10px;align-items:center;padding:26px 28px 24px;color:#fff;position:relative;isolation:isolate;overflow:hidden;
- background:radial-gradient(60% 120% at 92% 50%,#f6f4f4 0%,rgba(246,244,244,.7) 30%,rgba(246,244,244,0) 62%),
-  linear-gradient(102deg,#3d0609 0%,#7a0d12 24%,#A8131A 46%,#c24a4f 64%,#dcbfc0 82%,#e9e5e5 100%)}
-.inst-head::before{content:"";position:absolute;inset:0;z-index:-1;opacity:.16;
- background:repeating-linear-gradient(115deg,rgba(255,255,255,0) 0 38px,rgba(255,255,255,.55) 38px 40px,rgba(255,255,255,0) 40px 90px);
- -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 50%,transparent 75%);mask-image:linear-gradient(90deg,#000 0%,#000 50%,transparent 75%)}
-.inst-head-text{position:relative;max-width:620px}
-.inst-head-pic{display:flex;justify-content:center;align-items:center;position:relative}
-.inst-head-pic::after{content:"";position:absolute;left:12%;right:12%;bottom:-6px;height:26px;z-index:-1;
- background:radial-gradient(50% 50% at 50% 50%,rgba(60,20,22,.3) 0%,rgba(60,20,22,0) 72%);filter:blur(4px)}
-.inst-head-pic img{width:210px;height:210px;display:block}
-.inst-head .inst-kicker{color:#ffd0d2}
-.installers .inst-head h2{font-size:clamp(30px,3.4vw,42px);line-height:.95;margin:4px 0 10px;text-shadow:0 2px 14px rgba(0,0,0,.3)}
-.installers .inst-head h2 em{font-style:normal;color:#fff;opacity:.92}
-.inst-head p{color:rgba(255,255,255,.92)}
-.inst-head .inst-note{color:#fff;opacity:.9}
-@media (max-width:720px){
- .inst-head{padding:20px 18px;background:linear-gradient(160deg,#3d0609 0%,#7a0d12 35%,#A8131A 65%,#c24a4f 100%)}
- .inst-head{grid-template-columns:1fr}
- .inst-head-pic{display:none}
-}

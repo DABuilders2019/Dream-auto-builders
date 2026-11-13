@@ -2,13 +2,13 @@
 {% set open_count = install.shops|rejectattr('closed')|list|length %}
 <section class="installers" id="install">
   <div class="inst-head">
-    <div class="inst-head-text">
+    <span class="inst-badge" aria-hidden="true">{{ icon('wrench', 26, 2.2) }}</span>
+    <div>
       <span class="inst-kicker">Next step</span>
-      <h2>Need it installed?<br><em>Shops near you</em></h2>
+      <h2>Need it installed? Shops near you</h2>
       <p>{{ open_count }} repair shop{{ 's' if open_count != 1 }}{% if install.near %} near <b>{{ install.near }}</b>{% endif %}{% if install.has_miles %}, nearest first{% endif %}. Pick the one you'll use and we'll check in after the install.</p>
       <p class="inst-note">{{ icon('info', 14) }} We don't book the appointment, so call the shop to schedule your install.</p>
     </div>
-    <div class="inst-head-pic" aria-hidden="true"><img src="/static/img/install-tools.svg?v=2" alt=""></div>
   </div>
   {% if picked %}<p class="inst-saved">{{ icon('checkc', 18) }} <span>Saved. Thanks for letting us know where you're taking it.</span></p>{% endif %}
   <ol class="inst-list">

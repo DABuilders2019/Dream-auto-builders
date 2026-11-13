@@ -28,14 +28,6 @@
       <div class="ac" id="ac" role="listbox" aria-label="Search suggestions"></div>
     </div>
     <nav class="hdr-actions" aria-label="Account and cart">
-      <div class="hmenu" id="brandMenu">
-        <a class="hbtn" href="/brands" aria-haspopup="true" aria-expanded="false">{{ icon('tag') }}<span class="lbl">Brands<small>Shop by brand {{ icon('chevD', 12, 2.6) }}</small></span></a>
-        <div class="hdrop" role="menu" aria-label="Brands">
-          <p class="hdrop-h">Popular brands</p>
-          <div class="hdrop-grid">{% for b in nav_brands %}<a role="menuitem" data-track="header brands menu: {{ b.name }}" href="/brand/{{ b.id }}">{{ b.name }}</a>{% endfor %}</div>
-          <a class="hdrop-all" role="menuitem" data-track="header brands menu: view all" href="/brands">View all brands &rarr;</a>
-        </div>
-      </div>
       <a class="hbtn" data-track="header: track order" href="/track">{{ icon('box') }}<span class="lbl">Track Order<small>Where's my part?</small></span></a>
       <a class="hbtn" data-track="header: my garage" href="/garage">{{ icon('garage') }}<span class="lbl">My Garage<small>{{ active.label if active else 'Add a vehicle' }}</small></span>{% if garage %}<span class="badge">{{ garage|length }}</span>{% endif %}</a>
       <a class="hbtn" data-track="header: account" href="/account" id="acctBtn">{{ icon('user') }}<span class="lbl">{% if acct %}{{ (acct.name or 'My account').split(' ')[0][:14] }}<small>My account</small>{% else %}Sign In<small>Orders &amp; account</small>{% endif %}</span></a>
@@ -68,7 +60,7 @@
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/static/js/site.js?v=11" defer></script>
+<script src="/static/js/site.js?v=12" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

@@ -151,3 +151,4 @@ def test_home_video_hero(client):
 def test_video_replaces_slideshow(client):
     home = client.get("/").text
     assert 'id="heroVideo"' in home and 'id="pView"' not in home    # no slideshow under the video
+    assert 'id="brandMenu"' not in home and ">Shop by brand" in home and "Shop all parts" not in home

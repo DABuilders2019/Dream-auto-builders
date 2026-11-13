@@ -11,10 +11,8 @@
     "src_small": "/static/video/hero-720.mp4",
     "poster": "/static/video/hero-poster.jpg",
     "kicker": "Parts for every build",
-    "cta": "Shop all parts",
-    "cta_href": "/search",
-    "cta2": "Shop by brand",
-    "cta2_href": "/brands"
+    "cta": "Shop by brand",
+    "cta_href": "/brands"
   },
   "slides": [
     {

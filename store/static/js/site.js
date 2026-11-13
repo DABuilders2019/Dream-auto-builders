@@ -133,18 +133,6 @@
     } catch (err) { /* never block the click */ }
   }, true);
 
-  /* ---------- header Brands menu: opens on hover (computers); a tap goes to the brands page ---------- */
-  var bm = $('#brandMenu');
-  if (bm && finePointer) {
-    var bl = bm.querySelector('.hbtn'), bt = null;
-    var show = function (on) { clearTimeout(bt); bm.classList.toggle('open', on); bl.setAttribute('aria-expanded', String(on)); };
-    bm.addEventListener('mouseenter', function () { show(true); });
-    bm.addEventListener('mouseleave', function () { bt = setTimeout(function () { show(false); }, 150); });
-    bm.addEventListener('focusin', function () { show(true); });
-    bm.addEventListener('focusout', function (e) { if (!bm.contains(e.relatedTarget)) show(false); });
-    bm.addEventListener('keydown', function (e) { if (e.key === 'Escape') { show(false); bl.focus(); } });
-  }
-
   if (finePointer) $$('form[data-ymm] select[data-y], form[data-ymm] select[data-m], form[data-ymm] select[data-d]').forEach(groupedMenu);
 
   /* ---------- search suggestions ---------- */

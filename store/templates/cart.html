@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 {% from "_macros.html" import pimg, fit_badge, emissions with context %}
 {% block main %}
+{% set band_crumbs, band_step, band_ok, band_cta = [('Home', '/'), ('Cart', none)], 1, false, none %}
+{% set band_title = 'Your cart' %}
+{% set band_sub %}{% if lines %}{{ cart_count }} item{{ 's' if cart_count != 1 }} ready to go. Check out securely with Stripe and you'll get your confirmation by email.{% else %}Nothing here yet.{% endif %}{% endset %}
+{% include "_checkout_band.html" %}
 <div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>Cart</span></nav>
   {% if not lines %}
   <div style="padding:20px 0 60px"><div class="empty"><b>Your cart is empty</b>Find parts for your build and they'll show up here.<br><a class="btn btn-red" href="/search">Shop parts</a></div></div>
   {% else %}
-  <div class="shop-h"><div><h1>Your cart</h1><div class="count num">{{ cart_count }} item{{ 's' if cart_count != 1 }}</div></div></div>
   {% if error %}<div class="notice warn">{{ icon('info', 18) }} <span>{{ error }}</span></div>{% endif %}
   {% if pm_added %}<div class="notice">{{ icon('checkc', 18) }} <span>Your price match is in your cart at the matched price.</span></div>{% endif %}
   {% if cancelled %}<div class="notice">{{ icon('info', 18) }} <span>Checkout was cancelled. Your cart is still here.</span></div>{% endif %}
@@ -25,6 +27,12 @@
         <form method="post" action="/cart/update"><input type="hidden" name="product_id" value="{{ l.id }}"><input type="hidden" name="qty" value="0"><button class="linkbtn" type="submit">Remove</button></form>
       </div></div>
     {% endfor %}
+    <ul class="cotrust">
+      <li>{{ icon('checkc', 24, 1.8) }}<div><b>Fitment checked</b><span>Every part is matched to the manufacturer's fitment data.</span></div></li>
+      <li>{{ icon('truck', 24, 1.8) }}<div><b>Free shipping{% if free_over %} over ${{ '{:,.0f}'.format(free_over) if free_over == free_over|round else '{:,.2f}'.format(free_over) }}{% endif %}</b><span>Ships from distributor warehouses across the U.S.</span></div></li>
+      <li>{{ icon('refundc', 24, 1.8) }}<div><b>30-day returns</b><span>Unused parts in original packaging.</span></div></li>
+      <li>{{ icon('lock', 24, 1.8) }}<div><b>Secure checkout</b><span>Payments handled by Stripe. We never see your card.</span></div></li>
+    </ul>
   </div>
   <aside class="summary"><h2>Order summary</h2>
     <div class="row num"><span>Subtotal</span><span>{{ subtotal|money }}</span></div>

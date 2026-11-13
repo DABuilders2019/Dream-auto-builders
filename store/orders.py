@@ -149,6 +149,8 @@ def complete(conn, s, cfg=None):
     cd = s.get("customer_details") or {}
     totals = s.get("total_details") or {}
     ship = (s.get("shipping_cost") or {}).get("amount_total")
+    if ship is None:                       # Stripe also reports shipping in the totals breakdown
+        ship = totals.get("amount_shipping")
     blocked = carb_problem(o["items"], addr.get("state"), cfg)
     status, reason = "paid", None
     if blocked:
@@ -171,6 +173,11 @@ def complete(conn, s, cfg=None):
             add_event(conn, o["id"], "Shopper came back from the cart reminder and paid")
         add_event(conn, o["id"], f"Paid {_cents(s.get('amount_total')):.2f} {(s.get('currency') or 'usd').upper()}"
                   + (f". ON HOLD: {reason}" if reason else ""))
+        expected = (o["subtotal"] or 0) + _cents(ship) + _cents(totals.get("amount_tax")) - _cents(totals.get("amount_discount"))
+        gap = round(_cents(s.get("amount_total")) - expected, 2)
+        if abs(gap) >= 0.01:
+            add_event(conn, o["id"], f"CHECK TOTAL: Stripe charged {_cents(s.get('amount_total')):,.2f} but subtotal + shipping "
+                                     f"+ tax = {expected:,.2f} (difference {gap:+,.2f}). Compare with the payment in Stripe.")
     return get(conn, order_id=o["id"]), True
 
 

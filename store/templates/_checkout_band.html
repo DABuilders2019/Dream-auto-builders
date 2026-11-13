@@ -1,0 +1,18 @@
+{# Dark banner with the taillight photo from the homepage video, used on the cart and order pages.
+   Set before including: band_step (1 cart, 2 paying, 3 confirmed), band_title, band_sub (optional, HTML-safe),
+   band_ok (green check before the title), band_cta (optional (label, href) link button). #}
+<section class="coband">
+  <div class="wrap coband-in">
+    <nav class="crumbs" aria-label="Breadcrumb">{% for label, href in band_crumbs %}{% if href %}<a href="{{ href }}">{{ label }}</a> <span>/</span> {% else %}<span>{{ label }}</span>{% endif %}{% endfor %}</nav>
+    <h1>{% if band_ok %}<span class="coband-ok">{{ icon('check', 26, 3) }}</span>{% endif %}{{ band_title }}</h1>
+    {% if band_sub %}<p class="coband-sub">{{ band_sub }}</p>{% endif %}
+    <ol class="costeps" aria-label="Checkout progress">
+      {% for label in ('Cart', 'Secure checkout', 'Confirmed') %}
+      {% set n = loop.index %}
+      <li class="{{ 'done' if n < band_step or (n == 3 and band_step == 3) else 'now' if n == band_step else '' }}"{% if n == band_step %} aria-current="step"{% endif %}>
+        <span class="costep-dot">{% if n < band_step or (n == 3 and band_step == 3) %}{{ icon('check', 14, 3) }}{% else %}{{ n }}{% endif %}</span>{{ label }}</li>
+      {% endfor %}
+    </ol>
+    {% if band_cta %}<a class="coband-cta" href="{{ band_cta[1] }}">{{ icon('wrench', 18, 2.2) }} {{ band_cta[0] }} {{ icon('chevD', 16, 2.6) }}</a>{% endif %}
+  </div>
+</section>

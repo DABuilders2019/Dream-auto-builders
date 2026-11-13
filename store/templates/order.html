@@ -1,18 +1,22 @@
 {% extends "base.html" %}
 {% block main %}
+{% set band_crumbs = [('Home', '/'), ('Order ' ~ o.number, none)] %}
+{% if o.status in ('paid', 'on_hold') %}
+  {% set band_step, band_ok = 3, true %}
+  {% set band_title = 'Thank you' ~ (', ' ~ o.name.split(' ')[0] if o.name else '') ~ '!' %}
+  {% set band_sub %}Your order <b>{{ o.number }}</b> is confirmed{% if o.email %} and a confirmation is on its way to <b>{{ o.email }}</b>{% endif %}. We'll email you the tracking number as soon as it ships.{% endset %}
+  {% set band_cta = ('Find a shop to install it', '#install') if install else none %}
+{% elif o.status == 'pending' %}
+  {% set band_step, band_ok, band_title, band_cta = 2, false, 'Finishing your order…', none %}
+  {% set band_sub %}Your payment is still being confirmed. This page updates when it's done.{% endset %}
+{% else %}
+  {% set band_step, band_ok, band_title, band_cta = 3, false, 'Order ' ~ o.number, none %}
+  {% set band_sub = none %}
+{% endif %}
+{% include "_checkout_band.html" %}
+{% if o.status == 'pending' %}<meta http-equiv="refresh" content="5">{% endif %}
 <div class="wrap">
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a> <span>/</span> <span>Order {{ o.number }}</span></nav>
-  {% if o.status in ('paid', 'on_hold') %}
-  <div class="thanks">{{ icon('checkc', 40, 1.8) }}<div><h1>Thank you{% if o.name %}, {{ o.name.split(' ')[0] }}{% endif %}!</h1>
-    <p>Your order <b>{{ o.number }}</b> is confirmed{% if o.email %} and a confirmation is on its way to <b>{{ o.email }}</b>{% endif %}. We'll email you the tracking number as soon as it ships.</p></div></div>
-  {% elif o.status == 'pending' %}
-  <div class="thanks wait">{{ icon('sync', 40, 1.8) }}<div><h1>Finishing your order…</h1><p>Your payment is still being confirmed. This page updates when it's done.</p></div></div>
-  <meta http-equiv="refresh" content="5">
-  {% else %}
-  <div class="shop-h"><div><h1>Order {{ o.number }}</h1></div></div>
-  {% endif %}
-
-  <div class="cart">
+  <div class="cart orderview">
     <div>
       <div class="ostatus"><span>Status</span><b class="ost {{ o.status }}">{{ o.status_label if o.status != 'on_hold' else 'Paid, being reviewed' }}</b>
         {% if o.status == 'shipped' %}<span>{{ o.carrier }} tracking <b class="num">{{ o.tracking_number }}</b></span>{% endif %}</div>
@@ -22,6 +26,7 @@
           <div class="sub num">{{ it.brand_name }} · Part # {{ it.part_number }} · {{ it.qty }} × {{ money(it.unit_price) }}</div></div>
         <div class="r"><b class="num">{{ money(it.line_total) }}</b></div></div>
       {% endfor %}
+      {% if install %}{% include "_installers.html" %}{% endif %}
     </div>
     <aside class="summary"><h2>Summary</h2>
       <div class="row num"><span>Subtotal</span><span>{{ money(o.subtotal) }}</span></div>
@@ -35,6 +40,5 @@
       <a class="btn btn-ghost" href="/search" style="width:100%;margin-top:14px">Keep shopping</a>
     </aside>
   </div>
-  {% if install %}{% include "_installers.html" %}{% endif %}
 </div>
 {% endblock %}

@@ -1,16 +1,36 @@
 {# Nearby repair shops from Google Maps (store/installers.py). Used on the order page. #}
+{% set open_count = install.shops|rejectattr('closed')|list|length %}
 <section class="installers" id="install">
-  <h2>Need it installed? Shops near you</h2>
-  <p class="inst-disc">{{ icon('info', 16) }} <span>{{ install.disclaimer }}</span></p>
-  {% if picked %}<p class="notice">{{ icon('checkc', 18) }} <span>Saved. Thanks for letting us know where you're taking it.</span></p>{% endif %}
-  <ul class="inst-list">
+  <div class="inst-head">
+    <span class="inst-badge" aria-hidden="true">{{ icon('wrench', 26, 2.2) }}</span>
+    <div>
+      <span class="inst-kicker">Next step</span>
+      <h2>Need it installed? Shops near you</h2>
+      <p>{{ open_count }} repair shop{{ 's' if open_count != 1 }}{% if install.near %} near <b>{{ install.near }}</b>{% endif %}{% if install.has_miles %}, nearest first{% endif %}. Pick the one you'll use and we'll check in after the install.</p>
+    </div>
+  </div>
+  {% if picked %}<p class="inst-saved">{{ icon('checkc', 18) }} <span>Saved. Thanks for letting us know where you're taking it.</span></p>{% endif %}
+  <ol class="inst-list">
     {% for x in install.shops %}
-    <li class="{{ 'on' if install.picked == x.id }}"><div><b>{{ x.name }}</b><span>{{ x.address }}</span></div>
+    {% set mine = install.picked == x.id %}
+    <li class="{{ 'on' if mine }}{{ ' closed' if x.closed }}">
+      <span class="inst-pin" aria-hidden="true">{{ icon('pin', 15, 2.4) if not x.closed else icon('xc', 15, 2.4) }}<b>{{ loop.index }}</b></span>
+      <div class="inst-info">
+        <div class="inst-name"><b>{{ x.name }}</b>
+          {% if x.miles is not none %}<span class="inst-mi num">{{ '%g'|format(x.miles) }} mi</span>{% endif %}
+          {% if mine %}<span class="inst-tag ok">{{ icon('check', 13, 3) }} Your shop</span>{% endif %}
+          {% if x.closed %}<span class="inst-tag no">{{ x.closed }}</span>{% endif %}</div>
+        <span class="inst-addr">{{ x.address }}</span>
+        {% if x.closed %}<span class="inst-why">{{ x.why }}</span>{% endif %}
+      </div>
       <div class="inst-acts"><a class="btn btn-ghost btn-sm" data-track="installer: directions" href="{{ x.url }}" target="_blank" rel="noopener">Directions and phone</a>
-        {% if install.picked == x.id %}<span class="inst-pick">{{ icon('check', 16) }} Your shop</span>
+        {% if mine %}<span class="inst-chosen">{{ icon('checkc', 16) }} Chosen</span>
+        {% elif x.closed %}<button class="btn btn-ghost btn-sm" type="button" disabled title="{{ x.why }}">Unavailable</button>
         {% else %}<form method="post" action="/order/{{ o.number }}/installer"><input type="hidden" name="place_id" value="{{ x.id }}">
-          <button class="btn btn-ghost btn-sm" type="submit">I'll use this shop</button></form>{% endif %}</div></li>
+          <button class="btn {{ 'btn-ghost' if install.picked else 'btn-red' }} btn-sm" type="submit">{{ 'Use this shop instead' if install.picked else "I'll use this shop" }}</button></form>{% endif %}</div>
+    </li>
     {% endfor %}
-  </ul>
+  </ol>
+  <p class="inst-disc">{{ icon('info', 15) }} <span>{{ install.disclaimer }}{% if install.has_miles %} Distances are straight-line from your shipping ZIP code.{% endif %}</span></p>
   <p class="gmaps-attr">Google Maps</p>
 </section>

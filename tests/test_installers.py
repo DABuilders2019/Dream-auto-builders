@@ -126,3 +126,44 @@ def test_email_pick_link(shop, google):  # noqa: F811
     c.get(f"/install/{token}", params={"pick": "pl_2"})
     assert conn.execute("SELECT place_id FROM install_feedback WHERE order_id = %s", (oid,)).fetchone()[0] == "pl_2"
     assert c.get("/install/not-a-token").status_code == 404
+
+
+def test_shops_show_distance_open_first_and_closed_with_reason(shop, monkeypatch):  # noqa: F811
+    """Each shop shows its distance from the shipping ZIP; open shops come first, nearest first; a temporarily closed
+    shop is listed last with the reason and can't be picked; permanently closed ones are left out."""
+    def fake(request):
+        if request.url.path == "/v1/places:searchText":
+            body = json.loads(request.content)
+            assert "locationBias" in body                               # results kept around the shipping address
+            assert "places.location" in request.headers["X-Goog-FieldMask"]
+            return httpx.Response(200, json={"places": [
+                {"id": "far", "displayName": {"text": "Far Garage"}, "formattedAddress": "Round Rock, TX",
+                 "location": {"latitude": 30.5083, "longitude": -97.6789}, "businessStatus": "OPERATIONAL"},
+                {"id": "shut", "displayName": {"text": "Shut Shop"}, "formattedAddress": "Austin, TX",
+                 "location": {"latitude": 30.27, "longitude": -97.74}, "businessStatus": "CLOSED_TEMPORARILY"},
+                {"id": "gone", "displayName": {"text": "Gone Garage"}, "formattedAddress": "Austin, TX",
+                 "location": {"latitude": 30.27, "longitude": -97.74}, "businessStatus": "CLOSED_PERMANENTLY"},
+                {"id": "near", "displayName": {"text": "Near Garage"}, "formattedAddress": "Austin, TX",
+                 "location": {"latitude": 30.2711, "longitude": -97.7437}, "businessStatus": "OPERATIONAL"}]})
+        return httpx.Response(404)
+    monkeypatch.setenv("GOOGLE_MAPS_API_KEY", "gkey")
+    monkeypatch.setattr(installers, "_transport", httpx.MockTransport(fake))
+    installers.zip_point.cache_clear()
+    shops = installers.nearby({"ship_address": {"postal_code": "78701", "city": "Austin", "state": "TX"}})
+    assert [x["id"] for x in shops] == ["near", "far", "shut"]
+    assert shops[0]["miles"] < 2 and 15 < shops[1]["miles"] < 25
+    assert shops[2]["closed"] == "Temporarily closed" and "temporarily closed" in shops[2]["why"]
+
+    c = shop.c
+    number = buy(c, shop, "LK-100", 7)
+    page = html.unescape(c.get(f"/order/{number}", params={"session_id": "cs_test_7"}).text)
+    assert "Near Garage" in page and " mi<" in page and "Temporarily closed" in page and "Unavailable" in page
+    assert "Gone Garage" not in page
+    assert page.index("Need it installed?") < page.index("Summary")      # shops sit right under the items
+
+
+def test_miles_and_zip_point():
+    assert installers.zip_point("bad") is None
+    a = installers.zip_point("10001")
+    assert a and abs(a[0] - 40.75) < 0.1
+    assert 180 < installers.miles(a, (42.36, -71.06)) < 200                # NYC to Boston, about 190 mi straight line

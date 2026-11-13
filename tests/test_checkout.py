@@ -202,3 +202,21 @@ def test_checkout_still_opens_if_stripe_refuses_marketing_consent(shop, monkeypa
     r = c.post("/checkout", follow_redirects=False)
     assert r.headers["location"].endswith("cs_test_ok") and len(calls) == 2
     assert "consent_collection" not in calls[1] and "after_expiration" not in calls[1]
+
+
+def test_paid_totals_that_dont_add_up_are_flagged(shop):
+    """Shipping is read from total_details when shipping_cost is missing, and a total that doesn't match
+    subtotal + shipping + tax leaves a CHECK TOTAL note on the order."""
+    c = shop.c
+    c.post("/cart/add", data={"product_id": pid(c, "LK-100"), "qty": 1})
+    c.post("/checkout", follow_redirects=False)
+    params = shop.created[-1]
+    number, oid = params["metadata"]["order_number"], int(params["metadata"]["order_id"])
+    ev = paid_event("cs_test_gap", oid, total=99995 + 2500 + 5000)        # $25 shipping + $50 unexplained
+    obj = ev["data"]["object"]
+    del obj["shipping_cost"]
+    obj["total_details"] = {"amount_tax": 0, "amount_shipping": 2500}
+    post_webhook(c, ev)
+    ship, events = shop.conn.execute("SELECT shipping, events FROM orders WHERE number = %s", (number,)).fetchone()
+    assert float(ship) == 25.0
+    assert any("CHECK TOTAL" in e["text"] and "+50.00" in e["text"] for e in events)

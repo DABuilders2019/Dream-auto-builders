@@ -387,7 +387,9 @@ def send_order_emails(request, o):
         text = _text(request, o, "confirm")
         if install:
             text += "\n\nNeed it installed? Shops near you (from Google Maps):\n" + "\n".join(
-                f"- {x['name']}, {x['address']}" for x in install["shops"]) + "\n" + install["disclaimer"] + \
+                f"- {x['name']}" + (f" (about {x['miles']:g} mi)" if x.get("miles") is not None else "")
+                + f", {x['address']}" + (f" [{x['closed']}]" if x.get("closed") else "")
+                for x in install["shops"]) + "\n" + install["disclaimer"] + \
                 f"\nPick the shop you'll use: {site_url(request)}/install/{install['token']}"
         if mailer.send(o["email"], f"Your Dream Auto Builders order {o['number']}", text,
                        _email(request, o, "confirm", install)):

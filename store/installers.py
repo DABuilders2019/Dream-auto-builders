@@ -14,7 +14,9 @@ Setup: GOOGLE_MAPS_API_KEY in Render (Places API (New) enabled). Without it, not
 Cost: one Text Search (Pro) call per list shown; Google's free allowance covers 5,000 a month.
 """
 import datetime as dt
+import functools
 import logging
+import math
 import os
 import secrets
 import threading
@@ -31,7 +33,8 @@ log = logging.getLogger("store.installers")
 
 SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 DETAILS_URL = "https://places.googleapis.com/v1/places/{}"
-FIELDS = "places.id,places.displayName,places.formattedAddress,places.googleMapsUri"       # Pro fields only
+FIELDS = ("places.id,places.displayName,places.formattedAddress,places.googleMapsUri,"     # Pro fields only
+          "places.location,places.businessStatus")
 DETAIL_FIELDS = "id,displayName,formattedAddress,googleMapsUri"
 DEFAULT_CATEGORIES = ["suspension", "exhaust", "brakes", "tires", "wheels", "intake", "engine", "drivetrain",
                       "exterior", "lighting", "performance"]
@@ -59,10 +62,47 @@ def _client():
     return httpx.Client(timeout=8, transport=_transport)
 
 
-def _shop(p):
+CLOSED = {"CLOSED_TEMPORARILY": "Temporarily closed",
+          "CLOSED_PERMANENTLY": "Permanently closed"}
+
+
+@functools.lru_cache(maxsize=4096)
+def zip_point(zip_):
+    """(lat, lng) of a US ZIP code's center from the bundled zipcodes data, or None. Used as the starting point
+    for shop distances, so no extra Google lookup is needed."""
+    z = (zip_ or "").strip()[:5]
+    if len(z) != 5 or not z.isdigit():
+        return None
+    try:
+        import zipcodes
+        m = zipcodes.matching(z)
+    except Exception:            # package missing or bad data: just no distances
+        return None
+    try:
+        return (float(m[0]["lat"]), float(m[0]["long"])) if m else None
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
+def miles(a, b):
+    """Straight-line distance in miles between two (lat, lng) points."""
+    (la1, lo1), (la2, lo2) = a, b
+    p1, p2 = math.radians(la1), math.radians(la2)
+    h = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lo2 - lo1) / 2) ** 2
+    return 3958.8 * 2 * math.asin(math.sqrt(h))
+
+
+def _shop(p, origin=None):
+    loc = p.get("location") or {}
+    dist = None
+    if origin and loc.get("latitude") is not None and loc.get("longitude") is not None:
+        dist = round(miles(origin, (loc["latitude"], loc["longitude"])), 1)
+    closed = CLOSED.get(p.get("businessStatus") or "")
     return {"id": p.get("id"), "name": (p.get("displayName") or {}).get("text") or "Repair shop",
             "address": p.get("formattedAddress") or "", "url": p.get("googleMapsUri") or
-            f"https://www.google.com/maps/search/?api=1&query=Google&query_place_id={p.get('id')}"}
+            f"https://www.google.com/maps/search/?api=1&query=Google&query_place_id={p.get('id')}",
+            "miles": dist, "closed": closed,
+            "why": f"Google Maps lists this shop as {closed.lower()}, so it can't take your install right now." if closed else None}
 
 
 def nearby(order):
@@ -71,15 +111,22 @@ def nearby(order):
     zip_, city, state = (a.get("postal_code") or "").strip(), (a.get("city") or "").strip(), (a.get("state") or "").strip()
     if not configured() or not (zip_ or city):
         return []
+    origin = zip_point(zip_)
     body = {"textQuery": f"auto repair shop near {city} {state} {zip_}".strip(), "includedType": "car_repair",
-            "pageSize": cfg()["count"], "regionCode": "US"}
+            "pageSize": cfg()["count"] + 2, "regionCode": "US"}     # a couple extra in case some are closed for good
+    if origin:   # keep results around the shipping address
+        body["locationBias"] = {"circle": {"center": {"latitude": origin[0], "longitude": origin[1]}, "radius": 25000.0}}
     try:
         with _client() as h:
             r = h.post(SEARCH_URL, json=body, headers={"X-Goog-Api-Key": api_key(), "X-Goog-FieldMask": FIELDS})
         if r.status_code != 200:
             log.warning("Google Places search answered %s: %s", r.status_code, r.text[:300])
             return []
-        return [_shop(p) for p in r.json().get("places") or [] if p.get("id")]
+        shops = [_shop(p, origin) for p in r.json().get("places") or [] if p.get("id")]
+        shops = [x for x in shops if x["closed"] != "Permanently closed"][:cfg()["count"]]
+        # open shops first, nearest first; temporarily closed ones last, with the reason shown
+        shops.sort(key=lambda x: (bool(x["closed"]), x["miles"] if x["miles"] is not None else 9e9))
+        return shops
     except httpx.HTTPError as e:
         log.warning("Google Places search failed: %s", e)
         return []
@@ -132,7 +179,11 @@ def for_order(conn, s, order):
     if not shops:
         return None
     fb = feedback_row(conn, order["id"], create=True)
-    return {"shops": shops, "picked": fb["place_id"], "token": fb["token"], "disclaimer": cfg()["disclaimer"]}
+    a = order.get("ship_address") or {}
+    return {"shops": shops, "picked": fb["place_id"], "token": fb["token"], "disclaimer": cfg()["disclaimer"],
+            "near": ", ".join(x for x in ((a.get("city") or "").strip(),
+                                          f"{(a.get('state') or '').strip()} {(a.get('postal_code') or '').strip()}".strip()) if x),
+            "has_miles": any(x.get("miles") is not None for x in shops)}
 
 
 # ------------------------------------------------------------------ customer pages

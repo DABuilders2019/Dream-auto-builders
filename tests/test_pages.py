@@ -130,3 +130,19 @@ def test_builder_page_and_saved_builds(client):
     r = client.post("/build/import", data={"pn": ["LV-200"], "qty": ["2"], "action": "cart"}, follow_redirects=False)
     assert r.headers["location"] == "/cart" and "LV-200" in client.get("/cart").text
     assert "None of the parts" in client.get("/build/import", params={"items": "XX-1"}).text
+
+
+def test_home_video_hero(client):
+    """The homepage opens with the full-screen video; the header turns see-through over it, other pages keep the plain header."""
+    import pathlib
+    home = client.get("/").text
+    assert 'class="has-hero"' in home and 'id="heroVideo"' in home
+    assert 'data-src="/static/video/hero-1080.mp4"' in home and 'data-src-small="/static/video/hero-720.mp4"' in home
+    assert 'class="logo-light"' in home and 'id="heroPause"' in home
+    assert home.count("<h1") == 1                      # the hero headline replaces the old tagline heading
+    assert 'class="has-hero"' not in client.get("/brands").text
+    static = pathlib.Path(__file__).resolve().parents[1] / "store" / "static"
+    for f in ("video/hero-1080.mp4", "video/hero-720.mp4", "video/hero-poster.jpg", "img/logo-header-light.png"):
+        assert (static / f).stat().st_size > 1000, f
+    r = client.get("/static/video/hero-720.mp4", headers={"Range": "bytes=0-99"})
+    assert r.status_code == 206 and len(r.content) == 100   # iPhones need byte ranges to play video

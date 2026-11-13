@@ -9,15 +9,16 @@
 <link rel="icon" type="image/png" href="/static/img/favicon.png">
 <link rel="preload" href="/static/fonts/barlow-condensed-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/static/fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/static/css/site.css?v=53">
+<link rel="stylesheet" href="/static/css/site.css?v=54">
+{% block head %}{% endblock %}
 </head>
-<body data-vehicle="{{ active.id if active else '' }}">
+<body class="{% block bodyclass %}{% endblock %}" data-vehicle="{{ active.id if active else '' }}">
 <a class="sr skip" href="#main">Skip to content</a>
 {% if preview() %}<div class="preview"><b>Test site</b> · Real catalog data from SEMA. {% if checkout_test() %}Payments are in Stripe test mode (no real charges); live stock isn't connected yet.{% else %}Checkout and live stock aren't connected yet.{% endif %}</div>{% endif %}
 
 <header class="top">
   <div class="wrap hdr">
-    <a class="logo" href="/" aria-label="Dream Auto Builders home"><img src="/static/img/logo-header.png?v=3" alt="Dream Auto Builders" width="182" height="60"></a>
+    <a class="logo" href="/" aria-label="Dream Auto Builders home"><img class="logo-dark" src="/static/img/logo-header.png?v=3" alt="Dream Auto Builders" width="182" height="60">{% block logo_light %}{% endblock %}</a>
     <div class="search" id="searchBox">
       <form id="searchForm" role="search" action="/search" method="get">
         <label for="q" class="sr">Search parts, categories, brands or part numbers</label>
@@ -67,7 +68,7 @@
 </footer>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="/static/js/site.js?v=9" defer></script>
+<script src="/static/js/site.js?v=10" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

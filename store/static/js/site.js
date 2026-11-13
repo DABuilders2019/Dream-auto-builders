@@ -262,6 +262,43 @@
     show(tabs[0]);
   }
 
+  /* ---------- home: full-screen video with the header see-through over it ---------- */
+  var hero = $('.vhero'), hdr = $('header.top');
+  if (hero && hdr) {
+    var setH = function () { document.documentElement.style.setProperty('--hdrH', hdr.offsetHeight + 'px'); };
+    var solid = function () {
+      var searching = document.activeElement && document.activeElement.id === 'q';
+      hdr.classList.toggle('solid', searching || window.scrollY > Math.min(120, hero.offsetHeight * 0.25));
+    };
+    setH(); solid();
+    window.addEventListener('resize', setH);
+    window.addEventListener('scroll', solid, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(setH).observe(hdr);
+    /* a search box with suggestions open is easier to read on the solid header */
+    hdr.addEventListener('focusin', solid);
+    hdr.addEventListener('focusout', function () { setTimeout(solid, 150); });
+
+    var vid = $('#heroVideo'), hp = $('#heroPause'), vPaused = reduceMotion;
+    if (vid) {
+      vid.muted = true;
+      var small = window.matchMedia('(max-width: 900px)').matches || (navigator.connection && navigator.connection.saveData);
+      vid.src = small ? vid.getAttribute('data-src-small') : vid.getAttribute('data-src');
+      var showBtn = function () {
+        if (!hp) return;
+        hp.innerHTML = hp.getAttribute(vPaused ? 'data-play' : 'data-pause');
+        hp.setAttribute('aria-label', vPaused ? 'Play background video' : 'Pause background video');
+      };
+      var tryPlay = function () { if (vPaused) return; var p = vid.play(); if (p && p.catch) p.catch(function () { vPaused = true; showBtn(); }); };
+      if (!vPaused) { vid.preload = 'auto'; tryPlay(); }
+      showBtn();
+      if (hp) hp.addEventListener('click', function () { vPaused = !vPaused; if (vPaused) vid.pause(); else tryPlay(); showBtn(); });
+      /* stop decoding while the video is scrolled out of view */
+      if (window.IntersectionObserver) new IntersectionObserver(function (es) {
+        es.forEach(function (e) { if (e.isIntersecting) tryPlay(); else vid.pause(); });
+      }, { threshold: 0.05 }).observe(hero);
+    }
+  }
+
   /* ---------- home: promo slideshow ---------- */
   var view = $('#pView');
   if (view) {

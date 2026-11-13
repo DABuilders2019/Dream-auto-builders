@@ -5,6 +5,17 @@
     "title_red": "you dream about.",
     "text": "Search thousands of parts from the brands you trust. Add your vehicle in the bar above and every page shows what fits it."
   },
+  "hero_video": {
+    "_comment": "Full-screen video at the top of the homepage; the header turns see-through over it. The headline and text come from 'tagline' above. Delete this block to go back to the plain tagline.",
+    "src": "/static/video/hero-1080.mp4",
+    "src_small": "/static/video/hero-720.mp4",
+    "poster": "/static/video/hero-poster.jpg",
+    "kicker": "Parts for every build",
+    "cta": "Shop all parts",
+    "cta_href": "/search",
+    "cta2": "Shop by brand",
+    "cta2_href": "/brands"
+  },
   "slides": [
     {
       "kicker": "ReadyLift Leveling Kits",

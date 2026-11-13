@@ -865,3 +865,54 @@ form.inline{display:inline}
 
 /* narrow cards (two across on phones): the button goes under the price, full width */
 @media (max-width:520px){.card .foot .addbtn,.card .foot form{width:100%}}
+
+/* ---- Homepage video hero: the header sits see-through over the video until you scroll ---- */
+.logo .logo-light{display:none}
+.vhero{position:relative;height:clamp(560px,100svh,980px);margin-top:calc(-1 * var(--hdrH,134px));background:#0b0b0c;color:#fff;overflow:hidden;isolation:isolate}
+.vhero-v{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+.vhero-shade{position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(90deg,rgba(0,0,0,.62) 0%,rgba(0,0,0,.28) 45%,rgba(0,0,0,0) 70%),
+  linear-gradient(0deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,0) 46%)}
+.vhero-copy{position:absolute;left:0;right:0;bottom:clamp(40px,8vh,88px);max-width:var(--wrap)}
+.vhero-kicker{display:inline-block;font-family:var(--display);text-transform:uppercase;font-weight:700;font-size:15px;letter-spacing:.18em;color:#fff;border-left:3px solid var(--red);padding-left:10px;margin-bottom:14px}
+.vhero h1{font-size:clamp(40px,5.4vw,80px);font-weight:800;line-height:.95;text-shadow:0 2px 24px rgba(0,0,0,.35)}
+.vhero h1 em{display:block;font-style:italic;color:#e3262e}
+.vhero p{margin-top:16px;max-width:48ch;font-size:17px;line-height:1.5;color:rgba(255,255,255,.86)}
+.vhero-ctas{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.vhero-btn{display:inline-flex;align-items:center;gap:6px;height:50px;padding:0 24px;border-radius:var(--radius);font-family:var(--display);text-transform:uppercase;font-weight:800;font-size:18px;letter-spacing:.06em;transition:background .15s,color .15s,border-color .15s}
+.vhero-btn.red{background:var(--red);color:#fff}
+.vhero-btn.red:hover{background:var(--red-deep)}
+.vhero-btn.ghost{border:1.5px solid rgba(255,255,255,.75);color:#fff}
+.vhero-btn.ghost:hover{background:#fff;color:#111;border-color:#fff}
+.vhero-pause{position:absolute;right:max(20px,calc((100% - var(--wrap)) / 2 + 20px));bottom:calc(clamp(40px,8vh,88px) + 6px);width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.45);background:rgba(0,0,0,.35);color:#fff;display:grid;place-items:center;cursor:pointer}
+.vhero-pause:hover{background:rgba(0,0,0,.6);border-color:#fff}
+
+/* header over the video (until the page is scrolled) */
+body.has-hero header.top{transition:background .25s,box-shadow .25s,border-color .25s}
+body.has-hero header.top:not(.solid){background:linear-gradient(180deg,rgba(0,0,0,.66) 0%,rgba(0,0,0,.28) 70%,rgba(0,0,0,0) 100%);box-shadow:none;border-bottom-color:transparent}
+body.has-hero header.top:not(.solid) .logo-dark{display:none}
+body.has-hero header.top:not(.solid) .logo-light{display:block;height:60px;width:auto}
+body.has-hero header.top:not(.solid) .hbtn{color:#fff}
+body.has-hero header.top:not(.solid) .hbtn .lbl small{color:rgba(255,255,255,.72)}
+body.has-hero header.top:not(.solid) .hbtn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)}
+body.has-hero header.top:not(.solid) .search form{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.28);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+body.has-hero header.top:not(.solid) .search form:focus-within{background:#fff;border-color:#fff}
+body.has-hero header.top:not(.solid) .search form:not(:focus-within) input{color:#fff}
+body.has-hero header.top:not(.solid) .search form:not(:focus-within) input::placeholder{color:rgba(255,255,255,.7)}
+body.has-hero header.top:not(.solid) .search form:not(:focus-within) button{color:rgba(255,255,255,.8)}
+body.has-hero header.top:not(.solid) .vbar{background:rgba(10,10,12,.32);border-bottom-color:rgba(255,255,255,.1);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#fff}
+body.has-hero header.top:not(.solid) .vbar .muted{color:rgba(255,255,255,.7)}
+body.has-hero header.top:not(.solid) select.ymm{color:#111}
+body.has-hero header.top:not(.solid) .vbar .linkbtn{color:#fff}
+body.has-hero header.top:not(.solid) .buildbtn{background:transparent;color:#fff;border-color:rgba(255,255,255,.55)}
+body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
+
+@media (max-width:720px){
+  .vhero{height:clamp(520px,92svh,760px)}
+  .vhero-shade{background:linear-gradient(0deg,rgba(0,0,0,.8) 0%,rgba(0,0,0,.35) 55%,rgba(0,0,0,.1) 100%)}
+  .vhero p{font-size:15.5px}
+  .vhero-btn{height:46px;padding:0 18px;font-size:16px}
+  .vhero-pause{right:14px;bottom:14px}
+  .vhero-copy{bottom:28px}
+  body.has-hero header.top:not(.solid) .logo-light{height:46px}
+}

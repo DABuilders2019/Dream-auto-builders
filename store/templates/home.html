@@ -1,6 +1,26 @@
 {% extends "base.html" %}
 {% from "_macros.html" import card, shopby with context %}
+{% set hv = cfg.hero_video %}
+{% block bodyclass %}{% if hv %}has-hero{% endif %}{% endblock %}
+{% block head %}{% if hv %}<link rel="preload" as="image" href="{{ hv.poster }}">{% endif %}{% endblock %}
+{% block logo_light %}{% if hv %}<img class="logo-light" src="/static/img/logo-header-light.png?v=1" alt="" width="182" height="60" aria-hidden="true">{% endif %}{% endblock %}
 {% block main %}
+{% if hv %}
+<section class="vhero" aria-label="Dream Auto Builders">
+  <video class="vhero-v" id="heroVideo" muted loop playsinline preload="none" poster="{{ hv.poster }}" data-src="{{ hv.src }}" data-src-small="{{ hv.src_small or hv.src }}" aria-hidden="true"></video>
+  <div class="vhero-shade" aria-hidden="true"></div>
+  <div class="wrap vhero-copy">
+    {% if hv.kicker %}<span class="vhero-kicker">{{ hv.kicker }}</span>{% endif %}
+    <h1>{{ cfg.tagline.title }} <em>{{ cfg.tagline.title_red }}</em></h1>
+    <p>{{ cfg.tagline.text }}</p>
+    <div class="vhero-ctas">
+      <a class="vhero-btn red" data-track="home hero: {{ hv.cta }}" href="{{ hv.cta_href }}">{{ hv.cta }} {{ icon('chevR', 18, 2.6) }}</a>
+      {% if hv.cta2 %}<a class="vhero-btn ghost" data-track="home hero: {{ hv.cta2 }}" href="{{ hv.cta2_href }}">{{ hv.cta2 }}</a>{% endif %}
+    </div>
+  </div>
+  <button type="button" class="vhero-pause" id="heroPause" aria-label="Pause background video" data-play="{{ icon('play', 16, 2.6)|forceescape }}" data-pause="{{ icon('pause', 16, 2.6)|forceescape }}">{{ icon('pause', 16, 2.6) }}</button>
+</section>
+{% endif %}
 {% if catalog_empty and preview() %}
 <div class="wrap"><div class="notice warn" style="margin-top:16px">{{ icon('info', 18) }} <span><b>No parts are loaded yet.</b> Sign in to the <a href="/admin" style="text-decoration:underline">admin page</a> and upload each brand's SEMA files (PIES, ACES and the Admark sheet). Brands, prices, photos and the vehicle list appear as soon as each brand finishes loading.</span></div></div>
 {% endif %}
@@ -23,7 +43,7 @@
 </div></section>
 {% endif %}
 
-<section class="tagline"><div class="wrap"><h1>{{ cfg.tagline.title }} <span>{{ cfg.tagline.title_red }}</span></h1><p>{{ cfg.tagline.text }}</p></div></section>
+{% if not hv %}<section class="tagline"><div class="wrap"><h1>{{ cfg.tagline.title }} <span>{{ cfg.tagline.title_red }}</span></h1><p>{{ cfg.tagline.text }}</p></div></section>{% endif %}
 
 <section class="band"><div class="wrap">{{ shopby('Featured Categories') }}
   <div class="catcards">

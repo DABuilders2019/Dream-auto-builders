@@ -933,8 +933,8 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 .orderview .ostatus{padding-top:0}
 
 /* ---- Shops near you (order page) ---- */
-.installers{margin:26px 0 6px;border:1px solid #cdcfd4;border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(17,17,19,.07);scroll-margin-top:170px}
-.inst-head{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;color:#fff;background:#000;border-bottom:3px solid var(--red);position:relative}
+.installers{margin:26px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;box-shadow:0 10px 30px rgba(17,17,19,.07);scroll-margin-top:170px}
+.inst-head{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;color:var(--text);background:var(--panel);border-bottom:1px solid var(--line);position:relative}
 .inst-badge{width:52px;height:52px;border-radius:50%;background:var(--red);display:grid;place-items:center;flex:none;position:relative}
 .inst-badge::after{content:"";position:absolute;inset:-6px;border-radius:50%;border:2px solid rgba(227,38,46,.55);animation:instring 2.2s ease-out infinite}
 @keyframes instring{0%{transform:scale(.85);opacity:1}100%{transform:scale(1.35);opacity:0}}
@@ -949,7 +949,7 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 .inst-info{display:grid;gap:3px;min-width:0}
 .inst-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .inst-name b{font-size:16px}
-.inst-mi{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:11px;background:#111113;color:#fff;font-size:12.5px;font-weight:700}
+.inst-mi{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:11px;background:var(--panel);border:1px solid var(--line);color:var(--text);font-size:12.5px;font-weight:700}
 .inst-tag{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:11px;font-size:12.5px;font-weight:700}
 .inst-tag.ok{background:#e3f4ea;color:#0f6b33}
 .inst-tag.no{background:#fdeaea;color:#a61b1b}
@@ -962,9 +962,9 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 .inst-list li.closed{border-color:#f0b9bb;background:#fff7f7}
 .inst-list li.closed .inst-name b{color:#7a2a2d}
 .inst-note{display:flex;gap:6px;align-items:center;margin-top:8px;font-size:13.5px;color:var(--text)}
-.inst-num{min-width:22px;height:22px;border-radius:11px;background:#111113;color:#fff;font-size:12.5px;font-weight:700;display:inline-grid;place-items:center;padding:0 6px;flex:none}
-.inst-list li.on .inst-num{background:var(--ok)}
-.inst-list li.closed .inst-num{background:#a61b1b}
+.inst-num{min-width:22px;height:22px;border-radius:11px;background:var(--panel-2);border:1px solid var(--line);color:var(--text);font-size:12.5px;font-weight:700;display:inline-grid;place-items:center;padding:0 6px;flex:none}
+.inst-list li.on .inst-num{background:var(--ok);border-color:var(--ok);color:#fff}
+.inst-list li.closed .inst-num{background:#a61b1b;border-color:#a61b1b;color:#fff}
 .inst-stars{display:inline-flex;align-items:center;gap:3px;font-size:14px;font-weight:700;color:#111113}
 .inst-stars small{font-weight:500;color:var(--muted);font-size:12.5px}
 .inst-star{color:#e8a200;font-size:15px;line-height:1}
@@ -990,32 +990,8 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 
 /* trust badges under the cart lines */
 .cotrust{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.cotrust li{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius);background:#e9eaed;border:1.5px solid #c3c6cc;color:var(--text);box-shadow:0 3px 10px rgba(17,17,19,.07);position:relative;overflow:hidden}
+.cotrust li{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--radius);background:var(--panel);border:1px solid var(--line);color:var(--text);position:relative;overflow:hidden}
 .cotrust svg{color:var(--red);flex:none;margin-top:1px}
 .cotrust b{display:block;font-family:var(--display);text-transform:uppercase;letter-spacing:.04em;font-size:16px}
 .cotrust span{display:block;color:var(--muted);font-size:13px;line-height:1.4;margin-top:2px}
 @media (max-width:720px){.cotrust{grid-template-columns:1fr}}
-
-/* black header for "Need it installed?" */
-.inst-head .inst-kicker{color:#ff8a8f}
-.installers .inst-head h2{color:#fff}
-.inst-head p{color:rgba(255,255,255,.8)}
-.inst-head p b{color:#fff}
-.inst-head .inst-note{color:rgba(255,255,255,.9)}
-.installers{border-color:#000;box-shadow:0 12px 28px rgba(0,0,0,.14)}
-
-/* black order summary (cart and order pages) */
-.cart .summary{background:#000;border:1px solid #000;border-top:4px solid var(--red);color:#fff;box-shadow:0 12px 28px rgba(0,0,0,.22)}
-.cart .summary h2,.cart .summary h3,.cart .summary b,.cart .summary label{color:#fff}
-.cart .summary .row.total{border-top-color:rgba(255,255,255,.22)}
-.cart .summary .addr,.cart .summary .muted,.cart .summary small,.cart .summary .secure,.cart .summary .freenote,.cart .summary p{color:rgba(255,255,255,.75)}
-.cart .summary .shipopts{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2)}
-.cart .summary .shipopts li+li{border-top-color:rgba(255,255,255,.15)}
-.cart .summary .shipopts li,.cart .summary .shipopts b{color:#fff}
-.cart .summary a:not(.btn){color:#fff}
-.cart .summary .btn-ghost{background:#fff;color:#111113;border-color:#fff}
-.cart .summary .btn-ghost:hover{background:#e9e9ec}
-.cart .summary input[type=text],.cart .summary input:not([type]),.cart .summary input[inputmode]{background:#fff;color:#111113}
-.cart .summary .btn:disabled{background:#5a2023;color:rgba(255,255,255,.6)}
-.cart .summary .cartacct,.cart .summary .cartsigned{color:#fff}
-.cart .summary .notice{color:var(--text)}.cart .summary .notice b{color:var(--text)}

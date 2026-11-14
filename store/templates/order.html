@@ -7,7 +7,7 @@
   {% set band_sub %}Your order <b>{{ o.number }}</b> is confirmed{% if o.email %} and a confirmation is on its way to <b>{{ o.email }}</b>{% endif %}. We'll email you the tracking number as soon as it ships.{% endset %}
   {% set band_cta = ('Find a shop to install it', '#install') if install else none %}
 {% elif o.status in ('awaiting_freight', 'freight_quoted') %}
-  {% set band_step, band_ok = 2, true %}
+  {% set band_step, band_ok = 2, o.status == 'awaiting_freight' %}
   {% set band_title = ('Order reserved' ~ (', ' ~ o.name.split(' ')[0] if o.name else '') ~ '!') if o.status == 'awaiting_freight' else 'Your freight price is ready' %}
   {% set band_sub %}{% if o.status == 'awaiting_freight' %}Order <b>{{ o.number }}</b> is reserved. Part of it ships by freight, so we're getting the price for your address and will email it to {% if o.email %}<b>{{ o.email }}</b>{% else %}you{% endif %}, usually within 1 business day.{% else %}Approve the freight price below and we'll place your order.{% endif %}{% endset %}
   {% set band_cta = ('Approve freight price', '#freight') if o.status == 'freight_quoted' else none %}

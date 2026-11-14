@@ -40,7 +40,7 @@ def shop(conn, tmp_path, monkeypatch):
     monkeypatch.setattr(stripe.checkout.Session, "retrieve", staticmethod(
         lambda sid, api_key=None: {"id": sid, "payment_status": "unpaid", "status": "open", "metadata": {}}))
     monkeypatch.setattr(stripe.Refund, "create", staticmethod(lambda **kw: refunds.append(kw) or {"id": "re_1"}))
-    monkeypatch.setattr(mailer, "_deliver", lambda msg: emails.append((msg["To"], msg["Subject"])))
+    monkeypatch.setattr(mailer, "_deliver", lambda msg, on_done=None: (emails.append((msg["To"], msg["Subject"])), on_done and on_done(True, "")))
 
     from store.app import create_app
     app = create_app(conn.info.dsn)

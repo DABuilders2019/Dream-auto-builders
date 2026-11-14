@@ -37,7 +37,8 @@ def notify_address():
     return _env("ORDER_NOTIFY_EMAIL")
 
 
-def send(to, subject, text, html=None, wait=False):
+def send(to, subject, text, html=None, wait=False, on_done=None):
+    """Queue an email. on_done(ok, error_text) is called from the sending thread once the mail service answers."""
     if not to or not configured():
         return False
     msg = email.message.EmailMessage()
@@ -47,14 +48,15 @@ def send(to, subject, text, html=None, wait=False):
     msg.set_content(text)
     if html:
         msg.add_alternative(html, subtype="html")
-    t = threading.Thread(target=_deliver, args=(msg,), daemon=True)
+    t = threading.Thread(target=_deliver, args=(msg, on_done), daemon=True)
     t.start()
     if wait:
         t.join(30)
     return True
 
 
-def _deliver(msg):
+def _deliver(msg, on_done=None):
+    ok, err = False, ""
     try:
         port = int(_env("SMTP_PORT", "587"))
         cls = smtplib.SMTP_SSL if port == 465 else smtplib.SMTP
@@ -66,9 +68,16 @@ def _deliver(msg):
             s.send_message(msg)
         sent.append((msg["To"], msg["Subject"]))
         recent.append((time.time(), msg["To"], msg["Subject"], True, ""))
+        ok = True
     except Exception as e:     # noqa: BLE001 - a mail problem must never break an order
-        recent.append((time.time(), msg["To"], msg["Subject"], False, _why(e)[:300]))
+        err = _why(e)[:300]
+        recent.append((time.time(), msg["To"], msg["Subject"], False, err))
         log.exception("could not send email %r to %s", msg["Subject"], msg["To"])
+    if on_done:
+        try:
+            on_done(ok, err)
+        except Exception:      # noqa: BLE001
+            log.exception("email callback failed")
 
 
 def test_send(to):

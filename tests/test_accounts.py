@@ -15,7 +15,7 @@ from test_checkout import paid_event, pid, post_webhook, shop  # noqa: F401  (fi
 @pytest.fixture
 def mails(monkeypatch):
     got = []
-    monkeypatch.setattr(mailer, "_deliver", lambda msg: got.append(msg))
+    monkeypatch.setattr(mailer, "_deliver", lambda msg, on_done=None: (got.append(msg), on_done and on_done(True, "")))
     for lim in (accounts.login_fail_email, accounts.login_fail_ip, accounts.signup_ip):
         lim.hits.clear()
     accounts._synced.clear()

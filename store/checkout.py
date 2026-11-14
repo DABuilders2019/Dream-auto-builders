@@ -392,12 +392,22 @@ def send_order_emails(request, o):
                 + f", {x['address']}" + (f" [{x['closed']}]" if x.get("closed") else "")
                 for x in install["shops"]) + "\n" + install["disclaimer"] + \
                 f"\nPick the shop you'll use: {site_url(request)}/install/{install['token']}"
-        if mailer.send(o["email"], f"Your Dream Auto Builders order {o['number']}", text,
-                       _email(request, o, "confirm", install)):
-            O.add_event(conn, o["id"], f"Order confirmation emailed to {o['email']}")
+        def noted(what, to):
+            def done(ok, err):        # runs once the email service answers, so the order history tells the truth
+                with st.pool.connection() as c2:
+                    O.add_event(c2, o["id"], f"{what} emailed to {to}" if ok else f"{what} NOT delivered to {to}: {err}")
+            return done
+        if not o.get("email"):
+            O.add_event(conn, o["id"], "Order confirmation not sent: Stripe gave no customer email")
+        else:
+            mailer.send(o["email"], f"Your Dream Auto Builders order {o['number']}", text,
+                        _email(request, o, "confirm", install), on_done=noted("Order confirmation", o["email"]))
         if mailer.notify_address():
             mailer.send(mailer.notify_address(), f"New order {o['number']}" + (" (ON HOLD)" if o["status"] == "on_hold" else "")
-                        + f": {web.money(o['total'])}", _text(request, o, "notify"), _email(request, o, "notify"))
+                        + f": {web.money(o['total'])}", _text(request, o, "notify"), _email(request, o, "notify"),
+                        on_done=noted("New-order notice", mailer.notify_address()))
+        else:
+            O.add_event(conn, o["id"], "New-order notice not sent: ORDER_NOTIFY_EMAIL isn't set in Render > Environment")
 
 
 def send_shipped_email(request, o):

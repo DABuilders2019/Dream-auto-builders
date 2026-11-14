@@ -51,7 +51,7 @@ def test_launch_check(shop, monkeypatch):
     assert "Database" in page and "Photo disk" in page
 
     # sample emails: each one sent, result shown per email
-    def deliver(msg):
+    def deliver(msg, on_done=None):
         mailer.recent.append((time.time(), msg["To"], msg["Subject"], msg["To"] != "bounce@example.com", "" if msg["To"] != "bounce@example.com" else "550: no"))
     monkeypatch.setattr(mailer, "_deliver", deliver)
     page = html.unescape(c.post("/admin/launch/emails", data={"to": "me@example.com", "kinds": ["code", "pm_alert", "reminder"]}).text)

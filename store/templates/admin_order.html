@@ -14,8 +14,8 @@
       <div><h3>Customer</h3><p>{{ o.name or '' }}<br>{{ o.email or '' }}<br>{{ o.phone or '' }}</p>
         {% if o.vehicle %}<p class="muted">Shopping for: {{ o.vehicle }}</p>{% endif %}</div>
       <div><h3>Ship to</h3>{% set a = o.ship_address or {} %}<p>{{ a.name or '' }}<br>{{ a.line1 or '' }}{% if a.line2 %}<br>{{ a.line2 }}{% endif %}<br>{{ a.city or '' }}{% if a.city %},{% endif %} {{ a.state or '' }} {{ a.postal_code or '' }}<br>{{ a.country or '' }}</p></div>
-      <div><h3>Payment</h3><p class="num">Subtotal {{ money(o.subtotal) }}<br>Shipping {{ money(o.shipping or 0) }}<br>Tax {{ money(o.tax or 0) }}<br><b>Total {{ money(o.total) if o.total is not none else '-' }}</b></p>
-        {% if o.payment_intent %}<p class="muted">Stripe payment {{ o.payment_intent }}</p>{% endif %}</div>
+      <div><h3>Payment</h3><p class="num">Subtotal {{ money(o.subtotal) }}<br>{{ 'Freight' if o.freight else 'Shipping' }} {{ money(o.shipping or 0) if o.shipping is not none else ('quote ' ~ money(o.freight_quote) if o.freight_quote else 'not priced yet') }}<br>Tax {{ money(o.tax or 0) }}<br><b>Total {{ money(o.total) if o.total is not none else '-' }}</b></p>
+        {% if o.payment_intent %}<p class="muted">Stripe payment {{ o.payment_intent }}{% if o.status in ('awaiting_freight', 'freight_quoted') %} (held, not charged){% endif %}{% if o.freight_payment %}<br>Freight payment {{ o.freight_payment }}{% endif %}</p>{% endif %}</div>
     </div>
     <div class="tblwrap" style="margin-top:14px"><table class="tbl num">
       <thead><tr><th>Qty</th><th>Brand</th><th>Part #</th><th>Part</th><th>Each</th><th>Total</th></tr></thead>
@@ -23,6 +23,25 @@
         <td>{{ it.title }}{% if it.emissions == 'federal_only' %}<br><span class="em no">Federal only (not CARB)</span>{% endif %}</td><td>{{ money(it.unit_price) }}</td><td>{{ money(it.line_total) }}</td></tr>{% endfor %}</tbody>
     </table></div>
   </section>
+
+  {% if o.status in ('awaiting_freight', 'freight_quoted') %}
+  <section class="acard" id="freight">
+    <h2>Freight price</h2>
+    <p>{{ money(o.total or o.subtotal) }} is <b>held</b> on the customer's card (not charged){% if o.hold_placed_at %} since {{ o.hold_placed_at.strftime('%b %-d, %-I:%M %p') }} UTC{% endif %}.
+      Get the freight price for the ship-to address above and send it. The customer gets an email to approve it; approving charges the freight
+      and the parts. Holds last about a week, so the order cancels itself (hold released) {{ freight_days }} days after the order if it isn't approved.</p>
+    {% if o.status == 'freight_quoted' %}<p class="notice">{{ icon('info', 18) }} <span>Sent {{ money(o.freight_quote) }}{% if o.freight_note %} ({{ o.freight_note }}){% endif %}{% if o.freight_quoted_at %} on {{ o.freight_quoted_at.strftime('%b %-d, %-I:%M %p') }} UTC{% endif %}. Waiting for the customer. Sending a new price replaces it and emails them again.</span></p>{% endif %}
+    <form method="post" action="/admin/orders/{{ o.number }}/freight-quote" class="shipform">
+      <div class="formrow"><label for="fq"><b>Freight price ($)</b></label><input id="fq" name="amount" inputmode="decimal" required placeholder="e.g. 249.00" value="{{ '%.2f'|format(o.freight_quote) if o.freight_quote else '' }}"></div>
+      <div class="formrow"><label for="fn"><b>Note for the customer (optional)</b></label><input id="fn" name="note" maxlength="200" placeholder="e.g. Liftgate delivery, 5-7 business days" value="{{ o.freight_note or '' }}"></div>
+      <button class="btn btn-red" type="submit">{{ 'Send new price' if o.status == 'freight_quoted' else 'Send freight price to customer' }}</button>
+    </form>
+    <form method="post" action="/admin/orders/{{ o.number }}/freight-cancel" style="margin-top:16px">
+      <label class="check"><input type="checkbox" name="confirm" value="1"> Cancel this order and release the hold (the customer is emailed)</label>
+      <button class="btn btn-ghost btn-sm" type="submit">Cancel order</button>
+    </form>
+  </section>
+  {% endif %}
 
   {% if o.status in ('paid', 'shipped') %}
   <section class="acard">

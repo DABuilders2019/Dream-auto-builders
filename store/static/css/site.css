@@ -477,6 +477,7 @@ body.gate{background:var(--panel);min-height:100vh;display:grid;place-items:cent
 .ost{display:inline-block;font-family:var(--body);text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:700;border-radius:4px;padding:3px 8px;background:var(--panel-2);color:var(--muted);vertical-align:middle}
 .ost.paid{background:#eaf1fb;color:#1d4f91}.ost.shipped{background:#e6f5ec;color:#0f6b33}.ost.on_hold,.ost.payment_failed{background:#fdeaea;color:#a61b1b}
 .ost.refunded,.ost.cancelled{background:var(--panel-2);color:var(--muted)}.ost.pending{background:#fff3e0;color:#8a4d00}
+.ost.awaiting_freight,.ost.freight_quoted{background:#fff3e0;color:#8a4d00}
 .ogrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:10px}
 .ogrid h3{font-size:15px;letter-spacing:.06em;margin-bottom:4px}
 .ogrid p{font-size:14px;line-height:1.5}
@@ -995,3 +996,25 @@ body.has-hero header.top:not(.solid) .buildbtn:hover{background:#fff;color:#111}
 .cotrust b{display:block;font-family:var(--display);text-transform:uppercase;letter-spacing:.04em;font-size:16px}
 .cotrust span{display:block;color:var(--muted);font-size:13px;line-height:1.4;margin-top:2px}
 @media (max-width:720px){.cotrust{grid-template-columns:1fr}}
+
+/* ---- Freight orders: parts held until the customer approves the freight price ---- */
+.frbox{margin:22px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;scroll-margin-top:170px}
+.frbox.quoted{border-color:var(--red);box-shadow:0 0 0 3px rgba(168,19,26,.1)}
+.frbox-head{display:flex;gap:16px;align-items:flex-start;padding:20px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
+.frbox-ic{width:52px;height:52px;border-radius:50%;background:var(--red);color:#fff;display:grid;place-items:center;flex:none}
+.frbox h2{font-family:var(--display);text-transform:uppercase;font-size:clamp(24px,2.6vw,30px);line-height:1.05;margin:2px 0 6px}
+.frbox-head p{color:var(--muted);font-size:14.5px;line-height:1.45;max-width:64ch}
+.frbox-head p b{color:var(--text)}
+.frbox-msg{margin:14px 18px 0}
+.frbox-body{padding:16px 22px 18px;display:grid;gap:12px}
+.frbox-sum{list-style:none;margin:0;padding:0;max-width:420px}
+.frbox-sum li{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);font-size:15px}
+.frbox-sum li.tot{border-bottom:0;font-size:18px}
+.frbox-hold{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:var(--radius);background:#fff7eb;border:1px solid #f1cf98;font-size:14px;line-height:1.45}
+.frbox-hold svg{flex:none;margin-top:2px;color:#9a5b00}
+.frbox-acts{display:flex;gap:10px;flex-wrap:wrap}
+.frbox-acts form{margin:0}
+.frbox-acts .btn{display:inline-flex;gap:6px;align-items:center}
+.freight-cta{margin-top:10px;padding:10px 12px;border-radius:var(--radius);background:#fff7eb;border:1px solid #f1cf98;font-size:13.5px;line-height:1.45}
+.freight-cta b{color:var(--text)}
+@media (max-width:720px){.frbox-head{padding:16px}.frbox-body{padding:14px 16px}.frbox-acts .btn{width:100%;justify-content:center}.frbox-acts form{flex:1 1 100%}}

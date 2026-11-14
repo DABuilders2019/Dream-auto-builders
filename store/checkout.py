@@ -16,7 +16,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.concurrency import run_in_threadpool
 
-from . import accounts, installers, mailer, pricematch, shipping, tracking, ups, web
+from . import accounts, freight, installers, mailer, pricematch, shipping, tracking, ups, web
 from . import orders as O
 
 router = APIRouter()
@@ -82,9 +82,8 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
             if not ship_zip:
                 return _cart_redirect("Enter your ZIP code to see shipping prices.")
             q = shipping.quote(conn, lines, ship_zip, cfg)
-            if q["big"]:
-                return _cart_redirect("Part of your order is too big for UPS and ships by freight. Contact us for a freight quote.")
             state = ups.state_for_zip(ship_zip)
+        is_freight = bool(q and q["big"])
         if any(l["emissions"] == "federal_only" for l in lines):
             if state not in O.US_STATES:
                 return _cart_redirect("Choose the state you're shipping to. Some catalytic converters can't ship to every state.")
@@ -95,7 +94,10 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
         aid = web.active_id(request)
         vehicle = next((v["label"] for v in web.garage_vehicles(conn, request) if v["id"] == aid), None)
         note = f"shipping to {state}" if state else None
-        if q:
+        if is_freight:
+            note = (f"freight: {', '.join(b['title'] for b in q['big'])[:200]} too big for UPS; "
+                    f"parts held, freight to be quoted to ZIP {ship_zip}")
+        elif q:
             note = (f"UPS prices quoted to ZIP {ship_zip}" if q["live"]
                     else f"UPS didn't answer ({q['error']}); standard shipping offered to ZIP {ship_zip}")
         pm_ids = pricematch.ids_in(prods)
@@ -149,6 +151,8 @@ def checkout(request: Request, ship_state: str = Form(""), save_account: str = F
             "success_url": f"{base}/order/{number}?session_id={{CHECKOUT_SESSION_ID}}",
             "cancel_url": f"{base}/cart?cancelled=1",
         }
+        if is_freight:
+            params = freight.checkout_params(params, has_customer="customer" in params)
         try:
             try:
                 session = stripe.checkout.Session.create(api_key=stripe_key(), **params)
@@ -188,11 +192,11 @@ def order_page(request: Request, number: str, session_id: str = ""):
                 sd = sess.to_dict() if hasattr(sess, "to_dict") else dict(sess)
                 o2, new = O.complete(conn, sd)
                 if new:
-                    on_paid(request, conn, o2, sd)
+                    after_checkout(request, conn, o2, sd)
                 o = o2 or o
             except stripe.StripeError:
                 pass
-        if o["status"] in ("paid", "on_hold", "shipped"):
+        if o["status"] in ("paid", "on_hold", "shipped", "awaiting_freight", "freight_quoted"):
             remember_order(request, o["number"])
             if session_id:
                 web.save_cart(request, {})
@@ -200,7 +204,8 @@ def order_page(request: Request, number: str, session_id: str = ""):
             it["image_url"] = s.storage.url(it["main_image"]) if it.get("main_image") else None
         install = installers.for_order(conn, s, o)
         return web.render(request, conn, s, "order.html", o=o, title=f"Order {o['number']}", states=O.US_STATES,
-                          install=install, picked=request.query_params.get("picked"))
+                          install=install, picked=request.query_params.get("picked"),
+                          freight_msg=request.query_params.get("freight"), freight_days=freight.CANCEL_AFTER_DAYS)
 
 
 @router.post("/track")
@@ -239,9 +244,12 @@ def handle_event(request, event):
     st = web._state(request)
     with st.pool.connection() as conn:
         if kind in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+            if (s.get("metadata") or {}).get("kind") == "freight":       # freight paid on the Stripe page
+                freight.freight_paid_on_stripe_page(conn, s, site_url(request), request)
+                return
             o, new = O.complete(conn, s)
             if new:
-                on_paid(request, conn, o, s)
+                after_checkout(request, conn, o, s)
             elif o is None and s.get("payment_status") == "paid":
                 unmatched_payment(request, s)
         else:
@@ -271,6 +279,20 @@ def _customer_params(conn, acct):
             return {"customer_email": acct["email"]}
     return {"customer": cid, "customer_update": {"name": "auto", "address": "auto", "shipping": "auto"},
             "saved_payment_method_options": {"payment_method_save": "enabled"}}
+
+
+def after_checkout(request, conn, o, s):
+    if o["status"] == "awaiting_freight":
+        pm = (s.get("metadata") or {}).get("price_matches") or ""
+        pricematch.mark_used(conn, [int(x) for x in pm.split(",") if x.strip().isdigit()], o["id"])
+        freight.on_reserved(conn, o, site_url(request))
+        if (s.get("metadata") or {}).get("save_account") == "1":
+            try:
+                accounts.save_at_checkout(conn, o, s)
+            except Exception:       # noqa: BLE001
+                log.warning("account at checkout not made", exc_info=True)
+        return
+    on_paid(request, conn, o, s)
 
 
 def on_paid(request, conn, o, s):

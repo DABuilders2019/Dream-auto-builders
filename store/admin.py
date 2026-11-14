@@ -407,8 +407,9 @@ def order_detail(request: Request, number: str, error: str = "", done: str = "")
         o = O.get(conn, number=number)
     if not o:
         return web.not_found(request)
+    from . import freight
     return _page(request, "admin_order.html", title=f"Order {o['number']}", o=o, money=web.money, carriers=CARRIERS,
-                 error=error, done=done, section="orders", states=O.US_STATES)
+                 error=error, done=done, section="orders", states=O.US_STATES, freight_days=freight.CANCEL_AFTER_DAYS)
 
 
 def _order_back(number, error="", done=""):
@@ -473,10 +474,56 @@ def order_refund(request: Request, number: str, confirm: str = Form("")):
         try:
             stripe.Refund.create(payment_intent=o["payment_intent"], api_key=checkout.stripe_key(),
                                  metadata={"order_number": o["number"]})
+            if o.get("freight_payment"):          # freight orders: the freight was a separate charge
+                stripe.Refund.create(payment_intent=o["freight_payment"], api_key=checkout.stripe_key(),
+                                     metadata={"order_number": o["number"], "kind": "freight"})
         except stripe.StripeError as e:
             return _order_back(number, error=f"Stripe couldn't refund it: {e.user_message or e}")
         O.set_status(conn, o["id"], "refunded", f"Refunded in full ({web.money(o['total'])})")
     return _order_back(number, done="Refunded in full. The customer sees it on their card in 5 to 10 days.")
+
+
+@router.post("/orders/{number}/freight-quote")
+def order_freight_quote(request: Request, number: str, amount: str = Form(""), note: str = Form("")):
+    """Freight orders: send the customer the freight price to approve."""
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import freight, orders as O
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        o = O.get(conn, number=number)
+        if not o:
+            return web.not_found(request)
+        if o["status"] not in freight.OPEN:
+            return _order_back(number, error="This order isn't waiting for a freight price.")
+        try:
+            value = round(float(amount.replace("$", "").replace(",", "").strip()), 2)
+        except ValueError:
+            value = -1
+        if value < 0 or value > 20000:
+            return _order_back(number, error="Enter the freight price in dollars, e.g. 249.00.")
+        freight.send_quote(conn, o, value, note.strip()[:200], freight._site(request))
+    return _order_back(number, done=f"Freight price {web.money(value)} sent to the customer to approve.")
+
+
+@router.post("/orders/{number}/freight-cancel")
+def order_freight_cancel(request: Request, number: str, confirm: str = Form("")):
+    stop = _guard(request)
+    if stop:
+        return stop
+    from . import freight, orders as O
+    st = web._state(request)
+    with st.pool.connection() as conn:
+        o = O.get(conn, number=number)
+        if not o:
+            return web.not_found(request)
+        if not confirm:
+            return _order_back(number, error="Tick the box to confirm cancelling.")
+        if o["status"] not in freight.OPEN:
+            return _order_back(number, error="This order isn't an open freight order.")
+        freight.cancel(conn, o, "cancelled by Dream Auto Builders", freight._site(request))
+    return _order_back(number, done="Cancelled. The hold was released and the customer was emailed.")
 
 
 # ------------------------------------------------------------------ Turn 14

@@ -1,0 +1,46 @@
+{# Freight orders (store/freight.py): the parts are held on the card until the customer approves the freight price. #}
+{% set a = o.ship_address or {} %}
+{% set parts = o.total or o.subtotal %}
+<section class="frbox{{ ' quoted' if o.status == 'freight_quoted' }}" id="freight">
+  <div class="frbox-head">
+    <span class="frbox-ic" aria-hidden="true">{{ icon('truck', 24, 2) }}</span>
+    <div>
+      <span class="inst-kicker">Freight shipping</span>
+      {% if o.status == 'awaiting_freight' %}
+        <h2>Freight price coming</h2>
+        <p>Part of your order is too big for UPS, so it ships by freight truck. We're getting the price to
+          {% if a.city %}<b>{{ a.city }}, {{ a.state }} {{ a.postal_code }}</b>{% else %}your address{% endif %} and will email it to you, usually within 1 business day.</p>
+      {% elif o.status == 'freight_quoted' %}
+        <h2>Approve your freight price</h2>
+        <p>Freight to {% if a.city %}<b>{{ a.city }}, {{ a.state }} {{ a.postal_code }}</b>{% else %}your address{% endif %}{% if o.freight_note %} ({{ o.freight_note }}){% endif %}.</p>
+      {% elif o.status == 'cancelled' %}
+        <h2>Order cancelled</h2>
+        <p>The hold on your card has been released and you weren't charged. Depending on your bank, the pending amount can take a few days to disappear.</p>
+      {% else %}
+        <h2>Freight price approved</h2>
+        <p>Thanks! Your order is placed and we'll email the tracking details when it ships.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% if freight_msg == 'problem' %}<p class="notice warn frbox-msg">{{ icon('info', 18) }} <span>We couldn't complete the payment just now. Please try again, or reply to our email and we'll help.</span></p>{% endif %}
+  {% if freight_msg == 'paid' and o.status == 'freight_quoted' %}<p class="notice frbox-msg">{{ icon('info', 18) }} <span>Thanks, we're confirming your payment. This page updates in a moment.</span></p><meta http-equiv="refresh" content="5">{% endif %}
+  {% if o.status in ('awaiting_freight', 'freight_quoted') %}
+  <div class="frbox-body">
+    <ul class="frbox-sum num">
+      <li><span>Parts{% if o.tax %} and sales tax{% endif %}</span><b>{{ money(parts) }}</b></li>
+      <li><span>Freight shipping</span><b>{{ money(o.freight_quote) if o.status == 'freight_quoted' else 'Coming soon' }}</b></li>
+      {% if o.status == 'freight_quoted' %}<li class="tot"><span>New total</span><b>{{ money(parts + o.freight_quote) }}</b></li>{% endif %}
+    </ul>
+    <p class="frbox-hold">{{ icon('lock', 16) }} <span>We placed a temporary hold of <b class="num">{{ money(parts) }}</b> on your card for the parts. <b>You won't be charged until you approve the freight price.</b></span></p>
+    {% if o.status == 'freight_quoted' %}
+    <div class="frbox-acts">
+      <form method="post" action="/freight/{{ o.freight_token }}/approve"><button class="btn btn-red" type="submit">{{ icon('checkc', 18) }} Approve and pay {{ money(parts + o.freight_quote) }}</button></form>
+      <form method="post" action="/freight/{{ o.freight_token }}/cancel"><button class="btn btn-ghost" type="submit">Cancel order</button></form>
+    </div>
+    <p class="muted small">Approving charges your card for the parts and the freight. Cancelling releases the hold. If we don't hear back within {{ freight_days }} days of your order, it's cancelled and the hold released automatically.</p>
+    {% else %}
+    <p class="muted small">Changed your mind? You can cancel once you see the price, and the hold is released.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>

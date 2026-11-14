@@ -19,7 +19,8 @@ US_STATES = {
     "WV": "West Virginia", "WI": "Wisconsin", "WY": "Wyoming",
 }
 STATUS_LABELS = {"pending": "Waiting for payment", "paid": "Paid, being prepared", "on_hold": "On hold",
-                 "shipped": "Shipped", "cancelled": "Cancelled", "refunded": "Refunded", "payment_failed": "Payment failed"}
+                 "shipped": "Shipped", "cancelled": "Cancelled", "refunded": "Refunded", "payment_failed": "Payment failed",
+                 "awaiting_freight": "Reserved, waiting for freight price", "freight_quoted": "Freight price sent, waiting for approval"}
 
 
 def store_config():
@@ -82,8 +83,8 @@ def get(conn, number=None, order_id=None, session_id=None):
                     (o["id"],))
         icols = [c.name for c in cur.description]
         o["items"] = [dict(zip(icols, x)) for x in cur.fetchall()]
-    for k in ("subtotal", "shipping", "tax", "total"):
-        o[k] = float(o[k]) if o[k] is not None else None
+    for k in ("subtotal", "shipping", "tax", "total", "freight_quote"):
+        o[k] = float(o[k]) if o.get(k) is not None else None
     for it in o["items"]:
         it["unit_price"] = float(it["unit_price"])
         it["line_total"] = round(it["unit_price"] * it["qty"], 2)
@@ -139,6 +140,8 @@ def complete(conn, s, cfg=None):
     revivable = o["status"] == "cancelled" and o.get("abandoned_at") is not None
     if o["status"] != "pending" and not revivable:
         return o, False
+    if meta.get("freight") == "1":
+        return _freight_hold(conn, o, s, cfg)
     paid = s.get("payment_status") in ("paid", "no_payment_required")
     if not paid:
         if s.get("status") == "complete":
@@ -186,3 +189,34 @@ def set_status(conn, order_id, status, text, **fields):
     conn.execute(f"UPDATE orders SET status = %s{', ' + sets if sets else ''}, updated_at = now() WHERE id = %s",
                  (status, *fields.values(), order_id))
     add_event(conn, order_id, text)
+
+
+def _freight_hold(conn, o, s, cfg):
+    """A freight checkout finished: the parts are HELD on the card (not charged) until the customer approves the
+    freight price (store/freight.py). Returns (order, newly_reserved)."""
+    import secrets
+    if s.get("status") != "complete":
+        return get(conn, order_id=o["id"]), False
+    name, addr = _shipping_details(s)
+    cd = s.get("customer_details") or {}
+    totals = s.get("total_details") or {}
+    customer = s.get("customer")
+    customer = customer.get("id") if isinstance(customer, dict) else customer
+    with conn.transaction():
+        cur = conn.execute("""UPDATE orders SET status = 'awaiting_freight', freight = true, freight_token = %s,
+                                  payment_intent = %s, stripe_customer = %s, email = %s, name = %s, phone = %s,
+                                  ship_address = %s, shipping = NULL, tax = %s, total = %s, currency = %s,
+                                  hold_placed_at = now(), updated_at = now()
+                              WHERE id = %s AND status = 'pending'""",
+                           (secrets.token_urlsafe(18), s.get("payment_intent"), customer, cd.get("email"),
+                            name or cd.get("name"), cd.get("phone"), Jsonb({**addr, "name": name}),
+                            _cents(totals.get("amount_tax")), _cents(s.get("amount_total")), s.get("currency") or "usd", o["id"]))
+        if cur.rowcount == 0:
+            return get(conn, order_id=o["id"]), False
+        add_event(conn, o["id"], f"Freight order: {_cents(s.get('amount_total')):.2f} {(s.get('currency') or 'usd').upper()} "
+                                 "HELD on the card (not charged). Enter the freight price to send the customer a quote.")
+        blocked = carb_problem(o["items"], addr.get("state"), cfg)
+        if blocked:
+            add_event(conn, o["id"], f"CHECK: ships to {addr.get('state')}, where these catalytic converters aren't legal: "
+                                     + ", ".join(f"{b['brand_name']} {b['part_number']}" for b in blocked) + ". Cancel instead of quoting.")
+    return get(conn, order_id=o["id"]), True

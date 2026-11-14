@@ -56,3 +56,22 @@ is declined. No money moves in test mode.
 - Live stock from the distributor feeds.
 
 Customer accounts: see [ACCOUNTS.md](ACCOUNTS.md).
+
+## Freight orders (parts too big for UPS)
+
+When the cart has a part UPS can't take (store/shipping.py `too_big`), checkout still goes ahead:
+
+1. The button says **Reserve order, get freight price**, with the line *"We'll place a temporary hold on your card
+   for the parts. You won't be charged until you approve the freight price."* (also shown on Stripe's pay button).
+   Stripe places a **hold** for the parts and tax (`capture_method=manual`) and saves the card (`setup_future_usage`).
+2. The order is **Reserved, waiting for freight price**. The customer and ORDER_NOTIFY_EMAIL get emails.
+3. Admin > Orders > the order > **Freight price**: enter the price (and an optional note) and send it. The customer
+   gets an email with **Approve and pay** / **Cancel order** (link `/freight/<token>`, works on any device).
+4. **Approve**: the freight is charged to the saved card, then the parts hold is captured; the order becomes Paid and
+   the normal confirmation emails go out. If the bank wants the customer to confirm, they're sent to a Stripe page for
+   the freight and the webhook finishes it. If the hold had expired, the parts are charged to the saved card instead.
+5. **Cancel**, by the customer or in Admin: the hold is released, nothing is charged.
+
+Card holds last about 7 days, so: the owner gets a reminder after 24 hours without a price, the customer a reminder
+48 hours after the price, and the order cancels itself (hold released) 5 days after checkout (`store/freight.py`).
+A refund in Admin refunds both the parts and the freight charge. Sales tax is on the parts only.

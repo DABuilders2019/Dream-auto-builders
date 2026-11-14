@@ -6,6 +6,11 @@
   {% set band_title = 'Thank you' ~ (', ' ~ o.name.split(' ')[0] if o.name else '') ~ '!' %}
   {% set band_sub %}Your order <b>{{ o.number }}</b> is confirmed{% if o.email %} and a confirmation is on its way to <b>{{ o.email }}</b>{% endif %}. We'll email you the tracking number as soon as it ships.{% endset %}
   {% set band_cta = ('Find a shop to install it', '#install') if install else none %}
+{% elif o.status in ('awaiting_freight', 'freight_quoted') %}
+  {% set band_step, band_ok = 2, true %}
+  {% set band_title = ('Order reserved' ~ (', ' ~ o.name.split(' ')[0] if o.name else '') ~ '!') if o.status == 'awaiting_freight' else 'Your freight price is ready' %}
+  {% set band_sub %}{% if o.status == 'awaiting_freight' %}Order <b>{{ o.number }}</b> is reserved. Part of it ships by freight, so we're getting the price for your address and will email it to {% if o.email %}<b>{{ o.email }}</b>{% else %}you{% endif %}, usually within 1 business day.{% else %}Approve the freight price below and we'll place your order.{% endif %}{% endset %}
+  {% set band_cta = ('Approve freight price', '#freight') if o.status == 'freight_quoted' else none %}
 {% elif o.status == 'pending' %}
   {% set band_step, band_ok, band_title, band_cta = 2, false, 'Finishing your order…', none %}
   {% set band_sub %}Your payment is still being confirmed. This page updates when it's done.{% endset %}
@@ -26,12 +31,18 @@
           <div class="sub num">{{ it.brand_name }} · Part # {{ it.part_number }} · {{ it.qty }} × {{ money(it.unit_price) }}</div></div>
         <div class="r"><b class="num">{{ money(it.line_total) }}</b></div></div>
       {% endfor %}
+      {% if o.freight and (o.status in ('awaiting_freight', 'freight_quoted') or freight_msg) %}{% include "_freight_box.html" %}{% endif %}
       {% if install %}{% include "_installers.html" %}{% endif %}
     </div>
     <aside class="summary"><h2>Summary</h2>
       <div class="row num"><span>Subtotal</span><span>{{ money(o.subtotal) }}</span></div>
-      {% if o.total is not none %}
-      <div class="row num"><span>Shipping</span><span>{{ 'Free' if not o.shipping else money(o.shipping) }}</span></div>
+      {% if o.status in ('awaiting_freight', 'freight_quoted') %}
+      <div class="row num"><span>Sales tax</span><span>{{ money(o.tax or 0) }}</span></div>
+      <div class="row num"><span>Freight shipping</span><span>{{ money(o.freight_quote) if o.status == 'freight_quoted' else 'Price coming' }}</span></div>
+      <div class="row total num"><span>{{ 'New total' if o.status == 'freight_quoted' else 'Held for parts' }}</span><span>{{ money((o.total or o.subtotal) + (o.freight_quote or 0)) }}</span></div>
+      <p class="muted small" style="margin:6px 0 0">Not charged yet: a temporary hold only.</p>
+      {% elif o.total is not none and not (o.freight and o.status == 'cancelled') %}
+      <div class="row num"><span>{{ 'Freight shipping' if o.freight else 'Shipping' }}</span><span>{{ 'Free' if not o.shipping else money(o.shipping) }}</span></div>
       <div class="row num"><span>Sales tax</span><span>{{ money(o.tax or 0) }}</span></div>
       <div class="row total num"><span>Total paid</span><span>{{ money(o.total) }}</span></div>
       {% endif %}

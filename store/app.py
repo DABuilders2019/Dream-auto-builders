@@ -46,7 +46,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from importer import db as importer_db
 from importer import load as importer_load
-from . import accounts, admin, banner_schedule, builds, checkout, installers, launchcheck, pricematch, sema_schedule, tracking, turn14_schedule
+from . import accounts, admin, banner_schedule, builds, checkout, freight, installers, launchcheck, pricematch, sema_schedule, tracking, turn14_schedule
 from . import vehicles as veh
 from . import web
 from .jobs import Jobs
@@ -134,12 +134,14 @@ def create_app(dsn=None):
         stop_t14 = turn14_schedule.launch(state)
         stop_sema = sema_schedule.launch(state)
         stop_surveys = installers.launch(state)
+        stop_freight = freight.launch(state)
         stop_tracking = tracking.cleanup_loop(state)
         stop_banners = banner_schedule.launch(state)
         yield
         stop_t14.set()
         stop_sema.set()
         stop_surveys.set()
+        stop_freight.set()
         stop_tracking.set()
         stop_banners.set()
         state.pool.close()
@@ -209,6 +211,7 @@ def create_app(dsn=None):
     app.include_router(admin.router)
     app.include_router(checkout.router)
     app.include_router(installers.router)
+    app.include_router(freight.router)
     app.include_router(tracking.router)
     app.include_router(builds.router)
     app.include_router(accounts.router)

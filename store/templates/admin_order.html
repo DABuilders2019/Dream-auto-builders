@@ -14,7 +14,7 @@
       <div><h3>Customer</h3><p>{{ o.name or '' }}<br>{{ o.email or '' }}<br>{{ o.phone or '' }}</p>
         {% if o.vehicle %}<p class="muted">Shopping for: {{ o.vehicle }}</p>{% endif %}</div>
       <div><h3>Ship to</h3>{% set a = o.ship_address or {} %}<p>{{ a.name or '' }}<br>{{ a.line1 or '' }}{% if a.line2 %}<br>{{ a.line2 }}{% endif %}<br>{{ a.city or '' }}{% if a.city %},{% endif %} {{ a.state or '' }} {{ a.postal_code or '' }}<br>{{ a.country or '' }}</p></div>
-      <div><h3>Payment</h3><p class="num">Subtotal {{ money(o.subtotal) }}<br>{{ 'Freight' if o.freight else 'Shipping' }} {{ money(o.shipping or 0) if o.shipping is not none else ('quote ' ~ money(o.freight_quote) if o.freight_quote else 'not priced yet') }}<br>Tax {{ money(o.tax or 0) }}<br><b>Total {{ money(o.total) if o.total is not none else '-' }}</b></p>
+      <div><h3>Payment</h3><p class="num">Subtotal {{ money(o.subtotal) }}<br>{{ 'Freight' if o.freight else 'Shipping' }} {{ money(o.shipping or 0) if o.shipping is not none else ('quote ' ~ money(o.freight_quote) if o.freight_quote else 'not priced yet') }}<br>Tax {{ money(o.tax or 0) }}<br><b>{{ 'Held' if o.status in ('awaiting_freight', 'freight_quoted') else 'Total' }} {{ money(o.total) if o.total is not none else '-' }}</b></p>
         {% if o.payment_intent %}<p class="muted">Stripe payment {{ o.payment_intent }}{% if o.status in ('awaiting_freight', 'freight_quoted') %} (held, not charged){% endif %}{% if o.freight_payment %}<br>Freight payment {{ o.freight_payment }}{% endif %}</p>{% endif %}</div>
     </div>
     <div class="tblwrap" style="margin-top:14px"><table class="tbl num">

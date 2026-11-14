@@ -58,7 +58,7 @@ def held_event(session_id, order_id, total=99995):
 def reserve(s):
     c = s.c
     cart = html.unescape(c.get("/cart").text)
-    assert "Reserve order, get freight price" in cart and freight.MESSAGE in cart
+    assert "Reserve order</button>" in cart and freight.MESSAGE in cart
     r = c.post("/checkout", follow_redirects=False)
     assert r.status_code == 303
     params = s.created[-1]

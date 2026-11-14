@@ -13,6 +13,6 @@
         <span class="costep-dot">{% if n < band_step or (n == 3 and band_step == 3) %}{{ icon('check', 14, 3) }}{% else %}{{ n }}{% endif %}</span>{{ label }}</li>
       {% endfor %}
     </ol>
-    {% if band_cta %}<a class="coband-cta" href="{{ band_cta[1] }}">{{ icon('wrench', 18, 2.2) }} {{ band_cta[0] }} {{ icon('chevD', 16, 2.6) }}</a>{% endif %}
+    {% if band_cta %}<a class="coband-cta" href="{{ band_cta[1] }}">{{ icon('truck' if band_cta[1] == '#freight' else 'wrench', 18, 2.2) }} {{ band_cta[0] }} {{ icon('chevD', 16, 2.6) }}</a>{% endif %}
   </div>
 </section>

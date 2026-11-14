@@ -29,7 +29,8 @@
     {% endfor %}
     <ul class="cotrust">
       <li>{{ icon('checkc', 24, 1.8) }}<div><b>Fitment checked</b><span>Every part is matched to the manufacturer's fitment data.</span></div></li>
-      <li>{{ icon('truck', 24, 1.8) }}<div><b>Free shipping{% if free_over %} over ${{ '{:,.0f}'.format(free_over) if free_over == free_over|round else '{:,.2f}'.format(free_over) }}{% endif %}</b><span>Ships from distributor warehouses across the U.S.</span></div></li>
+      {% if ship_quote and ship_quote.big %}<li>{{ icon('truck', 24, 1.8) }}<div><b>Freight priced for you</b><span>We quote the truck freight to your address. Nothing's charged until you approve.</span></div></li>
+      {% else %}<li>{{ icon('truck', 24, 1.8) }}<div><b>Free shipping{% if free_over %} over ${{ '{:,.0f}'.format(free_over) if free_over == free_over|round else '{:,.2f}'.format(free_over) }}{% endif %}</b><span>Ships from distributor warehouses across the U.S.</span></div></li>{% endif %}
       <li>{{ icon('refundc', 24, 1.8) }}<div><b>30-day returns</b><span>Unused parts in original packaging.</span></div></li>
       <li>{{ icon('lock', 24, 1.8) }}<div><b>Secure checkout</b><span>Payments handled by Stripe. We never see your card.</span></div></li>
     </ul>
@@ -49,7 +50,7 @@
     {% if ship_quote %}
       {% if ship_quote.big %}
       <div class="notice warn" style="margin-top:10px">{{ icon('truck', 18) }} <span>{% for b in ship_quote.big %}<b>{{ b.title }}</b>{{ ', ' if not loop.last }}{% endfor %} {{ 'is' if ship_quote.big|length == 1 else 'are' }} too big for UPS and {{ 'ships' if ship_quote.big|length == 1 else 'ship' }} by freight. Reserve your order now and we'll email you the freight price for your address, usually within 1 business day.</span></div>
-      <p class="freight-cta">{{ icon('lock', 15) }} <b>We'll place a temporary hold on your card for the parts. You won't be charged until you approve the freight price.</b></p>
+      <p class="freight-cta"><b>We'll place a temporary hold on your card for the parts. You won't be charged until you approve the freight price.</b></p>
       {% else %}
       <ul class="shipopts">{% for o in ship_quote.options %}<li><span>{{ o.name }}{% if o.days %} <small>{{ o.days }} business day{{ 's' if o.days|int != 1 }}</small>{% endif %}</span><b class="num">{{ 'Free' if o.amount == 0 else o.amount|money }}</b></li>{% endfor %}</ul>
       {% set fr = ship_quote.free %}
@@ -84,7 +85,8 @@
           <small>No password needed: sign in later with a code we email you. See your orders and keep your garage on any device.</small></span></label>
       {% endif %}
       {% if ship_live and ship_quote and ship_quote.big %}
-      <button class="btn btn-red" type="submit"{% if not checkout_ready %} disabled{% endif %}>{{ icon('lock', 18) }} Reserve order, get freight price</button>
+      <button class="btn btn-red" type="submit"{% if not checkout_ready %} disabled{% endif %}>{{ icon('lock', 18) }} Reserve order</button>
+      <p class="muted small" style="text-align:center;margin:6px 0 0">You'll get the freight price by email to approve.</p>
       {% else %}
       <button class="btn btn-red" type="submit"{% if not checkout_ready or (ship_live and not ship_quote) %} disabled{% endif %}>{{ icon('lock', 18) }} Secure checkout</button>
       {% endif %}

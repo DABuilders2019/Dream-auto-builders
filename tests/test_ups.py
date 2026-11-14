@@ -130,7 +130,7 @@ def test_freight_parts_block_checkout(shop, keys, monkeypatch, conn):
     conn.commit()
     c.post("/cart/add", data={"product_id": p, "qty": 1})
     page = c.post("/cart/zip", data={"zip": "30309"}, follow_redirects=True).text
-    assert "Reserve order, get freight price" in page
+    assert "Reserve order</button>" in page
 
 
 def test_dims_and_limits():
